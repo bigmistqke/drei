@@ -71,6 +71,7 @@ export const CameraControls: RefComponent<CameraControlsImpl, CameraControlsProp
   ])
   const store = useThree()
   const explCamera = () => props.camera || store.camera
+
   const explDomElement = () => (props.domElement || store.events.connected || store.gl.domElement) as HTMLElement
 
   const controls = createMemo(() => new CameraControlsImpl(explCamera()))
@@ -86,7 +87,10 @@ export const CameraControls: RefComponent<CameraControlsImpl, CameraControlsProp
 
   createEffect(() => {
     const callback = (e) => {
-      store.invalidate()
+      // s3f    we do not pass invalidate to Portals
+      //        so it was sometimes undefined
+      //        also unclear what invalidate actually does bc it works without it too
+      store.invalidate?.()
       if (props.regress) store.performance.regress()
       if (props.onChange) props.onChange(e)
     }
