@@ -1,7 +1,17 @@
 // SpotLight Inspired by http://john-chapman-graphics.blogspot.com/2013/01/good-enough-volumetrics-for-spotlights.html
 
 import { Primitive, T, ThreeProps, useFrame, useThree } from '@solid-three/fiber'
-import { ParentProps, Show, createEffect, createMemo, createRenderEffect, createSignal } from 'solid-js'
+import {
+  ParentProps,
+  createContext,
+  createEffect,
+  createMemo,
+  createRenderEffect,
+  on,
+  onCleanup,
+  onMount,
+  useContext,
+} from 'solid-js'
 import {
   CylinderGeometry,
   DepthTexture,
@@ -24,6 +34,7 @@ import { SpotLightMaterial } from '../materials/SpotLightMaterial'
 
 // eslint-disable-next-line
 // @ts-ignore
+import { createRef } from '../helpers/createRef'
 import SpotlightShadowShader from '../helpers/glsl/DefaultSpotlightShadowShadows.glsl'
 import { processProps } from '../helpers/processProps'
 import { RefComponent } from '../helpers/typeHelpers'
@@ -96,31 +107,31 @@ function VolumetricMesh(_props: Omit<SpotLightProps, 'volumetric'>) {
   )
 }
 
-function useCommon(spotlight: SpotLightImpl, mesh: Mesh, width: number, height: number, distance: number) {
+function useCommon(arg: { spotlight: SpotLightImpl; mesh: Mesh; width: number; height: number; distance: number }) {
   const [pos, dir] = [new Vector3(), new Vector3()]
 
   createRenderEffect(() => {
-    if (isSpotLight(spotlight)) {
-      spotlight.shadow.mapSize.set(width, height)
-      spotlight.shadow.needsUpdate = true
+    if (isSpotLight(arg.spotlight)) {
+      arg.spotlight.shadow.mapSize.set(arg.width, arg.height)
+      arg.spotlight.shadow.needsUpdate = true
     } else {
       throw new Error('SpotlightShadow must be a child of a SpotLight')
     }
-  }, [spotlight, width, height])
+  })
 
   useFrame(() => {
-    if (!spotlight) return
+    if (!arg.mesh) return
 
-    const A = spotlight.position
-    const B = spotlight.target.position
+    const A = arg.spotlight.position
+    const B = arg.spotlight.target.position
 
     dir.copy(B).sub(A)
     var len = dir.length()
-    dir.normalize().multiplyScalar(len * distance)
+    dir.normalize().multiplyScalar(len * arg.distance)
     pos.copy(A).add(dir)
 
-    mesh.position.copy(pos)
-    mesh.lookAt(spotlight.target.position)
+    arg.mesh.position.copy(pos)
+    arg.mesh.lookAt(arg.spotlight.target.position)
   })
 }
 
@@ -134,7 +145,9 @@ interface ShadowMeshProps {
   height?: number
 }
 
-function SpotlightShadowWithShader(_props: ParentProps<ShadowMeshProps>) {
+function SpotlightShadowWithShader(
+  _props: ParentProps<ShadowMeshProps> & { spotlight: SpotLightImpl; debug: boolean }
+) {
   const [props, rest] = processProps(
     _props,
     {
@@ -148,11 +161,25 @@ function SpotlightShadowWithShader(_props: ParentProps<ShadowMeshProps>) {
     ['distance', 'alphaTest', 'map', 'shader', 'width', 'height', 'scale', 'children']
   )
 
-  const mesh: Mesh = null!
-  const spotlight = (rest as any).spotlightRef
-  const debug = (rest as any).debug
+  let mesh: Mesh = null!
 
-  useCommon(spotlight, mesh, props.width, props.height, props.distance)
+  onMount(() =>
+    useCommon({
+      mesh,
+      get spotlight() {
+        return rest.spotlight
+      },
+      get width() {
+        return props.width
+      },
+      get height() {
+        return props.height
+      },
+      get distance() {
+        return props.distance
+      },
+    })
+  )
 
   const renderTarget = createMemo(
     () =>
@@ -161,8 +188,7 @@ function SpotlightShadowWithShader(_props: ParentProps<ShadowMeshProps>) {
         encoding: LinearEncoding,
         stencilBuffer: false,
         // depthTexture: null!
-      }),
-    [props.width, props.height]
+      })
   )
 
   let uniforms = {
@@ -196,14 +222,15 @@ function SpotlightShadowWithShader(_props: ParentProps<ShadowMeshProps>) {
   )
 
   createEffect(
-    () => () => {
-      fsQuad().material.dispose()
-      fsQuad().dispose()
-    },
-    [fsQuad]
+    on(fsQuad, (fsQuad) =>
+      onCleanup(() => {
+        fsQuad.material.dispose()
+        fsQuad.dispose()
+      })
+    )
   )
 
-  createEffect(() => () => renderTarget().dispose(), [renderTarget])
+  createEffect(on(renderTarget, (renderTarget) => onCleanup(() => renderTarget.dispose())))
 
   useFrame(({ gl }, dt) => {
     uniforms.uTime.value += dt
@@ -224,7 +251,7 @@ function SpotlightShadowWithShader(_props: ParentProps<ShadowMeshProps>) {
           alphaMap={renderTarget().texture}
           alphaMap-wrapS={RepeatWrapping}
           alphaMap-wrapT={RepeatWrapping}
-          opacity={debug ? 1 : 0}
+          opacity={rest.debug ? 1 : 0}
         >
           {props.children}
         </T.MeshBasicMaterial>
@@ -233,7 +260,9 @@ function SpotlightShadowWithShader(_props: ParentProps<ShadowMeshProps>) {
   )
 }
 
-function SpotlightShadowWithoutShader(_props: ParentProps<ShadowMeshProps>) {
+function SpotlightShadowWithoutShader(
+  _props: ParentProps<ShadowMeshProps> & { spotlight: SpotLightImpl; debug: boolean }
+) {
   const [props, rest] = processProps(
     _props,
     {
@@ -246,10 +275,24 @@ function SpotlightShadowWithoutShader(_props: ParentProps<ShadowMeshProps>) {
   )
 
   let mesh: Mesh = null!
-  const spotlight = (rest as any).spotlightRef
-  const debug = (rest as any).debug
 
-  useCommon(spotlight, mesh, props.width, props.height, props.distance)
+  onMount(() =>
+    useCommon({
+      mesh,
+      get spotlight() {
+        return rest.spotlight
+      },
+      get width() {
+        return props.width
+      },
+      get height() {
+        return props.height
+      },
+      get distance() {
+        return props.distance
+      },
+    })
+  )
 
   return (
     <>
@@ -262,7 +305,7 @@ function SpotlightShadowWithoutShader(_props: ParentProps<ShadowMeshProps>) {
           alphaMap={props.map}
           alphaMap-wrapS={RepeatWrapping}
           alphaMap-wrapT={RepeatWrapping}
-          opacity={debug ? 1 : 0}
+          opacity={rest.debug ? 1 : 0}
         >
           {props.children}
         </T.MeshBasicMaterial>
@@ -272,11 +315,18 @@ function SpotlightShadowWithoutShader(_props: ParentProps<ShadowMeshProps>) {
 }
 
 export function SpotLightShadow(props: ParentProps<ShadowMeshProps>) {
-  if (props.shader) return <SpotlightShadowWithShader {...props} />
-  return <SpotlightShadowWithoutShader {...props} />
+  const context = useSpotLightContext()
+  if (!context) {
+    throw 'SpotLightShadow should be sibling of SpotLight'
+  }
+  if (props.shader) return <SpotlightShadowWithShader {...props} {...context} />
+  return <SpotlightShadowWithoutShader {...props} {...context} />
 }
 
-const SpotLight: RefComponent<SpotLightImpl, ParentProps<SpotLightProps>> = (_props) => {
+const spotLightContext = createContext<{ spotlight: SpotLightImpl; debug: boolean }>()
+const useSpotLightContext = () => useContext(spotLightContext)
+
+const SpotLight: RefComponent<SpotLightImpl, SpotLightProps> = (_props) => {
   const [props, rest] = processProps(
     _props,
     {
@@ -306,13 +356,12 @@ const SpotLight: RefComponent<SpotLightImpl, ParentProps<SpotLightProps>> = (_pr
     ]
   )
 
-  const [spotlight, setSpotlight] = createSignal<SpotLightImpl>()
-
+  // const [spotlight, setSpotlight] = createSignal<SpotLightImpl>(null!)
+  let spotlight = createRef<SpotLightImpl>(null!)
   return (
     <T.Group>
-      <Show when={spotlight()}>{(spotlight) => <T.SpotLightHelper args={[spotlight()]} />}</Show>
       <T.SpotLight
-        ref={mergeRefs(props, setSpotlight)}
+        ref={mergeRefs(props, spotlight)}
         angle={props.angle}
         color={props.color}
         distance={props.distance}
@@ -334,12 +383,17 @@ const SpotLight: RefComponent<SpotLightImpl, ParentProps<SpotLightProps>> = (_pr
           />
         )}
       </T.SpotLight>
-      {/* s3f   React.cloneElement alternative? */}
-      {props.children &&
-        React.cloneElement(props.children as any, {
-          spotlightRef: spotlight,
-          debug: props.debug,
-        })}
+      <spotLightContext.Provider
+        value={{
+          spotlight: spotlight.ref!,
+          get debug() {
+            return props.debug
+          },
+        }}
+      >
+        {props.children}
+      </spotLightContext.Provider>
+      <T.SpotLightHelper args={[spotlight.ref]} />
     </T.Group>
   )
 }

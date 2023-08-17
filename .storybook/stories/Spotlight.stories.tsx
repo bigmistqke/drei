@@ -71,15 +71,30 @@ function SpotLightShadowsScene({ debug, wind }: { debug: boolean; wind: boolean 
   ])
 
   createRenderEffect(() => {
-    for (const tex of texs) {
-      when(tex)((tex) => {
-        tex.wrapS = tex.wrapT = RepeatWrapping
-        tex.repeat.set(2, 2)
-      })
-    }
+    when(texs)((texs) => {
+      for (const tex of texs) {
+        when(tex)((tex) => {
+          tex.wrapS = tex.wrapT = RepeatWrapping
+          tex.repeat.set(2, 2)
+        })
+      }
+    })
   })
 
-  const [diffuse, normal, roughness, ao] = texs
+  const texture = () =>
+    when(texs)(([diffuse, normal, roughness, ao]) => ({
+      diffuse,
+      normal,
+      roughness,
+      ao,
+    })) || {
+      diffuse: undefined,
+      normal: undefined,
+      roughness: undefined,
+      ao: undefined,
+    }
+
+  // const [diffuse, normal, roughness, ao] = texs
 
   const leafTexture = useTexture('/textures/other/leaves.jpg')
 
@@ -106,10 +121,10 @@ function SpotLightShadowsScene({ debug, wind }: { debug: boolean; wind: boolean 
 
       <Circle receiveShadow args={[5, 64, 64]} rotation-x={-Math.PI / 2}>
         <T.MeshStandardMaterial
-          map={diffuse()} //
-          normalMap={normal()}
-          roughnessMap={roughness()}
-          aoMap={ao()}
+          map={texture().diffuse} //
+          normalMap={texture().normal}
+          roughnessMap={texture().roughness}
+          aoMap={texture().ao}
           envMapIntensity={0.2}
         />
       </Circle>
@@ -132,20 +147,20 @@ function SpotLightShadowsScene({ debug, wind }: { debug: boolean; wind: boolean 
           shader={
             wind
               ? /* glsl */ `
-            varying vec2 vUv;
-            uniform sampler2D uShadowMap;
-            uniform float uTime;
-            void main() {
-              // material.repeat.set(2.5) - Since repeat is a shader feature not texture
-              // we need to implement it manually
-              vec2 uv = mod(vUv, 0.4) * 2.5;
-              // Fake wind distortion
-              uv.x += sin(uv.y * 10.0 + uTime * 0.5) * 0.02;
-              uv.y += sin(uv.x * 10.0 + uTime * 0.5) * 0.02;
-              vec3 color = texture2D(uShadowMap, uv).xyz;
-              gl_FragColor = vec4(color, 1.);
-            }
-          `
+          varying vec2 vUv;
+          uniform sampler2D uShadowMap;
+          uniform float uTime;
+          void main() {
+            // material.repeat.set(2.5) - Since repeat is a shader feature not texture
+            // we need to implement it manually
+            vec2 uv = mod(vUv, 0.4) * 2.5;
+            // Fake wind distortion
+            uv.x += sin(uv.y * 10.0 + uTime * 0.5) * 0.02;
+            uv.y += sin(uv.x * 10.0 + uTime * 0.5) * 0.02;
+            vec3 color = texture2D(uShadowMap, uv).xyz;
+            gl_FragColor = vec4(color, 1.);
+          }
+        `
               : undefined
           }
         />
