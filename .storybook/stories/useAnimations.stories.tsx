@@ -1,10 +1,11 @@
-import * as React from 'react'
+import { number, select, withKnobs } from '@storybook/addon-knobs'
+import { Resource, Show, createEffect, createSignal } from 'solid-js'
 import { Vector3 } from 'three'
 import { GLTF } from 'three-stdlib'
-import { withKnobs, select, number } from '@storybook/addon-knobs'
 
 import { Setup } from '../Setup'
 
+import { Primitive, T, ThreeProps } from '@solid-three/fiber'
 import { useAnimations, useGLTF, useMatcapTexture } from '../../src'
 
 export default {
@@ -26,15 +27,15 @@ type GLTFResult = GLTF & {
 }
 
 type AnimationControllerProps = {
-  ybotRef: React.MutableRefObject<THREE.Group | undefined | null>
+  ybotRef: THREE.Group | undefined | null
   animations: THREE.AnimationClip[]
 }
 
 function AnimationController(props: AnimationControllerProps) {
-  const { actions } = useAnimations(props.animations, props.ybotRef)
+  const animations = useAnimations(props.animations, () => props.ybotRef)
 
   // Storybook Knobs
-  const actionOptions = Object.keys(actions)
+  const actionOptions = Object.keys(animations().actions)
   const selectedAction = select('Animation', actionOptions, actionOptions[2])
   const blendDuration = number('Blend duration', 0.5, {
     range: true,
@@ -43,46 +44,52 @@ function AnimationController(props: AnimationControllerProps) {
     step: 0.1,
   })
 
-  React.useEffect(() => {
-    actions[selectedAction]?.reset().fadeIn(blendDuration).play()
-    return () => void actions[selectedAction]?.fadeOut(blendDuration)
-  }, [actions, selectedAction, blendDuration])
+  createEffect(() => {
+    const keys = Object.keys(animations().actions)
+
+    animations().actions[keys[2]]?.reset().fadeIn(blendDuration).play()
+    return () => void animations().actions[selectedAction]?.fadeOut(blendDuration)
+  })
 
   return null
 }
 
-function YBotModel(props: JSX.IntrinsicElements['group']) {
-  const ybotRef = React.useRef<THREE.Group>(null)
-  const { nodes, animations } = useGLTF('ybot.glb') as GLTFResult
+function YBotModel(props: ThreeProps<'Group'>) {
+  const [ybotRef, setYbotRef] = createSignal<THREE.Group>()
+  const gltf = useGLTF('ybot.glb') as Resource<GLTFResult>
   const [matcapBody] = useMatcapTexture('293534_B2BFC5_738289_8A9AA7', 1024)
   const [matcapJoints] = useMatcapTexture('3A2412_A78B5F_705434_836C47', 1024)
 
+  // s3f    is somehow a lot lighter with the inner `T.Suspense`
+  //        unclear reason why
   return (
-    <>
-      <group ref={ybotRef} {...props} dispose={null}>
-        <group rotation={[Math.PI / 2, 0, 0]} scale={[0.01, 0.01, 0.01]}>
-          <primitive object={nodes.mixamorigHips} />
-          <skinnedMesh geometry={nodes.YB_Body.geometry} skeleton={nodes.YB_Body.skeleton}>
-            <meshMatcapMaterial matcap={matcapBody} skinning />
-          </skinnedMesh>
-          <skinnedMesh geometry={nodes.YB_Joints.geometry} skeleton={nodes.YB_Joints.skeleton}>
-            <meshMatcapMaterial matcap={matcapJoints} skinning />
-          </skinnedMesh>
-        </group>
-      </group>
-
-      <AnimationController ybotRef={ybotRef} animations={animations} />
-    </>
+    // <T.Suspense>
+    <T.Group ref={setYbotRef} {...props} dispose={null}>
+      <T.Group rotation={[Math.PI / 2, 0, 0]} scale={[0.01, 0.01, 0.01]}>
+        <Primitive object={gltf()?.nodes.mixamorigHips} />
+        <T.SkinnedMesh geometry={gltf()?.nodes.YB_Body.geometry} skeleton={gltf()?.nodes.YB_Body.skeleton}>
+          {/* s3f   skinning-prop is undefined */}
+          <T.MeshMatcapMaterial matcap={matcapBody()} skinning />
+        </T.SkinnedMesh>
+        <T.SkinnedMesh geometry={gltf()?.nodes.YB_Joints.geometry} skeleton={gltf()?.nodes.YB_Joints.skeleton}>
+          <T.MeshMatcapMaterial matcap={matcapJoints()} skinning />
+        </T.SkinnedMesh>
+      </T.Group>
+      <Show when={gltf()?.animations}>
+        <AnimationController ybotRef={ybotRef()} animations={gltf()!.animations} />
+      </Show>
+    </T.Group>
+    // </T.Suspense>
   )
 }
 
-useGLTF.preload('ybot.glb')
+// useGLTF.preload('ybot.glb')
 
 function UseAnimationsScene() {
   return (
-    <React.Suspense fallback={null}>
+    <T.Suspense>
       <YBotModel position={[0, -1, 0]} />
-    </React.Suspense>
+    </T.Suspense>
   )
 }
 

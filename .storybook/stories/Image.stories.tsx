@@ -1,8 +1,9 @@
-import * as React from 'react'
 import { Vector3 } from 'three'
 
 import { Setup } from '../Setup'
 
+import { T } from '@solid-three/fiber'
+import { splitProps } from 'solid-js'
 import { Image, useTexture } from '../../src'
 
 export default {
@@ -23,18 +24,20 @@ function TextureWrapper({ ...args }) {
 
   return (
     <>
-      <Image texture={texture} scale={[4, 4, 1]} position={[-2, -2, -1.5]} {...args} />
-      <Image texture={texture2} scale={[4, 4, 1]} position={[2, 2, -1]} {...args} />
+      <Image texture={texture()} scale={[4, 4]} position={[-2, -2, -1.5]} {...args} />
+      <Image texture={texture2()} scale={[4, 4]} position={[2, 2, -1]} {...args} />
     </>
   )
 }
 
-export const ImageStory = ({ url, ...args }) => {
+export const ImageStory = (_props) => {
+  const [props, args] = splitProps(_props, ['url'])
+
   return (
-    <>
+    <T.Suspense>
       <TextureWrapper {...args} />
-      <Image url={url?.[0] || '/images/living-room-2.jpg'} scale={[6, 4, 1]} position={[0, 0, 0]} {...args} />
-    </>
+      <Image url={props.url?.[0] || '/images/living-room-2.jpg'} scale={[6, 4]} position={[0, 0, 0]} {...args} />
+    </T.Suspense>
   )
 }
 

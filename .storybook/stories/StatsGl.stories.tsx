@@ -1,7 +1,6 @@
-import * as React from 'react'
-
 import { Setup } from '../Setup'
 
+import { T } from '@solid-three/fiber'
 import { StatsGl } from '../../src'
 
 export default {
@@ -13,7 +12,7 @@ export default {
 function Scene() {
   return (
     <>
-      <axesHelper />
+      <T.AxesHelper />
       <StatsGl />
     </>
   )

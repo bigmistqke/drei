@@ -1,7 +1,6 @@
-import * as React from 'react'
+import { T, useFrame } from '@solid-three/fiber'
 import * as THREE from 'three'
 import { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
-import { useFrame } from '@react-three/fiber'
 
 import { Setup } from '../Setup'
 
@@ -56,24 +55,24 @@ export default {
 }
 
 function Scene() {
-  const cube = React.useRef<THREE.Mesh>()
+  let cube: THREE.Mesh
 
   useFrame(() => {
-    if (cube.current) {
-      cube.current.rotation.x = cube.current.rotation.y += 0.01
+    if (cube) {
+      cube.rotation.x = cube.rotation.y += 0.01
     }
   })
 
   return (
     <>
-      <mesh ref={cube}>
-        <boxGeometry args={[2, 2, 2]} />
-        <meshStandardMaterial wireframe color="white" />
-      </mesh>
-      <mesh position={[0, -6, 0]} rotation={[Math.PI / -2, 0, 0]}>
-        <planeGeometry args={[200, 200, 75, 75]} />
-        <meshBasicMaterial wireframe color="red" side={THREE.DoubleSide} />
-      </mesh>
+      <T.Mesh ref={cube!}>
+        <T.BoxGeometry args={[2, 2, 2]} />
+        <T.MeshStandardMaterial wireframe color="white" />
+      </T.Mesh>
+      <T.Mesh position={[0, -6, 0]} rotation={[Math.PI / -2, 0, 0]}>
+        <T.PlaneGeometry args={[200, 200, 75, 75]} />
+        <T.MeshBasicMaterial wireframe color="red" side={THREE.DoubleSide} />
+      </T.Mesh>
     </>
   )
 }
@@ -90,7 +89,7 @@ CameraShakeStory.argTypes = argTypes
 CameraShakeStory.storyName = 'Default'
 
 export const CameraShakeWithOrbitControlsStory = ({ ...args }) => {
-  const controlsRef = React.useRef<OrbitControlsImpl>(null)
+  let controlsRef: OrbitControlsImpl = null!
   return (
     <>
       <OrbitControls ref={controlsRef} />

@@ -1,10 +1,10 @@
-import * as React from 'react'
-import { withKnobs, number } from '@storybook/addon-knobs'
+import { number, withKnobs } from '@storybook/addon-knobs'
 import { Vector3 } from 'three'
 
 import { Setup } from '../Setup'
 import { useTurntable } from '../useTurntable'
 
+import { T } from '@solid-three/fiber'
 import { RoundedBox } from '../../src'
 
 export default {
@@ -14,16 +14,16 @@ export default {
 }
 
 function RoundedBoxScene() {
-  const ref = useTurntable()
+  const turntable = useTurntable()
 
   return (
     <RoundedBox
-      ref={ref}
+      ref={turntable}
       args={[number('width', 25), number('height', 25), number('depth', 25)]}
       radius={number('radius', 1)}
       smoothness={number('smoothness', 5)}
     >
-      <meshPhongMaterial color="#f3f3f3" wireframe />
+      <T.MeshPhongMaterial color="#f3f3f3" wireframe />
     </RoundedBox>
   )
 }
@@ -32,18 +32,18 @@ export const RoundedBoxSt = () => <RoundedBoxScene />
 RoundedBoxSt.storyName = 'Default'
 
 function RoundedBoxScene2() {
-  const ref = useTurntable()
+  const turntable = useTurntable()
 
   return (
     <>
-      <spotLight position={[35, 35, 35]} intensity={2} />
+      <T.SpotLight position={[35, 35, 35]} intensity={2} />
       <RoundedBox
-        ref={ref}
+        ref={turntable}
         args={[number('width', 25), number('height', 25), number('depth', 25)]}
         radius={number('radius', 8)}
         smoothness={number('smoothness', 5)}
       >
-        <meshPhongMaterial color="#f3f3f3" />
+        <T.MeshPhongMaterial color="#f3f3f3" />
       </RoundedBox>
     </>
   )

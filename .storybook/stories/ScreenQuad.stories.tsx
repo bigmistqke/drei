@@ -1,6 +1,5 @@
-import * as React from 'react'
+import { T, ThreeProps, extend, useFrame, useThree } from '@solid-three/fiber'
 import * as THREE from 'three'
-import { extend, useThree, useFrame } from '@react-three/fiber'
 
 import { Setup } from '../Setup'
 
@@ -41,28 +40,28 @@ extend({ ColorShiftMaterial })
 type ColorShiftMaterialImpl = {
   time: number
   resolution: number[]
-} & JSX.IntrinsicElements['shaderMaterial']
+} & ThreeProps<'ShaderMaterial'>
 
 declare global {
-  namespace JSX {
+  namespace SolidThree {
     interface IntrinsicElements {
-      colorShiftMaterial: ColorShiftMaterialImpl
+      ColorShiftMaterial: ColorShiftMaterialImpl
     }
   }
 }
 
 function ScreenQuadScene() {
-  const size = useThree((state) => state.size)
-  const ref = React.useRef<ColorShiftMaterialImpl>(null!)
+  const store = useThree()
+  const ref: ColorShiftMaterialImpl = null!
   useFrame((state) => {
-    if (ref.current.uniforms) {
-      ref.current.uniforms.time.value = state.clock.elapsedTime
+    if (ref?.uniforms) {
+      ref.uniforms.time.value = state.clock.elapsedTime
     }
   })
 
   return (
     <ScreenQuad>
-      <colorShiftMaterial ref={ref} time={0} resolution={[size.width, size.height]} />
+      <T.ColorShiftMaterial ref={ref!} time={0} resolution={[store.size.width, store.size.height]} />
     </ScreenQuad>
   )
 }

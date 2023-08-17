@@ -1,9 +1,8 @@
-import * as THREE from 'three'
-import * as React from 'react'
 import { withKnobs } from '@storybook/addon-knobs'
 
 import { Setup } from '../Setup'
 
+import { T } from '@solid-three/fiber'
 import { Box, Resize, ResizeProps } from '../../src'
 
 export default {
@@ -19,17 +18,17 @@ export default {
   ],
 }
 
-export const ResizeSt = ({ width, height, depth }: ResizeProps) => (
+export const ResizeSt = (props: ResizeProps) => (
   <>
-    <axesHelper />
-
-    <Resize width={width} height={height} depth={depth}>
+    <T.AxesHelper />
+    <Resize width={props.width} height={props.height} depth={props.depth}>
       <Box args={[70, 40, 20]}>
-        <meshBasicMaterial wireframe />
+        <T.MeshBasicMaterial wireframe />
       </Box>
     </Resize>
   </>
 )
+
 ResizeSt.args = {
   width: undefined,
   height: undefined,

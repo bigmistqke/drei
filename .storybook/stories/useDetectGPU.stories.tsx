@@ -1,9 +1,10 @@
-import * as React from 'react'
 import { Vector3 } from 'three'
 
 import { Setup } from '../Setup'
 
-import { useDetectGPU, Text } from '../../src'
+import { T } from '@solid-three/fiber'
+import { Show } from 'solid-js'
+import { Text, useDetectGPU } from '../../src'
 
 export default {
   title: 'Misc/useDetectGPU',
@@ -12,17 +13,22 @@ export default {
 }
 
 function Simple() {
-  const { device, fps, gpu, isMobile, tier, type } = useDetectGPU()
+  const gpu = useDetectGPU()
   return (
-    <Text maxWidth={200}>
-      | device {device} fps {fps} | gpu {gpu} isMobile {isMobile?.toString()} | Tier {tier.toString()} Type {type} |
-    </Text>
+    <Show when={gpu()}>
+      {(gpu) => (
+        <Text maxWidth={200}>
+          | device {gpu().device} fps {gpu().fps} | gpu {gpu().gpu} isMobile {gpu().isMobile?.toString()} | Tier{' '}
+          {gpu().tier.toString()} Type {gpu().type} |
+        </Text>
+      )}
+    </Show>
   )
 }
 
 export const DefaultStory = () => (
-  <React.Suspense fallback={null}>
+  <T.Suspense fallback={null}>
     <Simple />
-  </React.Suspense>
+  </T.Suspense>
 )
 DefaultStory.storyName = 'Default'

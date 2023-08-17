@@ -1,10 +1,10 @@
-import * as React from 'react'
 import { Vector3 } from 'three'
 
 import { Setup } from '../Setup'
 
-import { Environment, Html, useGLTF, useProgress, Loader } from '../../src'
-import { withKnobs, boolean } from '@storybook/addon-knobs'
+import { Primitive, T } from '@solid-three/fiber'
+import { boolean, withKnobs } from '@storybook/addon-knobs'
+import { Environment, Html, Loader, useGLTF, useProgress } from '../../src'
 
 export default {
   title: 'Misc/useProgress',
@@ -13,42 +13,40 @@ export default {
 }
 
 function Helmet() {
-  const { nodes } = useGLTF('https://threejs.org/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf')
+  const resource = useGLTF('https://threejs.org/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf')
 
-  return <primitive object={nodes['node_damagedHelmet_-6514']} />
+  return <Primitive object={resource()?.nodes['node_damagedHelmet_-6514']} />
 }
 
 function Shoe() {
-  const { nodes } = useGLTF(
+  const resource = useGLTF(
     'https://threejs.org/examples/models/gltf/MaterialsVariantsShoe/glTF/MaterialsVariantsShoe.gltf'
   )
 
-  return <primitive object={nodes['Shoe']} />
+  return <Primitive object={resource()?.nodes['Shoe']} />
 }
 
 function CustomLoader() {
-  const { progress } = useProgress()
+  const progress = useProgress()
   return (
     <Html center>
-      <span style={{ color: 'white' }}>{progress} % loaded</span>
+      <span style={{ color: 'black' }}>{progress.progress} % loaded</span>
     </Html>
   )
 }
 
 function LoadExtras() {
   return (
-    <React.Suspense fallback={<CustomLoader />}>
+    <T.Suspense fallback={<CustomLoader />}>
       <Environment preset={'studio'} />
       <Shoe />
-    </React.Suspense>
+    </T.Suspense>
   )
 }
 
 function UseProgressScene() {
   return (
-    <React.Suspense fallback={<CustomLoader />}>
-      {boolean('Load extras', false) ? <LoadExtras /> : <Helmet />}
-    </React.Suspense>
+    <T.Suspense fallback={<CustomLoader />}>{boolean('Load extras', false) ? <LoadExtras /> : <Helmet />}</T.Suspense>
   )
 }
 
@@ -57,9 +55,9 @@ UseProgressSceneSt.story = {
   name: 'Default',
 }
 
-export function WithOutOfTheBoxLoader() {
+export function WithOutOfTheBoxLoader(props) {
   return (
-    <React.Suspense
+    <T.Suspense
       fallback={
         <Html>
           <Loader />
@@ -67,6 +65,6 @@ export function WithOutOfTheBoxLoader() {
       }
     >
       {boolean('Load extras', false) ? <LoadExtras /> : <Helmet />}
-    </React.Suspense>
+    </T.Suspense>
   )
 }

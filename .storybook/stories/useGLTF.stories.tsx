@@ -1,9 +1,10 @@
-import * as React from 'react'
-import { Mesh, Vector3 } from 'three'
+import { Vector3 } from 'three'
 import { GLTF } from 'three/examples/jsm/loaders/GLTFLoader'
 
 import { Setup } from '../Setup'
 
+import { T } from '@solid-three/fiber'
+import { Accessor } from 'solid-js'
 import { useGLTF } from '../../src'
 
 export default {
@@ -22,16 +23,16 @@ type GLTFResult = GLTF & {
 }
 
 function Suzanne() {
-  const { nodes, materials } = useGLTF('suzanne.glb', true) as unknown as GLTFResult
+  const resource = useGLTF('suzanne.glb', true) as Accessor<GLTFResult | undefined>
 
-  return <mesh material={materials['Material.001']} geometry={(nodes.Suzanne as Mesh).geometry} />
+  return <T.Mesh material={resource()?.materials['Material.001']} geometry={resource()?.nodes.Suzanne.geometry} />
 }
 
 function UseGLTFScene() {
   return (
-    <React.Suspense fallback={null}>
+    <T.Suspense fallback={null}>
       <Suzanne />
-    </React.Suspense>
+    </T.Suspense>
   )
 }
 
@@ -40,21 +41,22 @@ UseGLTFSceneSt.story = {
   name: 'Default',
 }
 
+// s3f:   local binaries aren't working
 function SuzanneWithLocal() {
-  const { nodes, materials } = useGLTF('suzanne.glb', '/draco-gltf/') as unknown as GLTFResult
+  const resource = useGLTF('suzanne.glb', '/draco-gltf/') as Accessor<GLTFResult | undefined>
 
   return (
-    <group dispose={null}>
-      <mesh material={materials['Material.001']} geometry={(nodes.Suzanne as Mesh).geometry} />
-    </group>
+    <T.Group dispose={null}>
+      <T.Mesh material={resource()?.materials['Material.001']} geometry={resource()?.nodes.Suzanne.geometry} />
+    </T.Group>
   )
 }
 
 function DracoLocalScene() {
   return (
-    <React.Suspense fallback={null}>
+    <T.Suspense fallback={null}>
       <SuzanneWithLocal />
-    </React.Suspense>
+    </T.Suspense>
   )
 }
 

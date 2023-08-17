@@ -1,9 +1,9 @@
-import * as React from 'react'
+import { T, useFrame } from '@solid-three/fiber'
 import * as THREE from 'three'
-import { useFrame } from '@react-three/fiber'
 
 import { Setup } from '../Setup'
 
+import { Show, createSignal } from 'solid-js'
 import { Box, CubeCamera } from '../../src'
 
 export default {
@@ -13,7 +13,7 @@ export default {
 }
 
 declare global {
-  namespace JSX {
+  namespace SolidThree {
     interface IntrinsicElements {
       axisHelper: object
     }
@@ -21,34 +21,36 @@ declare global {
 }
 
 function Sphere({ offset = 0, ...props }) {
-  const ref = React.useRef<THREE.Group>()
+  let ref: THREE.Mesh
   useFrame(({ clock }) => {
-    ref.current!.position.y = Math.sin(offset + clock.elapsedTime) * 5
+    ref!.position.y = Math.sin(offset + clock.elapsedTime) * 5 + 10
   })
 
   return (
     <CubeCamera {...props}>
       {(texture) => (
-        <mesh ref={ref}>
-          <sphereGeometry args={[5, 64, 64]} />
-          <meshStandardMaterial roughness={0} metalness={1} envMap={texture} />
-        </mesh>
+        <T.Mesh ref={ref!}>
+          <T.SphereGeometry args={[5, 64, 64]} />
+          <T.MeshStandardMaterial color="white" roughness={0} metalness={1} envMap={texture} />
+        </T.Mesh>
       )}
     </CubeCamera>
   )
 }
 
 function Scene() {
+  const [show, setShow] = createSignal(true)
   return (
     <>
-      <fog attach="fog" args={['#f0f0f0', 100, 200]} />
+      <T.Fog attach="fog" args={['#f0f0f0', 100, 200]} />
+      <Box material-color="hotpink" args={[5, 5, 5]} position-y={2.5} onClick={() => setShow((v) => !v)} />
 
-      <Sphere position={[-10, 10, 0]} />
-      <Sphere position={[10, 9, 0]} offset={2000} />
+      <Sphere position={[-10, 10, 5]} />
+      <Show when={show()}>
+        <Sphere position={[10, 9, 0]} offset={2000} />
+      </Show>
 
-      <Box material-color="hotpink" args={[5, 5, 5]} position-y={2.5} />
-
-      <gridHelper args={[100, 10]} />
+      <T.GridHelper args={[100, 10]} />
     </>
   )
 }

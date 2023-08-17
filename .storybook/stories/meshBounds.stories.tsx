@@ -1,9 +1,10 @@
-import * as React from 'react'
+import { createSignal } from 'solid-js'
 import { Vector3 } from 'three'
 
 import { Setup } from '../Setup'
 import { useTurntable } from '../useTurntable'
 
+import { T } from '@solid-three/fiber'
 import { meshBounds } from '../../src'
 
 export default {
@@ -12,21 +13,21 @@ export default {
   decorators: [(storyFn) => <Setup cameraPosition={new Vector3(0, 0, 5)}>{storyFn()}</Setup>],
 }
 function MeshBounds(props) {
-  const mesh = useTurntable()
+  const turntable = useTurntable()
 
-  const [hovered, setHover] = React.useState(false)
+  const [hovered, setHover] = createSignal(false)
 
   return (
-    <mesh
+    <T.Mesh
       {...props}
       raycast={meshBounds}
-      ref={mesh}
+      ref={turntable}
       onPointerOver={() => setHover(true)}
       onPointerOut={() => setHover(false)}
     >
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="hotpink" wireframe={!hovered} />
-    </mesh>
+      <T.BoxGeometry args={[1, 1, 1]} />
+      <T.MeshStandardMaterial color="hotpink" wireframe={!hovered()} />
+    </T.Mesh>
   )
 }
 

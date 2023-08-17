@@ -1,9 +1,7 @@
-import { createPortal, useFrame } from '@react-three/fiber'
-import React, { useRef, useState } from 'react'
+import { T, createPortal, useFrame } from '@solid-three/fiber'
 import { Scene } from 'three'
-
-import { Setup } from '../Setup'
 import { Box, OrbitControls, PerspectiveCamera, Plane, useFBO } from '../../src'
+import { Setup } from '../Setup'
 
 import type { Camera } from 'three'
 import type { OrbitControlsProps } from '../../src'
@@ -20,7 +18,7 @@ export const OrbitControlsStory = (props: OrbitControlsProps) => (
   <>
     <OrbitControls {...props} />
     <Box>
-      <meshBasicMaterial wireframe />
+      <T.MeshBasicMaterial wireframe />
     </Box>
   </>
 )
@@ -39,13 +37,13 @@ const CustomCamera = (props: OrbitControlsProps) => {
    * we will render our scene in a render target and use it as a map.
    */
   const fbo = useFBO(400, 400)
-  const virtualCamera = useRef<Camera>()
-  const [virtualScene] = useState(() => new Scene())
+  let virtualCamera: Camera
+  const virtualScene = new Scene()
 
   useFrame(({ gl }) => {
-    if (virtualCamera.current) {
+    if (virtualCamera) {
       gl.setRenderTarget(fbo)
-      gl.render(virtualScene, virtualCamera.current)
+      gl.render(virtualScene, virtualCamera)
 
       gl.setRenderTarget(null)
     }
@@ -54,20 +52,20 @@ const CustomCamera = (props: OrbitControlsProps) => {
   return (
     <>
       <Plane args={[4, 4, 4]}>
-        <meshBasicMaterial map={fbo.texture} />
+        <T.MeshBasicMaterial map={fbo.texture} />
       </Plane>
 
       {createPortal(
         <>
           <Box>
-            <meshBasicMaterial wireframe />
+            <T.MeshBasicMaterial wireframe />
           </Box>
-
-          <PerspectiveCamera name="FBO Camera" ref={virtualCamera} position={[0, 0, 5]} />
-          <OrbitControls camera={virtualCamera.current} {...props} />
+          {/* s3f:  ref of PerspectiveCamera does not accept Camera */}
+          <PerspectiveCamera name="FBO Camera" ref={virtualCamera!} position={[0, 0, 5]} />
+          <OrbitControls camera={virtualCamera} {...props} />
 
           {/* @ts-ignore */}
-          <color attach="background" args={['hotpink']} />
+          <T.Color attach="background" args={['hotpink']} />
         </>,
         virtualScene
       )}

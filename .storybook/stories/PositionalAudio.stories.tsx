@@ -1,8 +1,9 @@
-import * as React from 'react'
+import { For } from 'solid-js'
 import { Vector3 } from 'three'
 
-import { Setup } from '../Setup'
+import { T } from '@solid-three/fiber'
 import { OrbitControls, PositionalAudio } from '../../src'
+import { Setup } from '../Setup'
 
 export default {
   title: 'Abstractions/PositionalAudio',
@@ -11,41 +12,40 @@ export default {
 }
 
 function PositionalAudioScene() {
-  const args = React.useMemo(
-    () => [
-      {
-        position: new Vector3(10, 0, 10),
-        url: 'sounds/1.mp3',
-      },
-      {
-        position: new Vector3(-10, 0, 10),
-        url: 'sounds/2.mp3',
-      },
-      {
-        position: new Vector3(10, 0, -10),
-        url: 'sounds/3.mp3',
-      },
-      {
-        position: new Vector3(-10, 0, -10),
-        url: 'sounds/4.mp3',
-      },
-    ],
-    []
-  )
+  const args = [
+    {
+      position: new Vector3(10, 0, 10),
+      url: 'sounds/1.mp3',
+    },
+    {
+      position: new Vector3(-10, 0, 10),
+      url: 'sounds/2.mp3',
+    },
+    {
+      position: new Vector3(10, 0, -10),
+      url: 'sounds/3.mp3',
+    },
+    {
+      position: new Vector3(-10, 0, -10),
+      url: 'sounds/4.mp3',
+    },
+  ]
 
   return (
     <>
-      <React.Suspense fallback={null}>
-        <group position={[0, 0, 5]}>
-          {args.map(({ position, url }, index) => (
-            <mesh key={`0${index}`} position={position}>
-              <sphereGeometry />
-              <meshBasicMaterial wireframe color="hotpink" />
-              <PositionalAudio url={url} />
-            </mesh>
-          ))}
-        </group>
-      </React.Suspense>
+      <T.Suspense fallback={null}>
+        <T.Group position={[0, 0, 5]}>
+          <For each={args}>
+            {(arg) => (
+              <T.Mesh position={arg.position}>
+                <T.SphereGeometry />
+                <T.MeshBasicMaterial wireframe color="hotpink" />
+                <PositionalAudio url={arg.url} autoplay />
+              </T.Mesh>
+            )}
+          </For>
+        </T.Group>
+      </T.Suspense>
       <OrbitControls />
     </>
   )

@@ -1,10 +1,10 @@
 /* eslint react-hooks/exhaustive-deps: 1 */
-import * as THREE from 'three'
-import * as React from 'react'
 
 import { Setup } from '../Setup'
 
-import { FaceLandmarker, FaceControls, Box } from '../../src'
+import { T } from '@solid-three/fiber'
+import { Suspense } from 'solid-js'
+import { Box, FaceControls, FaceLandmarker } from '../../src'
 
 export default {
   title: 'Controls/FaceControls',
@@ -15,17 +15,17 @@ export default {
 function FaceControlsScene(props) {
   return (
     <>
-      <color attach="background" args={['#303030']} />
-      <axesHelper />
+      <T.Color attach="background" args={['#303030']} />
+      <T.AxesHelper />
 
-      <React.Suspense fallback={null}>
+      <Suspense fallback={null}>
         <FaceLandmarker>
           <FaceControls {...props} />
         </FaceLandmarker>
-      </React.Suspense>
+      </Suspense>
 
       <Box args={[0.1, 0.1, 0.1]}>
-        <meshStandardMaterial />
+        <T.MeshStandardMaterial />
       </Box>
     </>
   )

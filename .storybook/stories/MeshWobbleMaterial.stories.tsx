@@ -1,10 +1,9 @@
-import * as React from 'react'
-import { useFrame } from '@react-three/fiber'
+import { ThreeProps, useFrame } from '@solid-three/fiber'
 
-import { withKnobs, number } from '@storybook/addon-knobs'
+import { number, withKnobs } from '@storybook/addon-knobs'
 
-import { Setup } from '../Setup'
 import { MeshWobbleMaterial, Torus } from '../../src'
+import { Setup } from '../Setup'
 
 export default {
   title: 'Shaders/MeshWobbleMaterial',
@@ -28,16 +27,17 @@ export const MeshWobbleMaterialSt = () => <MeshWobbleMaterialScene />
 MeshWobbleMaterialSt.storyName = 'Default'
 
 function MeshWobbleMaterialRefScene() {
-  const material = React.useRef<JSX.IntrinsicElements['wobbleMaterialImpl']>(null!)
+  let material: ThreeProps<'wobbleMaterialImpl'>
 
   useFrame(({ clock }) => {
-    material.current.factor = Math.abs(Math.sin(clock.getElapsedTime())) * 2
-    material.current.speed = Math.abs(Math.sin(clock.getElapsedTime())) * 10
+    material.factor = Math.abs(Math.sin(clock.getElapsedTime())) * 2
+    material.speed = Math.abs(Math.sin(clock.getElapsedTime())) * 10
   })
 
   return (
     <Torus args={[1, 0.25, 16, 100]}>
-      <MeshWobbleMaterial color="#f25042" ref={material} />
+      {/* s3f:   ref of MeshWobbleMaterial is MeshStandardMaterial */}
+      <MeshWobbleMaterial color="#f25042" ref={material!} />
     </Torus>
   )
 }

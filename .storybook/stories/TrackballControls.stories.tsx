@@ -1,8 +1,9 @@
-import * as React from 'react'
+import { For, createMemo } from 'solid-js'
 import { Vector3 } from 'three'
 
 import { Setup } from '../Setup'
 
+import { T } from '@solid-three/fiber'
 import { Icosahedron, TrackballControls } from '../../src'
 
 export default {
@@ -19,7 +20,7 @@ interface Positions {
 }
 
 function TrackballControlsScene() {
-  const positions = React.useMemo(() => {
+  const positions = createMemo(() => {
     const pos: Positions[] = []
     const half = (NUM - 1) / 2
 
@@ -39,13 +40,15 @@ function TrackballControlsScene() {
 
   return (
     <>
-      <group>
-        {positions.map(({ id, position }) => (
-          <Icosahedron key={id} args={[1, 1]} position={position}>
-            <meshBasicMaterial color="white" wireframe />
-          </Icosahedron>
-        ))}
-      </group>
+      <T.Group>
+        <For each={positions()}>
+          {({ id, position }) => (
+            <Icosahedron key={id} args={[1, 1]} position={position}>
+              <T.MeshBasicMaterial color="white" wireframe />
+            </Icosahedron>
+          )}
+        </For>
+      </T.Group>
       <TrackballControls />
     </>
   )

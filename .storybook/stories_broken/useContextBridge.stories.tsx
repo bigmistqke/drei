@@ -1,8 +1,8 @@
-import * as React from 'react'
-import { Canvas } from '@react-three/fiber'
+import { Canvas } from '@solid-three/fiber'
 import { withKnobs } from '@storybook/addon-knobs'
+import { Suspense, createContext, createSignal, useContext } from 'solid-js'
 
-import { OrbitControls, Box, useContextBridge, Text } from '../../src'
+import { Box, OrbitControls, Text, useContextBridge } from '../../src'
 
 export default {
   title: 'Misc/useContextBridge',
@@ -13,16 +13,16 @@ export default {
 type ThemeContext = { colors: { red: string; green: string; blue: string } }
 type GreetingContext = {
   name: string
-  setName: React.Dispatch<React.SetStateAction<string>>
+  setName: React.Dispatch<React.SetStateAction<T.String>>
 }
 
-const ThemeContext = React.createContext<ThemeContext>(null!)
-const GreetingContext = React.createContext<GreetingContext>(null!)
+const ThemeContext = createContext<ThemeContext>(null!)
+const GreetingContext = createContext<GreetingContext>(null!)
 
 function Scene() {
   // we can now use the context within the canvas via the regular hook
-  const theme = React.useContext(ThemeContext)
-  const greeting = React.useContext(GreetingContext)
+  const theme = useContext(ThemeContext)!
+  const greeting = useContext(GreetingContext)!
   return (
     <>
       <Box
@@ -44,11 +44,11 @@ function Scene() {
         onClick={() => greeting.setName(theme.colors.blue)}
       />
 
-      <React.Suspense fallback={null}>
+      <Suspense fallback={null}>
         <Text fontSize={0.3} position-z={2}>
           {greeting.name ? `Hello ${greeting.name}!` : 'Click a color'}
         </Text>
-      </React.Suspense>
+      </Suspense>
     </>
   )
 }
@@ -67,13 +67,20 @@ function SceneWrapper() {
 }
 
 function UseContextBridgeStory() {
-  const [name, setName] = React.useState('')
+  const [name, setName] = createSignal('')
   return (
     // Provide several contexts from above the Canvas
     // This mimics the standard behavior of composing them
     // in the `App.tsx` or `index.tsx` files
     <ThemeContext.Provider value={{ colors: { red: '#ff0000', green: '#00ff00', blue: '#0000ff' } }}>
-      <GreetingContext.Provider value={{ name, setName }}>
+      <GreetingContext.Provider
+        value={{
+          get name() {
+            return name()
+          },
+          setName,
+        }}
+      >
         <SceneWrapper />
       </GreetingContext.Provider>
     </ThemeContext.Provider>

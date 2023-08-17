@@ -1,7 +1,7 @@
-import * as React from 'react'
-import { Box, OrbitControls, Html, ScreenSpace } from '../../src'
 import { Vector3 } from 'three'
+import { Box, Html, OrbitControls, ScreenSpace } from '../../src'
 
+import { T } from '@solid-three/fiber'
 import { Setup } from '../Setup'
 
 export default {
@@ -19,11 +19,11 @@ export default {
 export const ScreenSpaceStory = ({ depth }) => (
   <>
     <Box args={[1, 1, 1]}>
-      <meshPhysicalMaterial />
+      <T.MeshPhysicalMaterial />
     </Box>
     <ScreenSpace depth={depth}>
       <Box args={[0.1, 0.1, 0.1]} position={[0.5, 0.1, 0]}>
-        <meshPhysicalMaterial color={'blue'} />
+        <T.MeshPhysicalMaterial color={'blue'} />
         <Html center sprite>
           <div style={{ color: 'hotpink' }}>Hi i'm in screen space</div>
         </Html>

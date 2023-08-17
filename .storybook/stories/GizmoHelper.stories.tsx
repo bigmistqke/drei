@@ -1,6 +1,8 @@
-import * as React from 'react'
+import { T } from '@solid-three/fiber'
+import { Show, createEffect, createSignal } from 'solid-js'
+import * as THREE from 'three'
 import { Vector3 } from 'three'
-import { GizmoHelper, OrbitControls, useGLTF, GizmoViewcube, TrackballControls, GizmoViewport } from '../../src'
+import { GizmoHelper, GizmoViewcube, GizmoViewport, OrbitControls, TrackballControls, useGLTF } from '../../src'
 import { Setup } from '../Setup'
 
 export default {
@@ -9,7 +11,7 @@ export default {
   decorators: [
     (storyFn) => (
       <Setup controls={false} cameraPosition={new Vector3(0, 0, 10)}>
-        {storyFn()}
+        <T.Suspense>{storyFn()}</T.Suspense>
       </Setup>
     ),
   ],
@@ -91,47 +93,55 @@ const argTypes = {
   textColor: { ...colorArgType, ...viewcubeTable },
 }
 
-const GizmoHelperStoryImpl = ({
-  alignment,
-  color,
-  colorX,
-  colorY,
-  colorZ,
-  controls,
-  faces,
-  gizmo,
-  hideNegativeAxes,
-  hoverColor,
-  labelColor,
-  marginX,
-  marginY,
-  opacity,
-  strokeColor,
-  textColor,
+const GizmoHelperStoryImpl = (props: {
+  alignment
+  color
+  colorX
+  colorY
+  colorZ
+  controls
+  faces
+  gizmo
+  hideNegativeAxes
+  hoverColor
+  labelColor
+  marginX
+  marginY
+  opacity
+  strokeColor
+  textColor
 }) => {
-  const { scene } = useGLTF('LittlestTokyo.glb')
-
+  const resource = useGLTF('LittlestTokyo.glb')
+  const [visible, setVisible] = createSignal(false)
+  createEffect(() => resource() && setTimeout(() => setVisible(true), 100))
   return (
     <>
-      <primitive object={scene} scale={0.01} />
-      <GizmoHelper alignment={alignment} margin={[marginX, marginY]}>
-        {gizmo === 'GizmoViewcube' ? (
+      <T.Primitive object={resource()?.scene!} scale={0.01} />
+      <GizmoHelper alignment={props.alignment}>
+        <Show
+          when={props.gizmo === 'GizmoViewcube'}
+          fallback={
+            <GizmoViewport
+              axisColors={[props.colorX, props.colorY, props.colorZ]}
+              hideNegativeAxes={props.hideNegativeAxes}
+              labelColor={props.labelColor}
+            />
+          }
+        >
           <GizmoViewcube
-            {...{
-              color,
-              faces,
-              hoverColor,
-              opacity,
-              strokeColor,
-              textColor,
-            }}
+            color={props.color}
+            faces={props.faces}
+            hoverColor={props.hoverColor}
+            opacity={props.opacity}
+            strokeColor={props.strokeColor}
+            textColor={props.textColor}
           />
-        ) : (
-          <GizmoViewport {...{ axisColors: [colorX, colorY, colorZ], hideNegativeAxes, labelColor }} />
-        )}
+        </Show>
       </GizmoHelper>
 
-      {controls === 'TrackballControls' ? <TrackballControls makeDefault /> : <OrbitControls makeDefault />}
+      <Show when={props.controls === 'TrackballControls'} fallback={<OrbitControls makeDefault />}>
+        <TrackballControls makeDefault />
+      </Show>
     </>
   )
 }
@@ -141,3 +151,4 @@ export const GizmoHelperStory = (props) => <GizmoHelperStoryImpl {...props} />
 GizmoHelperStory.args = args
 GizmoHelperStory.argTypes = argTypes
 GizmoHelperStory.storyName = 'Default'
+const group = new THREE.Group()

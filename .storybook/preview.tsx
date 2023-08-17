@@ -1,6 +1,6 @@
-import React from 'react'
-import type { Preview } from '@storybook/react'
+import type { Preview } from 'storybook-solidjs'
 
+import { Suspense } from 'solid-js'
 import './index.css'
 
 const preview: Preview = {
@@ -9,9 +9,9 @@ const preview: Preview = {
   },
   decorators: [
     (Story) => (
-      <React.Suspense fallback={null}>
+      <Suspense fallback={null}>
         <Story />
-      </React.Suspense>
+      </Suspense>
     ),
   ],
 }

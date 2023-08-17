@@ -1,10 +1,10 @@
-import * as React from 'react'
+import { color as colorKnob, number, withKnobs } from '@storybook/addon-knobs'
 import { DoubleSide, Vector3 } from 'three'
-import { withKnobs, number, color as colorKnob } from '@storybook/addon-knobs'
 
 import { Setup } from '../Setup'
 import { useTurntable } from '../useTurntable'
 
+import { T } from '@solid-three/fiber'
 import { Text } from '../../src'
 
 export default {
@@ -14,12 +14,12 @@ export default {
 }
 
 function TextScene() {
-  const ref = useTurntable()
+  const turntable = useTurntable()
 
   return (
-    <React.Suspense fallback={null}>
+    <T.Suspense fallback={null}>
       <Text
-        ref={ref}
+        ref={turntable}
         color={'#EC2D2D'}
         fontSize={12}
         maxWidth={200}
@@ -36,7 +36,7 @@ function TextScene() {
         PARIATUR. EXCEPTEUR SINT OCCAECAT CUPIDATAT NON PROIDENT, SUNT IN CULPA QUI OFFICIA DESERUNT MOLLIT ANIM ID EST
         LABORUM.
       </Text>
-    </React.Suspense>
+    </T.Suspense>
   )
 }
 
@@ -44,12 +44,12 @@ export const TextSt = () => <TextScene />
 TextSt.storyName = 'Default'
 
 function TextOutlineScene() {
-  const ref = useTurntable()
+  const turntable = useTurntable()
 
   return (
-    <React.Suspense fallback={null}>
+    <T.Suspense fallback={null}>
       <Text
-        ref={ref}
+        ref={turntable}
         color={'#EC2D2D'}
         fontSize={12}
         maxWidth={200}
@@ -68,17 +68,17 @@ function TextOutlineScene() {
         PARIATUR. EXCEPTEUR SINT OCCAECAT CUPIDATAT NON PROIDENT, SUNT IN CULPA QUI OFFICIA DESERUNT MOLLIT ANIM ID EST
         LABORUM.
       </Text>
-    </React.Suspense>
+    </T.Suspense>
   )
 }
 
 function TextStrokeScene() {
-  const ref = useTurntable()
+  const turntable = useTurntable()
 
   return (
-    <React.Suspense fallback={null}>
+    <T.Suspense fallback={null}>
       <Text
-        ref={ref}
+        ref={turntable}
         fontSize={12}
         maxWidth={200}
         lineHeight={1}
@@ -97,17 +97,17 @@ function TextStrokeScene() {
         PARIATUR. EXCEPTEUR SINT OCCAECAT CUPIDATAT NON PROIDENT, SUNT IN CULPA QUI OFFICIA DESERUNT MOLLIT ANIM ID EST
         LABORUM.
       </Text>
-    </React.Suspense>
+    </T.Suspense>
   )
 }
 
 function TextShadowScene() {
-  const ref = useTurntable()
+  const turntable = useTurntable()
 
   return (
-    <React.Suspense fallback={null}>
+    <T.Suspense fallback={null}>
       <Text
-        ref={ref}
+        ref={turntable}
         color={'#EC2D2D'}
         fontSize={12}
         maxWidth={200}
@@ -129,17 +129,17 @@ function TextShadowScene() {
         PARIATUR. EXCEPTEUR SINT OCCAECAT CUPIDATAT NON PROIDENT, SUNT IN CULPA QUI OFFICIA DESERUNT MOLLIT ANIM ID EST
         LABORUM.
       </Text>
-    </React.Suspense>
+    </T.Suspense>
   )
 }
 
 function TextRtlScene() {
-  const ref = useTurntable()
+  const turntable = useTurntable()
 
   return (
-    <React.Suspense fallback={null}>
+    <T.Suspense fallback={null}>
       <Text
-        ref={ref}
+        ref={turntable}
         color={'#EC2D2D'}
         fontSize={12}
         maxWidth={200}
@@ -154,18 +154,18 @@ function TextRtlScene() {
         إن عدة الشهور عند الله اثنا عشر شهرا في كتاب الله يوم خلق السماوات والارض SOME LATIN TEXT HERE منها أربعة حرم
         ذلك الدين القيم فلا تظلموا فيهن أنفسكم وقاتلوا المشركين كافة كما يقاتلونكم كافة واعلموا أن الله مع المتقين
       </Text>
-    </React.Suspense>
+    </T.Suspense>
   )
 }
 
 function CustomMaterialTextScene() {
-  const ref = useTurntable()
+  const turntable = useTurntable()
   const defaultColor = '#EC2D2D'
 
   return (
-    <React.Suspense fallback={null}>
+    <T.Suspense fallback={null}>
       <Text
-        ref={ref}
+        ref={turntable}
         fontSize={12}
         maxWidth={200}
         lineHeight={1}
@@ -175,7 +175,7 @@ function CustomMaterialTextScene() {
         anchorX="center"
         anchorY="middle"
       >
-        <meshBasicMaterial
+        <T.MeshBasicMaterial
           side={DoubleSide}
           color={colorKnob('Color', defaultColor)}
           transparent
@@ -187,7 +187,7 @@ function CustomMaterialTextScene() {
         PARIATUR. EXCEPTEUR SINT OCCAECAT CUPIDATAT NON PROIDENT, SUNT IN CULPA QUI OFFICIA DESERUNT MOLLIT ANIM ID EST
         LABORUM.
       </Text>
-    </React.Suspense>
+    </T.Suspense>
   )
 }
 

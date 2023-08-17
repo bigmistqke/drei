@@ -1,7 +1,8 @@
-import * as React from 'react'
-import { withKnobs, number } from '@storybook/addon-knobs'
+import { number, withKnobs } from '@storybook/addon-knobs'
+import { createRenderEffect } from 'solid-js'
 
-import { Setup } from '../Setup'
+import { T } from '@solid-three/fiber'
+import { MathUtils, RepeatWrapping } from 'three'
 import {
   Circle,
   Environment,
@@ -13,7 +14,8 @@ import {
   useDepthBuffer,
   useTexture,
 } from '../../src'
-import { MathUtils, RepeatWrapping } from 'three'
+import { when } from '../../src/helpers/when'
+import { Setup } from '../Setup'
 
 export default {
   title: 'Staging/Spotlight',
@@ -45,13 +47,13 @@ function SpotLightScene() {
         castShadow
       />
 
-      <mesh position-y={0.5} castShadow>
-        <boxGeometry />
-        <meshPhongMaterial />
-      </mesh>
+      <T.Mesh position-y={0.5} castShadow>
+        <T.BoxGeometry />
+        <T.MeshPhongMaterial />
+      </T.Mesh>
 
       <Plane receiveShadow rotation-x={-Math.PI / 2} args={[100, 100]}>
-        <meshPhongMaterial />
+        <T.MeshPhongMaterial />
       </Plane>
     </>
   )
@@ -68,12 +70,14 @@ function SpotLightShadowsScene({ debug, wind }: { debug: boolean; wind: boolean 
     '/textures/grassy_cobble/grassy_cobblestone_ao_2k.jpg',
   ])
 
-  React.useLayoutEffect(() => {
+  createRenderEffect(() => {
     for (const tex of texs) {
-      tex.wrapS = tex.wrapT = RepeatWrapping
-      tex.repeat.set(2, 2)
+      when(tex)((tex) => {
+        tex.wrapS = tex.wrapT = RepeatWrapping
+        tex.repeat.set(2, 2)
+      })
     }
-  }, [texs])
+  })
 
   const [diffuse, normal, roughness, ao] = texs
 
@@ -98,14 +102,14 @@ function SpotLightShadowsScene({ debug, wind }: { debug: boolean; wind: boolean 
 
       <Environment preset="sunset" />
 
-      <hemisphereLight args={[0xffffbb, 0x080820, 1]} />
+      <T.HemisphereLight args={[0xffffbb, 0x080820, 1]} />
 
       <Circle receiveShadow args={[5, 64, 64]} rotation-x={-Math.PI / 2}>
-        <meshStandardMaterial
-          map={diffuse} //
-          normalMap={normal}
-          roughnessMap={roughness}
-          aoMap={ao}
+        <T.MeshStandardMaterial
+          map={diffuse()} //
+          normalMap={normal()}
+          roughnessMap={roughness()}
+          aoMap={ao()}
           envMapIntensity={0.2}
         />
       </Circle>
@@ -124,7 +128,7 @@ function SpotLightShadowsScene({ debug, wind }: { debug: boolean; wind: boolean 
           distance={0.4}
           width={2048}
           height={2048}
-          map={leafTexture}
+          map={leafTexture()}
           shader={
             wind
               ? /* glsl */ `
@@ -152,9 +156,9 @@ function SpotLightShadowsScene({ debug, wind }: { debug: boolean; wind: boolean 
 
 function SpotLightShadowsSceneWithSuspense(props) {
   return (
-    <React.Suspense fallback={null}>
+    <T.Suspense fallback={null}>
       <SpotLightShadowsScene {...props} />
-    </React.Suspense>
+    </T.Suspense>
   )
 }
 

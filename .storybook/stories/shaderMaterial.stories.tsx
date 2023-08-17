@@ -1,11 +1,10 @@
-import * as React from 'react'
-import { extend } from '@react-three/fiber'
+import { T, ThreeProps, extend } from '@solid-three/fiber'
 import { Texture } from 'three'
 
-import { withKnobs, number } from '@storybook/addon-knobs'
+import { number, withKnobs } from '@storybook/addon-knobs'
 
-import { Setup } from '../Setup'
 import { Box, MeshDistortMaterial, shaderMaterial, useTexture } from '../../src'
+import { Setup } from '../Setup'
 
 export default {
   title: 'Shaders/shaderMaterial',
@@ -57,13 +56,13 @@ extend({ MyMaterial })
 
 type MyMaterialImpl = {
   repeats: number
-  map: Texture | Texture[]
-} & JSX.IntrinsicElements['shaderMaterial']
+  map?: Texture | Texture[]
+} & ThreeProps<'ShaderMaterial'>
 
 declare global {
-  namespace JSX {
+  namespace SolidThree {
     interface IntrinsicElements {
-      myMaterial: MyMaterialImpl
+      MyMaterial: MyMaterialImpl
     }
   }
 }
@@ -73,14 +72,14 @@ function ShaderMaterialScene() {
 
   return (
     <Box args={[5, 5, 5]}>
-      <myMaterial repeats={number('repeats', 2, { range: true, min: 1, max: 10, step: 1 })} map={map} />
+      <T.MyMaterial repeats={number('repeats', 2, { range: true, min: 1, max: 10, step: 1 })} map={map()} />
     </Box>
   )
 }
 
 export const ShaderMaterialStory = () => (
-  <React.Suspense fallback={null}>
+  <T.Suspense fallback={null}>
     <ShaderMaterialScene />
-  </React.Suspense>
+  </T.Suspense>
 )
 ShaderMaterialStory.storyName = 'Default'

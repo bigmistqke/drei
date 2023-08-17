@@ -1,10 +1,10 @@
-import * as React from 'react'
+import { Portal, T, useFrame } from '@solid-three/fiber'
+import { createMemo } from 'solid-js'
 import * as THREE from 'three'
-import { createPortal, useFrame } from '@react-three/fiber'
 
 import { Setup } from '../Setup'
 
-import { useFBO, TorusKnot, Box, PerspectiveCamera } from '../../src'
+import { Box, PerspectiveCamera, TorusKnot, useFBO } from '../../src'
 
 export default {
   title: 'Misc/useFBO',
@@ -13,39 +13,41 @@ export default {
 }
 
 function SpinningThing() {
-  const mesh = React.useRef<THREE.Mesh>(null!)
+  let mesh: THREE.Mesh
   useFrame(() => {
-    mesh.current.rotation.x = mesh.current.rotation.y = mesh.current.rotation.z += 0.01
+    mesh.rotation.x = mesh.rotation.y = mesh.rotation.z += 0.01
   })
   return (
-    <TorusKnot ref={mesh} args={[1, 0.4, 100, 64]}>
-      <meshNormalMaterial />
+    <TorusKnot ref={mesh!} args={[1, 0.4, 100, 64]}>
+      <T.MeshNormalMaterial />
     </TorusKnot>
   )
 }
 
 function UseFBOScene({ color = 'orange', ...props }) {
-  const cam = React.useRef<THREE.Camera>(null!)
-  const scene = React.useMemo(() => {
+  let cam: THREE.Camera
+  const scene = createMemo(() => {
     const scene = new THREE.Scene()
     scene.background = new THREE.Color(color)
     return scene
-  }, [color])
+  })
   const target = useFBO(props)
 
   useFrame((state) => {
-    cam.current.position.z = 5 + Math.sin(state.clock.getElapsedTime() * 1.5) * 2
+    cam.position.z = 5 + Math.sin(state.clock.getElapsedTime() * 1.5) * 2
     state.gl.setRenderTarget(target)
-    state.gl.render(scene, cam.current)
+    state.gl.render(scene(), cam)
     state.gl.setRenderTarget(null)
   })
 
   return (
     <>
-      <PerspectiveCamera ref={cam} position={[0, 0, 3]} />
-      {createPortal(<SpinningThing />, scene)}
+      <PerspectiveCamera ref={cam!} position={[0, 0, 3]} />
+      <Portal container={scene()}>
+        <SpinningThing />
+      </Portal>
       <Box args={[3, 3, 3]}>
-        <meshStandardMaterial map={target.texture} />
+        <T.MeshStandardMaterial map={target.texture} />
       </Box>
     </>
   )

@@ -1,10 +1,10 @@
-import * as React from 'react'
 import { Vector3 } from 'three'
 
 import { Setup } from '../Setup'
 
-import { Environment, ContactShadows, PerspectiveCamera, OrbitControls } from '../../src'
+import { ContactShadows, Environment, OrbitControls } from '../../src'
 
+import { T } from '@solid-three/fiber'
 import { presetsObj } from '../../src/helpers/environment-assets'
 
 export default {
@@ -13,22 +13,24 @@ export default {
   decorators: [
     (storyFn) => (
       <Setup cameraPosition={new Vector3(0, 0, 10)} controls={false}>
-        {storyFn()}
+        <T.Suspense>{storyFn()}</T.Suspense>
       </Setup>
     ),
   ],
 }
 
-export const EnvironmentStory = ({ background, preset, blur }) => (
-  <>
-    <Environment preset={preset} background={background} blur={blur} />
-    <mesh>
-      <torusKnotGeometry args={[1, 0.5, 128, 32]} />
-      <meshStandardMaterial metalness={1} roughness={0} />
-    </mesh>
-    <OrbitControls autoRotate />
-  </>
-)
+export const EnvironmentStory = (props) => {
+  return (
+    <>
+      <Environment preset={props.preset} background={props.background} blur={props.blur} />
+      <T.Mesh>
+        <T.TorusKnotGeometry args={[1, 0.5, 128, 32]} />
+        <T.MeshStandardMaterial metalness={1} roughness={0} color="white" />
+      </T.Mesh>
+      <OrbitControls autoRotate />
+    </>
+  )
+}
 
 const presets = Object.keys(presetsObj)
 
@@ -50,17 +52,17 @@ EnvironmentStory.argTypes = {
 
 EnvironmentStory.storyName = 'Default'
 
-export const EnvironmentFilesStory = ({ background }) => (
+export const EnvironmentFilesStory = (props) => (
   <>
     <Environment
-      background={background}
+      background={props.background}
       path={`cube/`}
       files={[`px.png`, `nx.png`, `py.png`, `ny.png`, `pz.png`, `nz.png`]}
     />
-    <mesh>
-      <torusKnotGeometry args={[1, 0.5, 128, 32]} />
-      <meshStandardMaterial metalness={1} roughness={0} />
-    </mesh>
+    <T.Mesh>
+      <T.TorusKnotGeometry args={[1, 0.5, 128, 32]} />
+      <T.MeshStandardMaterial metalness={1} roughness={0} />
+    </T.Mesh>
     <OrbitControls autoRotate />
   </>
 )
@@ -71,18 +73,20 @@ EnvironmentFilesStory.args = {
 
 EnvironmentFilesStory.storyName = 'Files'
 
-export const EnvironmentGroundStory = ({ preset, height, radius }) => (
-  <>
-    <Environment ground={{ height, radius }} preset={preset} />
-    <mesh position={[0, 5, 0]}>
-      <boxGeometry args={[10, 10, 10]} />
-      <meshStandardMaterial metalness={1} roughness={0} />
-    </mesh>
-    <ContactShadows resolution={1024} position={[0, 0, 0]} scale={100} blur={2} opacity={1} far={10} />
-    <OrbitControls autoRotate />
-    <PerspectiveCamera position={[40, 40, 40]} makeDefault />
-  </>
-)
+export const EnvironmentGroundStory = (props) => {
+  return (
+    <>
+      <Environment ground={{ height: props.height, radius: props.radius }} preset={props.preset} />
+      <T.Mesh position={[0, 5, 0]}>
+        <T.BoxGeometry args={[10, 10, 10]} />
+        <T.MeshStandardMaterial color="white" metalness={1} roughness={0} />
+      </T.Mesh>
+      <ContactShadows resolution={1024} position={[0, 0, 0]} scale={100} blur={2} opacity={1} far={10} />
+      <OrbitControls autoRotate />
+      {/* <PerspectiveCamera position={[40, 40, 40]} makeDefault /> */}
+    </>
+  )
+}
 
 EnvironmentGroundStory.args = {
   height: 15,

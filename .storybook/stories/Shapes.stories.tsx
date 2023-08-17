@@ -1,5 +1,4 @@
-import * as React from 'react'
-import { useFrame } from '@react-three/fiber'
+import { T, useFrame } from '@solid-three/fiber'
 import { Mesh } from 'three'
 
 import { Setup } from '../Setup'
@@ -13,7 +12,7 @@ export default {
 }
 
 function useTurntable() {
-  const ref = React.useRef<Mesh>(null!)
+  const ref = { current: null as unknown as Mesh }
   useFrame(() => {
     ref.current.rotation.y += 0.01
   })
@@ -24,11 +23,11 @@ function useTurntable() {
 function Story({ comp, args }: { comp: string; args?: any }) {
   const Comp = shapes[comp]
 
-  const ref = useTurntable()
+  const turntable = useTurntable()
 
   return (
-    <Comp ref={ref} args={args}>
-      <meshPhongMaterial color="#f3f3f3" wireframe />
+    <Comp ref={turntable} args={args}>
+      <T.MeshPhongMaterial color="#f3f3f3" wireframe />
     </Comp>
   )
 }

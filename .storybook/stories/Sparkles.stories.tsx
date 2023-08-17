@@ -1,9 +1,10 @@
-import * as React from 'react'
+import { createMemo, splitProps } from 'solid-js'
 import { Vector3 } from 'three'
 
 import { Setup } from '../Setup'
 
-import { Sparkles, PerspectiveCamera, OrbitControls } from '../../src'
+import { T } from '@solid-three/fiber'
+import { OrbitControls, PerspectiveCamera, Sparkles } from '../../src'
 
 export default {
   title: 'Staging/Sparkles',
@@ -17,16 +18,19 @@ export default {
   ],
 }
 
-export const SparklesStory = ({ random, size, amount, ...props }) => {
-  const sizes = React.useMemo(() => {
-    return new Float32Array(Array.from({ length: amount }, () => Math.random() * size))
-  }, [size, amount])
+// s3f:   Sparkles is not working currently
+export const SparklesStory = (_props) => {
+  const [props, rest] = splitProps(_props, ['random', 'size', 'amount'])
+
+  const sizes = createMemo(() => {
+    return new Float32Array(Array.from({ length: props.amount }, () => Math.random() * props.size))
+  })
 
   return (
     <>
-      <Sparkles {...props} size={random ? sizes : size} color="orange" count={amount} />
+      <Sparkles {...rest} size={props.random ? sizes() : props.size} color="orange" count={props.amount} />
       <OrbitControls />
-      <axesHelper />
+      <T.AxesHelper />
       <PerspectiveCamera position={[2, 2, 2]} makeDefault />
     </>
   )

@@ -1,10 +1,10 @@
+import { withKnobs } from '@storybook/addon-knobs'
 import * as THREE from 'three'
-import * as React from 'react'
-import { withKnobs, number } from '@storybook/addon-knobs'
 import { Vector3 } from 'three'
 
 import { Setup } from '../Setup'
 
+import { T } from '@solid-three/fiber'
 import { Facemesh, FacemeshDatas } from '../../src'
 
 export default {
@@ -22,8 +22,8 @@ export default {
 
 export const FacemeshSt = ({ depth, origin, eyes, eyesAsOrigin, offset, offsetScalar, debug }) => (
   <>
-    <color attach="background" args={['#303030']} />
-    <axesHelper />
+    <T.Color attach="background" args={['#303030']} />
+    <T.AxesHelper />
 
     <Facemesh
       depth={depth}
@@ -37,7 +37,7 @@ export const FacemeshSt = ({ depth, origin, eyes, eyesAsOrigin, offset, offsetSc
       debug={debug}
       rotation-z={Math.PI}
     >
-      <meshStandardMaterial side={THREE.DoubleSide} color="#cbcbcb" flatShading={true} transparent opacity={0.98} />
+      <T.MeshStandardMaterial side={THREE.DoubleSide} color="#cbcbcb" flatShading={true} transparent opacity={0.98} />
     </Facemesh>
   </>
 )

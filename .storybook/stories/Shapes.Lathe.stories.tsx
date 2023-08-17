@@ -1,9 +1,9 @@
-import * as React from 'react'
 import * as THREE from 'three'
 
 import { Setup } from '../Setup'
 import { useTurntable } from '../useTurntable'
 
+import { T } from '@solid-three/fiber'
 import { Lathe } from '../../src'
 
 export default {
@@ -13,20 +13,20 @@ export default {
 }
 
 function LatheScene() {
-  const points = React.useMemo(() => {
+  const points = (() => {
     const _points: THREE.Vector2[] = []
     for (let i = 0; i < 10; i++) {
       _points.push(new THREE.Vector2(Math.sin(i * 0.2) * 10 + 5, (i - 5) * 2))
     }
 
     return _points
-  }, [])
+  })()
 
-  const ref = useTurntable()
+  const turntable = useTurntable()
 
   return (
-    <Lathe ref={ref} args={[points]}>
-      <meshPhongMaterial color="#f3f3f3" wireframe />
+    <Lathe ref={turntable} args={[points]}>
+      <T.MeshPhongMaterial color="#f3f3f3" wireframe />
     </Lathe>
   )
 }

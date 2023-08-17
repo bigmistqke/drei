@@ -1,10 +1,10 @@
-import * as React from 'react'
+import { createSignal } from 'solid-js'
 
 import { Setup } from '../Setup'
 
-import { Sphere, Trail, useTrail, Html, Stats, Float, PerspectiveCamera } from '../../src'
-import { useFrame } from '@react-three/fiber'
-import { InstancedMesh, Mesh, Object3D, Vector3 } from 'three'
+import { T, useFrame } from '@solid-three/fiber'
+import { Group, InstancedMesh, Mesh, Object3D, Vector3 } from 'three'
+import { Float, Sphere, Trail, useTrail } from '../../src'
 
 export default {
   title: 'Misc/Trail',
@@ -13,20 +13,19 @@ export default {
 }
 
 function TrailScene() {
-  const group = React.useRef<Mesh>(null!)
-  const sphere = React.useRef<Mesh>(null!)
+  let group: Group
+  let sphere: Mesh
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime()
-
-    group.current.rotation.z = t
-
-    sphere.current.position.x = Math.sin(t * 2) * 2
-    sphere.current.position.z = Math.cos(t * 2) * 2
+    if (!group || !sphere) return
+    group.rotation.z = t
+    sphere.position.x = Math.sin(t * 2) * 2
+    sphere.position.z = Math.cos(t * 2) * 2
   })
 
   return (
     <>
-      <group ref={group}>
+      <T.Group ref={group!}>
         <Trail
           width={1}
           length={4}
@@ -35,14 +34,14 @@ function TrailScene() {
             return t * t
           }}
         >
-          <Sphere ref={sphere} args={[0.1, 32, 32]} position-y={3}>
-            <meshNormalMaterial />
+          <Sphere ref={sphere!} args={[0.1, 32, 32]} position-y={3}>
+            <T.MeshNormalMaterial />
           </Sphere>
         </Trail>
-      </group>
+      </T.Group>
 
-      <PerspectiveCamera makeDefault position={[5, 5, 5]} />
-      <axesHelper />
+      {/* <PerspectiveCamera makeDefault position={[5, 5, 5]} /> */}
+      <T.AxesHelper />
     </>
   )
 }
@@ -51,35 +50,35 @@ export const TrailsSt = () => <TrailScene />
 TrailsSt.storyName = 'Default'
 
 function UseTrailScene() {
-  const [sphere, setSphere] = React.useState<Mesh>(null!)
-  const instancesRef = React.useRef<InstancedMesh>(null!)
+  const [sphere, setSphere] = createSignal<Mesh>(null!)
+  let instancesRef: InstancedMesh
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime()
 
-    sphere.position.x = Math.sin(t) * 3 + Math.cos(t * 2)
-    sphere.position.y = Math.cos(t) * 3
+    sphere().position.x = Math.sin(t) * 3 + Math.cos(t * 2)
+    sphere().position.y = Math.cos(t) * 3
   })
 
   const trailPositions = useTrail(sphere, { length: 5, decay: 5, interval: 6 })
   const n = 1000
 
-  const [o] = React.useState(() => new Object3D())
+  const o = new Object3D()
   function updateInstances() {
-    if (!instancesRef.current) return
+    if (!instancesRef) return
 
     for (let i = 0; i < n; i += 1) {
-      const x = trailPositions.current?.slice(i * 3, i * 3 + 3)
+      const x = trailPositions()?.slice(i * 3, i * 3 + 3)
       // @ts-ignore
       o.position.set(...x)
 
       o.scale.setScalar((i * 10) / n)
       o.updateMatrixWorld()
 
-      instancesRef.current.setMatrixAt(i, o.matrixWorld)
+      instancesRef.setMatrixAt(i, o.matrixWorld)
     }
 
-    instancesRef.current.count = n
-    instancesRef.current.instanceMatrix.needsUpdate = true
+    instancesRef.count = n
+    instancesRef.instanceMatrix.needsUpdate = true
   }
 
   useFrame(updateInstances)
@@ -87,13 +86,13 @@ function UseTrailScene() {
   return (
     <>
       <Sphere ref={setSphere} args={[0.1, 32, 32]} position-x={0} position-y={3}>
-        <meshNormalMaterial />
+        <T.MeshNormalMaterial />
       </Sphere>
 
-      <instancedMesh ref={instancesRef} args={[null!, null!, n]}>
-        <boxGeometry args={[0.1, 0.1, 0.1]} />
-        <meshNormalMaterial />
-      </instancedMesh>
+      <T.InstancedMesh ref={instancesRef!} args={[null!, null!, n]}>
+        <T.BoxGeometry args={[0.1, 0.1, 0.1]} />
+        <T.MeshNormalMaterial />
+      </T.InstancedMesh>
     </>
   )
 }
@@ -102,9 +101,14 @@ export const UseTrailSt = () => <UseTrailScene />
 UseTrailSt.storyName = 'useTrail with Instances'
 
 function UseTrailFloat() {
-  const ref = React.useRef(null!)
+  let ref
   return (
     <>
+      <Float speed={5} floatIntensity={10} ref={ref}>
+        <Sphere args={[0.1, 32, 32]} position-x={0}>
+          <T.MeshNormalMaterial />
+        </Sphere>
+      </Float>
       <Trail
         width={1}
         length={4}
@@ -114,11 +118,6 @@ function UseTrailFloat() {
         }}
         target={ref}
       />
-      <Float speed={5} floatIntensity={10} ref={ref}>
-        <Sphere args={[0.1, 32, 32]} position-x={0}>
-          <meshNormalMaterial />
-        </Sphere>
-      </Float>
     </>
   )
 }

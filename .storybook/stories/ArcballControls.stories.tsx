@@ -1,9 +1,8 @@
-import { createPortal, useFrame } from '@react-three/fiber'
-import React, { useRef, useState } from 'react'
+import { Portal, T, useFrame } from '@solid-three/fiber'
 import { Scene } from 'three'
 
-import { Setup } from '../Setup'
 import { ArcballControls, Box, PerspectiveCamera, Plane, useFBO } from '../../src'
+import { Setup } from '../Setup'
 
 import type { OrthographicCamera, PerspectiveCamera as PerspectiveCameraType } from 'three'
 import type { ArcballControlsProps } from '../../src'
@@ -18,7 +17,7 @@ export const ArcballControlsStory = (props: ArcballControlsProps) => (
   <>
     <ArcballControls {...props} />
     <Box>
-      <meshBasicMaterial wireframe />
+      <T.MeshBasicMaterial wireframe />
     </Box>
   </>
 )
@@ -37,13 +36,13 @@ const CustomCamera = (props: ArcballControlsProps) => {
    * we will render our scene in a render target and use it as a map.
    */
   const fbo = useFBO(400, 400)
-  const virtualCamera = useRef<OrthographicCamera | PerspectiveCameraType>()
-  const [virtualScene] = useState(() => new Scene())
+  let virtualCamera: OrthographicCamera | PerspectiveCameraType
+  const virtualScene = new Scene()
 
   useFrame(({ gl }) => {
-    if (virtualCamera.current) {
+    if (virtualCamera) {
       gl.setRenderTarget(fbo)
-      gl.render(virtualScene, virtualCamera.current)
+      gl.render(virtualScene, virtualCamera)
 
       gl.setRenderTarget(null)
     }
@@ -52,23 +51,19 @@ const CustomCamera = (props: ArcballControlsProps) => {
   return (
     <>
       <Plane args={[4, 4, 4]}>
-        <meshBasicMaterial map={fbo.texture} />
+        <T.MeshBasicMaterial map={fbo.texture} />
       </Plane>
+      <Portal container={virtualScene}>
+        <Box>
+          <T.MeshBasicMaterial wireframe />
+        </Box>
 
-      {createPortal(
-        <>
-          <Box>
-            <meshBasicMaterial wireframe />
-          </Box>
+        <PerspectiveCamera name="FBO Camera" ref={virtualCamera!} position={[0, 0, 5]} />
 
-          <PerspectiveCamera name="FBO Camera" ref={virtualCamera} position={[0, 0, 5]} />
+        <ArcballControls camera={virtualCamera!} {...props} />
 
-          <ArcballControls camera={virtualCamera.current} {...props} />
-
-          <color attach="background" args={['hotpink']} />
-        </>,
-        virtualScene
-      )}
+        <T.Color attach="background" args={['hotpink']} />
+      </Portal>
     </>
   )
 }

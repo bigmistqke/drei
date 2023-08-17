@@ -1,8 +1,8 @@
-import * as React from 'react'
 import { Vector3 } from 'three'
 
+import { T } from '@solid-three/fiber'
+import { Box, Grid } from '../../src'
 import { Setup } from '../Setup'
-import { Grid, Box } from '../../src'
 
 export default {
   title: 'Gizmos/Grid',
@@ -12,13 +12,13 @@ export default {
 
 function UseGridScene() {
   return (
-    <React.Suspense fallback={null}>
+    <T.Suspense fallback={null}>
       <Grid cellColor="white" args={[10, 10]} />
       <Box position={[0, 0.5, 0]}>
-        <meshStandardMaterial />
+        <T.MeshStandardMaterial />
       </Box>
-      <directionalLight position={[10, 10, 5]} />
-    </React.Suspense>
+      <T.DirectionalLight position={[10, 10, 5]} />
+    </T.Suspense>
   )
 }
 

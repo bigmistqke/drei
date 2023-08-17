@@ -1,12 +1,12 @@
-import * as React from 'react'
-import { BoxHelper, CameraHelper } from 'three'
+import { BoxHelper, Camera, CameraHelper } from 'three'
 import { VertexNormalsHelper } from 'three-stdlib'
 
 import { Setup } from '../Setup'
 
-import { Sphere, useHelper, PerspectiveCamera } from '../../src'
-import { useFrame } from '@react-three/fiber'
-import * as THREE from 'three'
+import { T, useFrame } from '@solid-three/fiber'
+import { Component, createSignal } from 'solid-js'
+import { PerspectiveCamera, Sphere, useHelper } from '../../src'
+import { when } from '../../src/helpers/when'
 
 export default {
   title: 'Gizmos/useHelper',
@@ -26,14 +26,14 @@ type StoryProps = {
   showHelper: boolean
 }
 
-const Scene: React.FC<StoryProps> = ({ showHelper }) => {
-  const mesh = React.useRef()
-  useHelper(showHelper && mesh, BoxHelper, 'royalblue')
-  useHelper(showHelper && mesh, VertexNormalsHelper, 1, 0xff0000)
+const Scene: Component<StoryProps> = (props) => {
+  let mesh
+  useHelper(() => props.showHelper && mesh, BoxHelper, 'royalblue')
+  useHelper(() => props.showHelper && mesh, VertexNormalsHelper, 1, 0xff0000)
 
   return (
-    <Sphere ref={mesh}>
-      <meshBasicMaterial />
+    <Sphere ref={mesh!}>
+      <T.MeshBasicMaterial />
     </Sphere>
   )
 }
@@ -41,26 +41,24 @@ const Scene: React.FC<StoryProps> = ({ showHelper }) => {
 export const DefaultStory = (args: StoryProps) => <Scene {...args} />
 DefaultStory.storyName = 'Default'
 
-const CameraScene: React.FC<StoryProps> = ({ showHelper }) => {
-  const camera = React.useRef<THREE.PerspectiveCamera>()
-  useHelper(showHelper && camera, CameraHelper)
+// s3f:   - the following error: THREE.BufferGeometry.computeBoundingSphere(): Computed radius is NaN. The "position" attribute is likely to have NaN values.
+//        - the buffer-geometry created with CameraHelper has boundingSphere null
+//        - the test-file works if we save while the file is open
+const CameraScene: Component<StoryProps> = (props) => {
+  const [camera, setCamera] = createSignal<Camera>()
 
-  useFrame(({ clock }) => {
-    const t = clock.getElapsedTime()
+  useHelper(() => props.showHelper && camera(), CameraHelper)
 
-    if (camera.current) {
-      camera.current.lookAt(0, 0, 0)
-
-      camera.current.position.x = Math.sin(t) * 4
-      camera.current.position.z = Math.cos(t) * 4
-    }
-  })
-
-  return (
-    <PerspectiveCamera makeDefault={false} position={[0, 3, 3]} near={1} far={4} ref={camera}>
-      <meshBasicMaterial />
-    </PerspectiveCamera>
+  useFrame(({ clock }) =>
+    when(camera)((camera) => {
+      const t = clock.getElapsedTime()
+      camera.lookAt(0, 0, 0)
+      camera.position.x = Math.sin(t) * 4
+      camera.position.z = Math.cos(t) * 4
+    })
   )
+
+  return <PerspectiveCamera makeDefault={false} position={[0, 3, 3]} near={1} far={4} ref={setCamera} />
 }
 
 export const CameraStory = (args: StoryProps) => <CameraScene {...args} />

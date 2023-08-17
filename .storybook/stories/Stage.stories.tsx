@@ -1,15 +1,15 @@
-import * as React from 'react'
-import { withKnobs, select, number, boolean, object } from '@storybook/addon-knobs'
+import { number, select, withKnobs } from '@storybook/addon-knobs'
 import { Vector3 } from 'three'
 
+import { T } from '@solid-three/fiber'
+import { Sphere, Stage } from '../../src'
+import { PresetsType, presetsObj } from '../../src/helpers/environment-assets'
 import { Setup } from '../Setup'
-import { Stage, Sphere } from '../../src'
-import { presetsObj, PresetsType } from '../../src/helpers/environment-assets'
 
 export default {
   title: 'Staging/Stage',
   component: Stage,
-  decorators: [withKnobs, (storyFn) => <Setup cameraPosition={new Vector3(0, 0, 3)}>{storyFn()}</Setup>],
+  decorators: [withKnobs, (storyFn) => <Setup cameraPosition={new Vector3(2, 2, 3)}>{storyFn()}</Setup>],
 }
 
 enum presets {
@@ -26,14 +26,14 @@ function StageStory() {
   const presetKnob = select('Preset', presets, presets[0])
 
   return (
-    <React.Suspense fallback={null}>
-      <color attach="background" args={['white']} />
+    <T.Suspense fallback={null}>
+      <T.Color attach="background" args={['white']} />
       <Stage intensity={intensity} environment={envPreset as PresetsType} preset={presetKnob}>
         <Sphere args={[1, 64, 64]}>
-          <meshStandardMaterial roughness={0} color="royalblue" />
+          <T.MeshStandardMaterial roughness={0} color="royalblue" />
         </Sphere>
       </Stage>
-    </React.Suspense>
+    </T.Suspense>
   )
 }
 

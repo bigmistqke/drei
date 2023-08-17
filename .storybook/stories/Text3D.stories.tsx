@@ -1,12 +1,10 @@
-import * as React from 'react'
-import { DoubleSide, Vector3 } from 'three'
-import { withKnobs, number, color as colorKnob } from '@storybook/addon-knobs'
+import { withKnobs } from '@storybook/addon-knobs'
+import { Vector3 } from 'three'
 
 import { Setup } from '../Setup'
-import { useTurntable } from '../useTurntable'
 
-import { Text, Text3D, Float, Center, Edges } from '../../src'
-import { useEffect } from 'react'
+import { T } from '@solid-three/fiber'
+import { Center, Float, Text, Text3D } from '../../src'
 
 export default {
   title: 'Abstractions/Text3D',
@@ -16,16 +14,17 @@ export default {
 
 function Text3DScene() {
   return (
-    <React.Suspense fallback={null}>
+    <T.Suspense fallback={null}>
+      <T.Color args={[0, 0, 0]} attach="background" />
       <Center>
         <Float floatIntensity={5} speed={2}>
           <Text3D font={'/fonts/helvetiker_regular.typeface.json'} bevelEnabled bevelSize={0.05}>
             Text 3D
-            <meshNormalMaterial />
+            <T.MeshNormalMaterial />
           </Text3D>
         </Float>
       </Center>
-    </React.Suspense>
+    </T.Suspense>
   )
 }
 

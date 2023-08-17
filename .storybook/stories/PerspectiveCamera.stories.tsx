@@ -1,7 +1,7 @@
-import * as React from 'react'
-import { Canvas } from '@react-three/fiber'
+import { Canvas, T } from '@solid-three/fiber'
+import { For, createMemo } from 'solid-js'
 
-import { Icosahedron, PerspectiveCamera, OrbitControls } from '../../src'
+import { Icosahedron, OrbitControls, PerspectiveCamera } from '../../src'
 
 export default {
   title: 'Camera/PerspectiveCamera',
@@ -16,7 +16,7 @@ interface Positions {
 }
 
 function PerspectiveCameraScene() {
-  const positions = React.useMemo(() => {
+  const positions = createMemo(() => {
     const pos: Positions[] = []
     const half = (NUM - 1) / 2
 
@@ -33,15 +33,17 @@ function PerspectiveCameraScene() {
   }, [])
 
   return (
-    <Canvas>
+    <Canvas style={{ height: '100vh' }}>
       <PerspectiveCamera makeDefault position={[0, 0, 10]} />
-      <group position={[0, 0, -10]}>
-        {positions.map(({ id, position }) => (
-          <Icosahedron key={id} position={position} args={[1, 1]}>
-            <meshBasicMaterial color="white" wireframe />
-          </Icosahedron>
-        ))}
-      </group>
+      <T.Group position={[0, 0, -10]}>
+        <For each={positions()}>
+          {({ id, position }) => (
+            <Icosahedron key={id} position={position} args={[1, 1]}>
+              <T.MeshBasicMaterial color="white" wireframe />
+            </Icosahedron>
+          )}
+        </For>
+      </T.Group>
       <OrbitControls />
     </Canvas>
   )

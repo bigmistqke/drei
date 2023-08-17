@@ -1,10 +1,9 @@
-import * as React from 'react'
-import { useLoader } from '@react-three/fiber'
+import { T, useLoader } from '@solid-three/fiber'
 import { TextureLoader, Vector3 } from 'three'
 
 import { Setup } from '../Setup'
 
-import { useAspect, Plane } from '../../src'
+import { Plane, useAspect } from '../../src'
 
 export default {
   title: 'Misc/useAspect',
@@ -16,34 +15,34 @@ function Simple() {
   const scale = useAspect(1920, 1080, 1)
 
   return (
-    <Plane scale={scale} rotation-x={Math.PI / 2} args={[1, 1, 4, 4]}>
-      <meshPhongMaterial wireframe />
+    <Plane scale={scale()} rotation-x={Math.PI / 2} args={[1, 1, 4, 4]}>
+      <T.MeshPhongMaterial wireframe />
     </Plane>
   )
 }
 
 export const DefaultStory = () => (
-  <React.Suspense fallback="">
+  <T.Suspense fallback="">
     <Simple />
-  </React.Suspense>
+  </T.Suspense>
 )
 DefaultStory.storyName = 'Default'
 
 function WithTexture() {
-  const scale = useAspect('cover', 1920, 1080, 1)
+  const scale = useAspect(/* 'cover',  */ 1920, 1080, 1)
 
   const map = useLoader(TextureLoader, `https://source.unsplash.com/random/1920x1080`)
 
   return (
-    <Plane scale={scale} rotation-x={Math.PI / 2}>
-      <meshPhongMaterial map={map} color="grey" />
+    <Plane scale={scale()} rotation-x={Math.PI / 2}>
+      <T.MeshPhongMaterial map={map()} color="grey" />
     </Plane>
   )
 }
 
 export const TextureStory = () => (
-  <React.Suspense fallback="">
+  <T.Suspense fallback="">
     <WithTexture />
-  </React.Suspense>
+  </T.Suspense>
 )
 TextureStory.storyName = 'With Texture'

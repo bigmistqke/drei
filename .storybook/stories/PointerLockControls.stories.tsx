@@ -1,8 +1,9 @@
-import * as React from 'react'
+import { For, createMemo } from 'solid-js'
 
 import { Setup } from '../Setup'
 
-import { PointerLockControls, Icosahedron } from '../../src'
+import { T } from '@solid-three/fiber'
+import { Icosahedron, PointerLockControls } from '../../src'
 
 export default {
   title: 'Controls/PointerLockControls',
@@ -17,7 +18,7 @@ interface Positions {
 }
 
 function Icosahedrons() {
-  const positions = React.useMemo(() => {
+  const positions = createMemo(() => {
     const pos: Positions[] = []
     const half = (NUM - 1) / 2
 
@@ -36,20 +37,22 @@ function Icosahedrons() {
   }, [])
 
   return (
-    <group>
-      {positions.map(({ id, position }) => (
-        <Icosahedron key={id} args={[1, 1]} position={position}>
-          <meshBasicMaterial color="white" wireframe />
-        </Icosahedron>
-      ))}
-    </group>
+    <T.Group>
+      <For each={positions()}>
+        {({ id, position }) => (
+          <Icosahedron key={id} args={[1, 1]} position={position}>
+            <T.MeshBasicMaterial color="white" wireframe />
+          </Icosahedron>
+        )}
+      </For>
+    </T.Group>
   )
 }
 
 function PointerLockControlsScene() {
   return (
     <>
-      <Setup controls={false} camera={{ position: [0, 0, 10] }}>
+      <Setup camera={{ position: [0, 0, 10] }}>
         <Icosahedrons />
         <PointerLockControls />
       </Setup>
@@ -69,8 +72,8 @@ function PointerLockControlsSceneWithSelector() {
         id="instructions"
         style={{
           display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
+          'justify-content': 'center',
+          'align-items': 'center',
           height: '2em',
           background: 'white',
         }}
@@ -79,14 +82,14 @@ function PointerLockControlsSceneWithSelector() {
       </div>
       <Setup controls={false} camera={{ position: [0, 0, 10] }}>
         <Icosahedrons />
-        <PointerLockControls selector="#instructions" />
+        <PointerLockControls selector="#instructions" onLock={() => console.log('onLock')} />
       </Setup>
       <div
         id="instructions"
         style={{
           display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
+          'justify-content': 'center',
+          'align-items': 'center',
           height: '2em',
           background: 'white',
         }}

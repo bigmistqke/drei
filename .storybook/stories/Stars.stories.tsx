@@ -1,8 +1,7 @@
-import * as React from 'react'
-
 import { Setup } from '../Setup'
 
-import { Stars, Plane } from '../../src'
+import { T } from '@solid-three/fiber'
+import { Plane, Stars } from '../../src'
 
 export default {
   title: 'Staging/Stars',
@@ -13,11 +12,13 @@ export default {
 function StarsScene() {
   return (
     <>
+      {/* s3f: needed to add background-color to scene© to make stars visible */}
+      <T.Color args={[0, 0, 0]} attach="background" />
       <Stars />
       <Plane rotation-x={Math.PI / 2} args={[100, 100, 4, 4]}>
-        <meshBasicMaterial color="black" wireframe />
+        <T.MeshBasicMaterial color="black" wireframe />
       </Plane>
-      <axesHelper />
+      <T.AxesHelper />
     </>
   )
 }

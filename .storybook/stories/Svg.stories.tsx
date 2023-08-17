@@ -1,8 +1,7 @@
-import { useEffect } from '@storybook/addons'
-import { useArgs } from '@storybook/client-api'
-import { ComponentMeta } from '@storybook/react'
-import * as React from 'react'
-import { ComponentProps, FC, Suspense } from 'react'
+import { useArgs, useEffect } from '@storybook/client-api'
+
+import { T } from '@solid-three/fiber'
+import { Component, splitProps } from 'solid-js'
 import { MathUtils, NoToneMapping, Vector3 } from 'three'
 import { Svg, SvgProps } from '../../src'
 import { Setup } from '../Setup'
@@ -79,21 +78,25 @@ export default {
   },
 }
 
-export const SvgSt: FC<SvgStoryProps> = ({ svg, fillWireframe, strokesWireframe, ...props }) => {
-  const [_, updateArgs] = useArgs()
+export const SvgSt: Component<SvgStoryProps> = (_props) => {
+  const [props, rest] = splitProps(_props, ['svg', 'fillWireframe', 'strokesWireframe'])
+
+  const [args, updateArgs] = useArgs()
   useEffect(() => {
-    updateArgs({ src: `${url}/${svg || svgRecord.Tiger}` })
-  }, [svg])
+    updateArgs({ src: `${url}/${props.svg || svgRecord.Tiger}` })
+  })
+
   return (
     <>
       <Svg
-        {...props}
+        {...rest}
+        src={`${url}/${props.svg || svgRecord.Tiger}`}
         position={[-70, 70, 0]}
         scale={0.25}
-        fillMaterial={{ wireframe: fillWireframe }}
-        strokeMaterial={{ wireframe: strokesWireframe }}
+        fillMaterial={{ wireframe: props.fillWireframe }}
+        strokeMaterial={{ wireframe: props.strokesWireframe }}
       />
-      <gridHelper args={[160, 10]} rotation={[MathUtils.DEG2RAD * 90, 0, 0]} />
+      <T.GridHelper args={[160, 10]} rotation={[MathUtils.DEG2RAD * 90, 0, 0]} />
     </>
   )
 }

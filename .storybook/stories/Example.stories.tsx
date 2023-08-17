@@ -1,11 +1,10 @@
-import * as THREE from 'three'
-import * as React from 'react'
 import { withKnobs } from '@storybook/addon-knobs'
 import { Vector3 } from 'three'
 
 import { Setup } from '../Setup'
 
-import { Example, ExampleApi, Sparkles } from '../../src'
+import { T } from '@solid-three/fiber'
+import { Example, ExampleApi } from '../../src'
 
 export default {
   title: 'Misc/Example',
@@ -20,25 +19,27 @@ export default {
   ],
 }
 
+// s3f:   unclear if we still should allow for the api to decr/incr when clicking without metakey
+//        a/b with r3f to make sure
 export const ExampleSt = ({ fontUrl, color, bevelSize, debug }) => {
-  const apiRef = React.useRef<ExampleApi>(null)
+  let apiRef: ExampleApi = null!
 
   return (
     <>
-      <color attach="background" args={['#303030']} />
-      <axesHelper />
+      <T.Color attach="background" args={['#303030']} />
+      <T.AxesHelper />
 
       <Example
         font={fontUrl}
         color={color}
         bevelSize={bevelSize}
         debug={debug}
-        ref={apiRef}
+        ref={apiRef!}
         onClick={(e) => {
           if ((e as any as PointerEvent).metaKey) {
-            apiRef.current?.decr()
+            apiRef?.decr()
           } else {
-            apiRef.current?.incr()
+            apiRef?.incr()
           }
         }}
       />

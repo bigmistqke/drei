@@ -1,26 +1,27 @@
-import * as React from 'react'
-import { withKnobs, optionsKnob, boolean } from '@storybook/addon-knobs'
+import { boolean, optionsKnob, withKnobs } from '@storybook/addon-knobs'
+import { Show, createEffect, createSignal, onCleanup, onMount } from 'solid-js'
 import { Object3D } from 'three'
-import { TransformControls as TransformControlsImpl, OrbitControls as OrbitControlsImpl } from 'three-stdlib'
+import { OrbitControls as OrbitControlsImpl, TransformControls as TransformControlsImpl } from 'three-stdlib'
 
 import { Setup } from '../Setup'
 
+import { T } from '@solid-three/fiber'
 import { Box, OrbitControls, Select, TransformControls } from '../../src'
 
 export function TransformControlsStory() {
-  const ref = React.useRef<TransformControlsImpl>(null!)
+  let ref: TransformControlsImpl
 
-  React.useEffect(() => {
-    const cb = (e: KeyboardEvent) => e.key === 'Escape' && ref.current.reset()
+  createEffect(() => {
+    const cb = (e: KeyboardEvent) => e.key === 'Escape' && ref.reset()
     document.addEventListener('keydown', cb)
-    return () => document.removeEventListener('keydown', cb)
+    onCleanup(() => document.removeEventListener('keydown', cb))
   })
 
   return (
     <Setup>
-      <TransformControls ref={ref}>
+      <TransformControls ref={ref!}>
         <Box>
-          <meshBasicMaterial wireframe />
+          <T.MeshBasicMaterial wireframe />
         </Box>
       </TransformControls>
     </Setup>
@@ -35,24 +36,26 @@ export default {
 }
 
 export function TransformControlsSelectObjectStory() {
-  const [selected, setSelected] = React.useState<Object3D[]>([])
-  const active = selected[0]
+  const [selected, setSelected] = createSignal<Object3D[]>([])
+  const active = () => selected()[0]
 
   return (
     <Setup controls={false}>
       <OrbitControls makeDefault />
-      {active && <TransformControls object={active} />}
+      <Show when={active()}>
+        <TransformControls object={active()} />
+      </Show>
       <Select box onChange={setSelected}>
-        <group>
+        <T.Group>
           <Box position={[-1, 0, 0]}>
-            <meshBasicMaterial wireframe color="orange" />
+            <T.MeshBasicMaterial wireframe color="orange" />
           </Box>
-        </group>
-        <group>
+        </T.Group>
+        <T.Group>
           <Box position={[0, 0, 0]}>
-            <meshBasicMaterial wireframe color="green" />
+            <T.MeshBasicMaterial wireframe color="green" />
           </Box>
-        </group>
+        </T.Group>
       </Select>
     </Setup>
   )
@@ -60,27 +63,33 @@ export function TransformControlsSelectObjectStory() {
 
 TransformControlsSelectObjectStory.storyName = 'With <Select />'
 
-function TransformControlsLockScene({ mode, showX, showY, showZ }) {
-  const orbitControls = React.useRef<OrbitControlsImpl>(null!)
-  const transformControls = React.useRef<TransformControlsImpl>(null!)
+// s3f    I changed the implementation quite a lot
+//        the implementation of r3f isn't working either
+function TransformControlsLockScene(props) {
+  let orbitControls: OrbitControlsImpl
+  let transformControls: TransformControlsImpl
+  const [orbitEnabled, setOrbitEnabled] = createSignal(true)
 
-  React.useEffect(() => {
-    if (transformControls.current) {
-      const { current: controls } = transformControls
-      const callback = (event) => (orbitControls.current.enabled = !event.value)
-      controls.addEventListener('dragging-changed', callback)
-      return () => controls.removeEventListener('dragging-changed', callback)
-    }
+  onMount(() => {
+    const callback = (event) => setOrbitEnabled(!event.value)
+    transformControls.addEventListener('dragging-changed', callback)
+    onCleanup(() => transformControls.removeEventListener('dragging-changed', callback))
   })
 
   return (
     <>
-      <TransformControls ref={transformControls} mode={mode} showX={showX} showY={showY} showZ={showZ}>
+      <TransformControls
+        ref={transformControls!}
+        mode={props.mode}
+        showX={props.showX}
+        showY={props.showY}
+        showZ={props.showZ}
+      >
         <Box>
-          <meshBasicMaterial wireframe />
+          <T.MeshBasicMaterial wireframe />
         </Box>
       </TransformControls>
-      <OrbitControls ref={orbitControls} />
+      <OrbitControls ref={orbitControls!} enabled={orbitEnabled()} />
     </>
   )
 }

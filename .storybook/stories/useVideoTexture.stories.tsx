@@ -1,10 +1,10 @@
-import * as React from 'react'
-import { useState } from 'react'
 import * as THREE from 'three'
 
 import { Setup } from '../Setup'
 
-import { Plane, useVideoTexture, useTexture } from '../../src'
+import { T } from '@solid-three/fiber'
+import { createSignal } from 'solid-js'
+import { Plane, useTexture, useVideoTexture } from '../../src'
 
 export default {
   title: 'Misc/useVideoTexture',
@@ -22,7 +22,7 @@ function VideoTexturedPlane() {
   return (
     <>
       <Plane args={[4, 2.25]}>
-        <meshBasicMaterial side={THREE.DoubleSide} map={texture} toneMapped={false} />
+        <T.MeshBasicMaterial side={THREE.DoubleSide} map={texture()} toneMapped={false} />
       </Plane>
     </>
   )
@@ -30,9 +30,9 @@ function VideoTexturedPlane() {
 
 function UseVideoTextureScene() {
   return (
-    <React.Suspense fallback={null}>
+    <T.Suspense fallback={null}>
       <VideoTexturedPlane />
-    </React.Suspense>
+    </T.Suspense>
   )
 }
 
@@ -42,16 +42,16 @@ UseVideoTextureSceneSt.story = {
 }
 
 //
-// Suspense
+// T.Suspense
 //
 
 function VideoTexturedPlane2() {
   return (
     <>
       <Plane args={[4, 2.25]}>
-        <React.Suspense fallback={<FallbackMaterial url="images/sintel-cover.jpg" />}>
+        <T.Suspense fallback={<FallbackMaterial url="images/sintel-cover.jpg" />}>
           <VideoMaterial src="http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4" />
-        </React.Suspense>
+        </T.Suspense>
       </Plane>
     </>
   )
@@ -59,19 +59,19 @@ function VideoTexturedPlane2() {
 
 function VideoMaterial({ src }) {
   const texture = useVideoTexture(src)
-  return <meshBasicMaterial side={THREE.DoubleSide} map={texture} toneMapped={false} />
+  return <T.MeshBasicMaterial side={THREE.DoubleSide} map={texture()} toneMapped={false} />
 }
 
 function FallbackMaterial({ url }: { url: string }) {
   const texture = useTexture(url)
-  return <meshBasicMaterial map={texture} toneMapped={false} />
+  return <T.MeshBasicMaterial map={texture()} toneMapped={false} />
 }
 
 function UseVideoTextureScene2() {
   return (
-    <React.Suspense fallback={null}>
+    <T.Suspense fallback={null}>
       <VideoTexturedPlane2 />
-    </React.Suspense>
+    </T.Suspense>
   )
 }
 
@@ -84,8 +84,9 @@ UseVideoTextureSceneSt2.story = {
 // getDisplayMedia (Screen Capture API)
 //
 
+// s3f: this one does not work yet
 function VideoTexturedPlane3() {
-  const [mediaStream, setMediaStream] = useState(new MediaStream())
+  const [mediaStream, setMediaStream] = createSignal(new MediaStream())
 
   return (
     <>
@@ -93,12 +94,13 @@ function VideoTexturedPlane3() {
         args={[4, 2.25]}
         onClick={async (e) => {
           const mediaStream = await navigator.mediaDevices.getDisplayMedia({ video: true })
+
           setMediaStream(mediaStream)
         }}
       >
-        <React.Suspense fallback={<FallbackMaterial url="images/share-screen.jpg" />}>
+        <T.Suspense fallback={<FallbackMaterial url="images/share-screen.jpg" />}>
           <VideoMaterial src={mediaStream} />
-        </React.Suspense>
+        </T.Suspense>
       </Plane>
     </>
   )
@@ -106,9 +108,9 @@ function VideoTexturedPlane3() {
 
 function UseVideoTextureScene3() {
   return (
-    <React.Suspense fallback={null}>
+    <T.Suspense fallback={null}>
       <VideoTexturedPlane3 />
-    </React.Suspense>
+    </T.Suspense>
   )
 }
 

@@ -1,10 +1,11 @@
-import * as React from 'react'
+import { Primitive, T, useFrame } from '@solid-three/fiber'
 import * as THREE from 'three'
-import { useFrame } from '@react-three/fiber'
 
 import { Setup } from '../Setup'
 
-import { useCubeCamera, Box } from '../../src'
+import { Show, createSignal } from 'solid-js'
+import { Box, useCubeCamera } from '../../src'
+import { processProps } from '../../src/helpers/processProps'
 
 export default {
   title: 'misc/useCubeCamera',
@@ -13,48 +14,54 @@ export default {
 }
 
 declare global {
-  namespace JSX {
+  namespace SolidThree {
     interface IntrinsicElements {
-      axisHelper: object
+      AxisHelper: object
     }
   }
 }
 
-function Sphere({ offset = 0, ...props }) {
-  const ref = React.useRef<THREE.Group>()
+// s3f    there is a bug currently where the second cubetexture is incorrectly positioned (or something)
+//        unclear what the reason is. The bug is also present in r3f.
+//        if the pink box is placed before the cube-textures are added it is rendered correctly
+function Sphere(_props) {
+  const [props, rest] = processProps(_props, { offset: 0 }, ['offset'])
+  let ref: THREE.Mesh
 
   const { fbo, camera, update } = useCubeCamera()
 
   useFrame(({ clock }) => {
-    ref.current!.position.y = Math.sin(offset + clock.elapsedTime) * 5
-
-    ref.current!.visible = false
+    ref!.position.y = Math.sin(props.offset + clock.elapsedTime) * 5
+    ref!.visible = false
     update()
-    ref.current!.visible = true
+    ref!.visible = true
   })
 
   return (
-    <group {...props}>
-      <primitive object={camera} />
-      <mesh ref={ref}>
-        <sphereGeometry args={[5, 64, 64]} />
-        <meshStandardMaterial roughness={0} metalness={1} envMap={fbo.texture} />
-      </mesh>
-    </group>
+    <T.Group {...rest}>
+      <T.Mesh ref={ref!}>
+        <Primitive object={camera()} />
+        <T.SphereGeometry args={[5, 64, 64]} />
+        <Show when={fbo()?.texture}>
+          <T.MeshStandardMaterial color="white" roughness={0} metalness={1} envMap={fbo().texture} />
+        </Show>
+      </T.Mesh>
+    </T.Group>
   )
 }
 
 function Scene() {
+  const [visible, setVisible] = createSignal(true)
   return (
     <>
-      <fog attach="fog" args={['#f0f0f0', 100, 200]} />
+      <T.Fog attach="fog" args={['#f0f0f0', 100, 200]} />
 
       <Sphere position={[-10, 10, 0]} />
       <Sphere position={[10, 9, 0]} offset={2000} />
 
-      <Box material-color="hotpink" args={[5, 5, 5]} position-y={2.5} />
+      <Box material-color="hotpink" args={[5, 5, 5]} position-y={2.5} onClick={() => setVisible((bool) => !bool)} />
 
-      <gridHelper args={[100, 10]} />
+      <T.GridHelper args={[100, 10]} />
     </>
   )
 }

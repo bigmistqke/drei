@@ -1,10 +1,9 @@
-import * as React from 'react'
 import * as THREE from 'three'
 
+import { T } from '@solid-three/fiber'
+import { onMount, splitProps, type JSX } from 'solid-js'
+import { BBAnchor, Html, Icosahedron, OrbitControls, Sphere, useHelper } from '../../src'
 import { Setup } from '../Setup'
-
-import { Icosahedron, Sphere, Html, BBAnchor, OrbitControls, useHelper } from '../../src'
-import { BoxHelper } from 'three'
 
 export default {
   title: 'Staging/BBAnchor',
@@ -12,7 +11,6 @@ export default {
   decorators: [
     (storyFn) => (
       <Setup cameraPosition={new THREE.Vector3(2, 2, 2)} controls={false}>
-        {' '}
         {storyFn()}
       </Setup>
     ),
@@ -28,40 +26,39 @@ export default {
 
 type Anchor = THREE.Vector3 | [number, number, number]
 
-function BBAnchorScene({
-  anchor,
-  drawBoundingBox,
-  children,
-}: {
-  anchor: Anchor
-  drawBoundingBox: boolean
-  children?: React.ReactChild
-}) {
-  const ref = React.useRef()
+function BBAnchorScene(props: { anchor: Anchor; drawBoundingBox: boolean; children?: JSX.Element }) {
+  let ref
 
-  useHelper(drawBoundingBox && ref, BoxHelper, 'cyan')
+  onMount(() => useHelper(() => props.drawBoundingBox && ref, THREE.BoxHelper, 'cyan'))
 
   return (
     <>
       <OrbitControls autoRotate />
       <Icosahedron ref={ref}>
-        <meshBasicMaterial color="hotpink" wireframe />
-        <BBAnchor anchor={anchor}>{children}</BBAnchor>
+        <T.MeshBasicMaterial color="hotpink" wireframe />
+        <BBAnchor anchor={props.anchor}>{props.children}</BBAnchor>
       </Icosahedron>
     </>
   )
 }
 
-const Template = ({ drawBoundingBox, anchorX, anchorY, anchorZ, ...args }) => (
-  <BBAnchorScene drawBoundingBox={drawBoundingBox} anchor={[anchorX, anchorY, anchorZ]} {...args} />
-)
+const Template = (_props) => {
+  const [props, rest] = splitProps(_props, ['drawBoundingBox', 'anchorX', 'anchorY', 'anchorZ'])
+  return (
+    <BBAnchorScene
+      drawBoundingBox={props.drawBoundingBox}
+      anchor={[props.anchorX, props.anchorY, props.anchorZ]}
+      {...rest}
+    />
+  )
+}
 
 function HtmlComp() {
   return (
     <Html
       style={{
-        color: 'white',
-        whiteSpace: 'nowrap',
+        color: 'black',
+        'white-space': 'nowrap',
       }}
       center
     >
@@ -76,14 +73,14 @@ BBAnchorWithHtml.args = {
   anchorX: 1,
   anchorY: 1,
   anchorZ: 1,
-  children: <HtmlComp />,
+  children: () => <HtmlComp />,
 }
 BBAnchorWithHtml.storyName = 'With Html component'
 
 function MeshComp() {
   return (
     <Sphere args={[0.25]}>
-      <meshBasicMaterial color="lime" />
+      <T.MeshBasicMaterial color="lime" />
     </Sphere>
   )
 }
@@ -94,6 +91,6 @@ BBAnchorWithMesh.args = {
   anchorX: 1,
   anchorY: 1,
   anchorZ: 1,
-  children: <MeshComp />,
+  children: () => <MeshComp />,
 }
 BBAnchorWithMesh.storyName = 'With other mesh'

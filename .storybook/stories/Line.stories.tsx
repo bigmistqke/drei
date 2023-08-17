@@ -1,11 +1,10 @@
-import * as React from 'react'
+import { boolean, color, number, select, withKnobs } from '@storybook/addon-knobs'
 import { Vector3 } from 'three'
 import { GeometryUtils } from 'three-stdlib'
-import { withKnobs, number, color, boolean, select } from '@storybook/addon-knobs'
 
 import { Setup } from '../Setup'
 
-import { Line, OrbitControls, QuadraticBezierLine, CubicBezierLine, CatmullRomLine } from '../../src'
+import { CatmullRomLine, CubicBezierLine, Line, OrbitControls, QuadraticBezierLine } from '../../src'
 
 export default {
   title: 'Shapes/Line',

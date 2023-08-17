@@ -1,21 +1,21 @@
-import React from 'react'
+import { Primitive, T, ThreeProps, extend, useFrame, useLoader } from '@solid-three/fiber'
 import { BufferGeometry, CatmullRomCurve3, LineBasicMaterial, LineLoop, Vector3 } from 'three'
 import { FontLoader, TextGeometry, TextGeometryParameters } from 'three-stdlib'
-import { extend, useFrame, useLoader } from '@react-three/fiber'
 
-import { Setup } from '../Setup'
+import { createMemo, onMount } from 'solid-js'
 import { CurveModifier, CurveModifierRef } from '../../src'
+import { Setup } from '../Setup'
 
 extend({ StdText: TextGeometry })
 
-type TextGeometryImpl = JSX.IntrinsicElements['extrudeGeometry'] & {
+type TextGeometryImpl = ThreeProps<'ExtrudeGeometry'> & {
   args: [string, TextGeometryParameters]
 }
 
 declare global {
-  namespace JSX {
+  namespace SolidThree {
     interface IntrinsicElements {
-      stdText: TextGeometryImpl
+      StdText: TextGeometryImpl
     }
   }
 }
@@ -29,50 +29,48 @@ export default {
 }
 
 function CurveModifierScene() {
-  const curveRef = React.useRef<CurveModifierRef>()
-  const geomRef = React.useRef<TextGeometry>(null!)
+  let curveRef: CurveModifierRef
+  let geomRef: TextGeometry = null!
   const font = useLoader(FontLoader, '/fonts/helvetiker_regular.typeface.json')
 
-  const handlePos = React.useMemo(
-    () =>
-      [
-        { x: 10, y: 0, z: -10 },
-        { x: 10, y: 0, z: 10 },
-        { x: -10, y: 0, z: 10 },
-        { x: -10, y: 0, z: -10 },
-      ].map((hand) => new Vector3(...Object.values(hand))),
-    []
+  const handlePos = createMemo(() =>
+    [
+      { x: 10, y: 0, z: -10 },
+      { x: 10, y: 0, z: 10 },
+      { x: -10, y: 0, z: 10 },
+      { x: -10, y: 0, z: -10 },
+    ].map((hand) => new Vector3(...Object.values(hand)))
   )
 
-  const curve = React.useMemo(() => new CatmullRomCurve3(handlePos, true, 'centripetal'), [handlePos])
+  const curve = createMemo(() => new CatmullRomCurve3(handlePos(), true, 'centripetal'))
 
-  const line = React.useMemo(
+  const line = createMemo(
     () =>
-      new LineLoop(new BufferGeometry().setFromPoints(curve.getPoints(50)), new LineBasicMaterial({ color: 0x00ff00 })),
-    [curve]
+      new LineLoop(
+        new BufferGeometry().setFromPoints(curve().getPoints(50)),
+        new LineBasicMaterial({ color: 0x00ff00 })
+      )
   )
 
   useFrame(() => {
-    if (curveRef.current) {
-      curveRef.current?.moveAlongCurve(0.001)
+    if (curveRef) {
+      curveRef?.moveAlongCurve(0.001)
     }
   })
 
-  React.useEffect(() => {
-    geomRef.current.rotateX(Math.PI)
-  }, [])
+  onMount(() => geomRef.rotateX(Math.PI))
 
   return (
     <>
-      <CurveModifier ref={curveRef} curve={curve}>
-        <mesh>
-          <stdText
+      <CurveModifier ref={curveRef!} curve={curve()}>
+        <T.Mesh>
+          <T.StdText
             attach="geometry"
             args={[
               // @ts-ignore
-              'hello @react-three/drei',
+              'hello @solid-three/drei',
               {
-                font,
+                font: font()!,
                 size: 2,
                 height: 0.05,
                 curveSegments: 12,
@@ -85,17 +83,17 @@ function CurveModifierScene() {
             ]}
             ref={geomRef}
           />
-          <meshNormalMaterial attach="material" />
-        </mesh>
+          <T.MeshNormalMaterial attach="material" />
+        </T.Mesh>
       </CurveModifier>
-      <primitive object={line} />
+      <Primitive object={line()} />
     </>
   )
 }
 
 export const CurveModifierSt = () => (
-  <React.Suspense fallback={null}>
+  <T.Suspense fallback={null}>
     <CurveModifierScene />
-  </React.Suspense>
+  </T.Suspense>
 )
 CurveModifierSt.storyName = 'Default'

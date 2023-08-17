@@ -1,9 +1,10 @@
-import * as React from 'react'
-import { useFrame } from '@react-three/fiber'
-import { Vector3, Mesh, RepeatWrapping, Vector2 } from 'three'
+import { T, useFrame } from '@solid-three/fiber'
+import { createEffect, createMemo } from 'solid-js'
+import { Mesh, RepeatWrapping, Vector2, Vector3 } from 'three'
 
+import { Box, Environment, MeshReflectorMaterial, TorusKnot, useTexture } from '../../src'
+import { when } from '../../src/helpers/when'
 import { Setup } from '../Setup'
-import { MeshReflectorMaterial, useTexture, TorusKnot, Box, Environment } from '../../src'
 
 export default {
   title: 'Shaders/MeshReflectorMaterial',
@@ -17,13 +18,11 @@ export default {
   ],
 }
 
-function ReflectorScene({
-  blur,
-  depthScale,
-  distortion,
-  normalScale,
-  reflectorOffset,
-}: {
+/* s3f:   - blur-example not working 
+          - distortion-example not working
+          - `Feedback loop formed between Framebuffer and active Texture.`-error          
+*/
+function ReflectorScene(props: {
   blur?: [number, number]
   depthScale?: number
   distortion?: number
@@ -33,103 +32,105 @@ function ReflectorScene({
   const roughness = useTexture('roughness_floor.jpeg')
   const normal = useTexture('NORM.jpg')
   const distortionMap = useTexture('dist_map.jpeg')
-  const $box = React.useRef<Mesh>(null!)
-  const _normalScale = React.useMemo(() => new Vector2(normalScale || 0), [normalScale])
+  let $box: Mesh
+  const _normalScale = createMemo(() => new Vector2(props.normalScale || 0), [props.normalScale])
 
-  React.useEffect(() => {
-    distortionMap.wrapS = distortionMap.wrapT = RepeatWrapping
-    distortionMap.repeat.set(4, 4)
-  }, [distortionMap])
+  createEffect(() => {
+    when(distortionMap)((distortionMap) => {
+      distortionMap.wrapS = distortionMap.wrapT = RepeatWrapping
+      distortionMap.repeat.set(4, 4)
+    })
+  })
 
   useFrame(({ clock }) => {
-    $box.current.position.y += Math.sin(clock.getElapsedTime()) / 25
-    $box.current.rotation.y = clock.getElapsedTime() / 2
+    $box.position.y += Math.sin(clock.getElapsedTime()) / 25
+    $box.rotation.y = clock.getElapsedTime() / 2
   })
 
   return (
     <>
-      <mesh rotation={[-Math.PI / 2, 0, Math.PI / 2]}>
-        <planeGeometry args={[10, 10]} />
+      <T.Mesh rotation={[-Math.PI / 2, 0, Math.PI / 2]}>
+        <T.PlaneGeometry args={[10, 10]} />
         <MeshReflectorMaterial
           resolution={1024}
           mirror={0.75}
           mixBlur={10}
           mixStrength={2}
-          blur={blur || [0, 0]}
+          blur={props.blur || [0, 0]}
           minDepthThreshold={0.8}
           maxDepthThreshold={1.2}
-          depthScale={depthScale || 0}
+          depthScale={props.depthScale || 0}
           depthToBlurRatioBias={0.2}
           debug={0}
-          distortion={distortion || 0}
-          distortionMap={distortionMap}
+          distortion={props.distortion || 0}
+          distortionMap={distortionMap()}
           color="#a0a0a0"
           metalness={0.5}
-          roughnessMap={roughness}
+          roughnessMap={roughness()}
           roughness={1}
-          normalMap={normal}
-          normalScale={_normalScale}
-          reflectorOffset={reflectorOffset}
+          normalMap={normal()}
+          normalScale={_normalScale()}
+          reflectorOffset={props.reflectorOffset}
         />
-      </mesh>
+      </T.Mesh>
 
       <Box args={[2, 3, 0.2]} position={[0, 1.6, -3]}>
-        <meshPhysicalMaterial color="hotpink" />
+        <T.MeshPhysicalMaterial color="hotpink" />
       </Box>
-      <TorusKnot args={[0.5, 0.2, 128, 32]} ref={$box} position={[0, 1, 0]}>
-        <meshPhysicalMaterial color="hotpink" />
+      <TorusKnot args={[0.5, 0.2, 128, 32]} ref={$box!} position={[0, 1, 0]}>
+        <T.MeshPhysicalMaterial color="hotpink" />
       </TorusKnot>
-      <spotLight intensity={1} position={[10, 6, 10]} penumbra={1} angle={0.3} />
+      <T.SpotLight intensity={1} position={[10, 6, 10]} penumbra={1} angle={0.3} />
       <Environment preset="city" />
     </>
   )
 }
 
 export const ReflectorSt = () => (
-  <React.Suspense fallback={null}>
+  <T.Suspense fallback={null}>
     <ReflectorScene blur={[100, 500]} depthScale={2} distortion={0.3} normalScale={0.5} />
-  </React.Suspense>
+  </T.Suspense>
 )
 ReflectorSt.storyName = 'Default'
 
 export const ReflectorPlain = () => (
-  <React.Suspense fallback={null}>
+  <T.Suspense fallback={null}>
     <ReflectorScene />
-  </React.Suspense>
+  </T.Suspense>
 )
 ReflectorPlain.storyName = 'Plain'
 
 export const ReflectorBlur = () => (
-  <React.Suspense fallback={null}>
+  <T.Suspense fallback={null}>
     <ReflectorScene blur={[500, 500]} />
-  </React.Suspense>
+  </T.Suspense>
 )
 ReflectorBlur.storyName = 'Blur'
 
 export const ReflectorDepth = () => (
-  <React.Suspense fallback={null}>
+  <T.Suspense fallback={null}>
     <ReflectorScene depthScale={2} />
-  </React.Suspense>
+  </T.Suspense>
 )
 ReflectorDepth.storyName = 'Depth'
 
 export const ReflectorDistortion = () => (
-  <React.Suspense fallback={null}>
+  <T.Suspense fallback={null}>
     <ReflectorScene distortion={1} />
-  </React.Suspense>
+  </T.Suspense>
 )
 ReflectorDistortion.storyName = 'Distortion'
 
 export const ReflectorNormalMap = () => (
-  <React.Suspense fallback={null}>
+  <T.Suspense fallback={null}>
     <ReflectorScene normalScale={0.5} />
-  </React.Suspense>
+  </T.Suspense>
 )
 ReflectorNormalMap.storyName = 'NormalMap'
 
 export const ReflectorOffset = () => (
-  <React.Suspense fallback={null}>
+  <T.Suspense fallback={null}>
     <ReflectorScene reflectorOffset={1} />
-  </React.Suspense>
+  </T.Suspense>
 )
 ReflectorOffset.storyName = 'ReflectorOffset'

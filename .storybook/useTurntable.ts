@@ -1,14 +1,16 @@
-import * as React from 'react'
+import { useFrame } from '@solid-three/fiber'
+import { createSignal } from 'solid-js'
 import * as THREE from 'three'
-import { useFrame } from '@react-three/fiber'
+import { when } from '../src/helpers/when'
 
 export function useTurntable() {
-  const ref = React.useRef<THREE.Mesh>(null)
+  // let turntable = { ref: null! as THREE.Mesh }
+  const [turntable, setTurntable] = createSignal<THREE.Object3D>()
   useFrame(() => {
-    if (ref.current) {
-      ref.current.rotation.y += 0.01
-    }
+    when(turntable)((turntable) => {
+      turntable.rotation.y += 0.01
+    })
   })
 
-  return ref
+  return setTurntable
 }

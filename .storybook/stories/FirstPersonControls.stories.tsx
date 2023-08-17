@@ -1,14 +1,13 @@
-import * as React from 'react'
-
 import { Setup } from '../Setup'
 
+import { T } from '@solid-three/fiber'
 import { Box, FirstPersonControls } from '../../src'
 
 export const FirstPersonControlsStory = ({ ...args }) => (
   <>
     <FirstPersonControls {...args} />
     <Box>
-      <meshBasicMaterial wireframe />
+      <T.MeshBasicMaterial wireframe />
     </Box>
   </>
 )

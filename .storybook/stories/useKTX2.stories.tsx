@@ -1,7 +1,6 @@
-import * as React from 'react'
-
 import { Setup } from '../Setup'
 
+import { T } from '@solid-three/fiber'
 import { Box, useKTX2 } from '../../src'
 
 export default {
@@ -12,15 +11,15 @@ export default {
 
 function TexturedMeshes() {
   // a convenience hook that uses useLoader and KTX2Loader
-  const [compressed, compressed_etc] = useKTX2(['sample_uastc_zstd.ktx2', 'sample_etc1s.ktx2'])
+  const resource = useKTX2(['sample_uastc_zstd.ktx2', 'sample_etc1s.ktx2'])
 
   return (
     <>
       <Box position={[-2, 0, 0]}>
-        <meshBasicMaterial map={compressed} />
+        <T.MeshBasicMaterial map={resource()?.[0]} />
       </Box>
       <Box position={[2, 0, 0]}>
-        <meshBasicMaterial map={compressed_etc} />
+        <T.MeshBasicMaterial map={resource()?.[1]} />
       </Box>
     </>
   )
@@ -28,9 +27,9 @@ function TexturedMeshes() {
 
 function UseKTX2Scene() {
   return (
-    <React.Suspense fallback={null}>
+    <T.Suspense fallback={null}>
       <TexturedMeshes />
-    </React.Suspense>
+    </T.Suspense>
   )
 }
 

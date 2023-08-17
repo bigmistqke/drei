@@ -1,9 +1,9 @@
-import * as React from 'react'
 import * as THREE from 'three'
 
 import { Setup } from '../Setup'
 import { useTurntable } from '../useTurntable'
 
+import { T } from '@solid-three/fiber'
 import { Extrude } from '../../src'
 
 export default {
@@ -13,7 +13,7 @@ export default {
 }
 
 function ExtrudeScene() {
-  const shape = React.useMemo(() => {
+  const shape = (() => {
     const _shape = new THREE.Shape()
 
     const width = 8,
@@ -26,27 +26,24 @@ function ExtrudeScene() {
     _shape.lineTo(0, 0)
 
     return _shape
-  }, [])
+  })()
 
-  const extrudeSettings = React.useMemo(
-    () => ({
-      steps: 2,
-      depth: 16,
-      bevelEnabled: true,
-      bevelThickness: 1,
-      bevelSize: 1,
-      bevelOffset: 0,
-      bevelSegments: 1,
-    }),
-    []
-  )
+  const extrudeSettings = {
+    steps: 2,
+    depth: 16,
+    bevelEnabled: true,
+    bevelThickness: 1,
+    bevelSize: 1,
+    bevelOffset: 0,
+    bevelSegments: 1,
+  }
 
-  const ref = useTurntable()
+  const turntable = useTurntable()
 
   return (
     <>
-      <Extrude ref={ref} args={[shape, extrudeSettings]}>
-        <meshPhongMaterial color="#f3f3f3" wireframe />
+      <Extrude ref={turntable} args={[shape, extrudeSettings]}>
+        <T.MeshPhongMaterial color="#f3f3f3" wireframe />
       </Extrude>
     </>
   )

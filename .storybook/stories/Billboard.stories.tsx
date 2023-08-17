@@ -1,9 +1,9 @@
-import * as React from 'react'
 import { Vector3 } from 'three'
 
 import { Setup } from '../Setup'
 
-import { Billboard, Plane, Box, Cone, OrbitControls, Text } from '../../src'
+import { T } from '@solid-three/fiber'
+import { Billboard, Box, Cone, OrbitControls, Plane, Text } from '../../src'
 
 export default {
   title: 'Abstractions/Billboard',
@@ -56,22 +56,22 @@ export const BillboardTextStory = ({ follow, lockX, lockY, lockZ }) => (
       </Text>
     </Billboard>
     <Box position={[0.5, 1, 0.5]}>
-      <meshStandardMaterial color="red" />
+      <T.MeshStandardMaterial color="red" />
     </Box>
-    <group position={[-2.5, -3, -1]}>
+    <T.Group position={[-2.5, -3, -1]}>
       <Billboard follow={follow} lockX={lockX} lockY={lockY} lockZ={lockZ} position={[0, 1.05, 0]}>
         <Text fontSize={1} outlineWidth={'5%'} outlineColor="#000000" outlineOpacity={1}>
           cone
         </Text>
       </Billboard>
       <Cone>
-        <meshStandardMaterial color="green" />
+        <T.MeshStandardMaterial color="green" />
       </Cone>
-    </group>
+    </T.Group>
 
     <Billboard follow={follow} lockX={lockX} lockY={lockY} lockZ={lockZ} position={[0, 0, -5]}>
       <Plane args={[2, 2]}>
-        <meshStandardMaterial color="#000066" />
+        <T.MeshStandardMaterial color="#000066" />
       </Plane>
     </Billboard>
 

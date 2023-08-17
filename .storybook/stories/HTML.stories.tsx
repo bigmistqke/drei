@@ -1,13 +1,14 @@
-import * as React from 'react'
+import { createSignal, type JSX } from 'solid-js'
 import * as THREE from 'three'
 
 import { Setup } from '../Setup'
 import { useTurntable } from '../useTurntable'
 
-import { Icosahedron, Html, OrthographicCamera } from '../../src'
-import { HtmlProps, CalculatePosition } from 'web/Html'
-import { useFrame, useThree } from '@react-three/fiber'
+import { T, useFrame, useThree } from '@solid-three/fiber'
 import { Object3D } from 'three'
+import { Html, Icosahedron, OrthographicCamera } from '../../src'
+import { processProps } from '../../src/helpers/processProps'
+import { CalculatePosition, HtmlProps } from '../../src/web/Html'
 
 export default {
   title: 'Misc/Html',
@@ -15,39 +16,44 @@ export default {
   decorators: [(storyFn) => <Setup cameraPosition={new THREE.Vector3(-20, 20, -20)}> {storyFn()}</Setup>],
 }
 
-function HTMLScene({
-  children = null,
-  color = 'hotpink',
-  ...htmlProps
-}: HtmlProps & { color?: string; children?: React.ReactNode }) {
-  const ref = useTurntable()
+function HTMLScene(_props: Omit<HtmlProps, 'children'> & { color?: string; children?: JSX.Element }) {
+  const [props, htmlProps] = processProps(
+    _props,
+    {
+      children: null!,
+      color: 'hotpink',
+    },
+    ['children', 'color']
+  )
+
+  const turntable = useTurntable()
   return (
-    <group ref={ref}>
+    <T.Group ref={turntable}>
       <Icosahedron args={[2, 2]} position={[3, 6, 4]}>
-        <meshBasicMaterial color={color} wireframe />
+        <T.MeshBasicMaterial color={props.color} wireframe />
         <Html {...htmlProps}>First</Html>
       </Icosahedron>
 
       <Icosahedron args={[2, 2]} position={[10, 0, 10]}>
-        <meshBasicMaterial color={color} wireframe />
+        <T.MeshBasicMaterial color={props.color} wireframe />
         <Html {...htmlProps}>Second</Html>
       </Icosahedron>
 
       <Icosahedron args={[2, 2]} position={[-20, 0, -20]}>
-        <meshBasicMaterial color={color} wireframe />
+        <T.MeshBasicMaterial color={props.color} wireframe />
         <Html {...htmlProps}>Third</Html>
       </Icosahedron>
-      {children}
-    </group>
+      {props.children}
+    </T.Group>
   )
 }
 
-export const HTMLSt = () => <HTMLScene distanceFactor={30} className="html-story-block" />
+export const HTMLSt = () => <HTMLScene distanceFactor={30} class="html-story-block" />
 HTMLSt.storyName = 'Default'
 
 function HTMLTransformScene() {
   return (
-    <HTMLScene color="palegreen" transform className="html-story-block margin300" distanceFactor={30}>
+    <HTMLScene color="palegreen" transform class="html-story-block margin300" distanceFactor={30}>
       <Html
         sprite
         transform
@@ -55,7 +61,7 @@ function HTMLTransformScene() {
         position={[5, 15, 0]}
         style={{
           background: 'palegreen',
-          fontSize: '50px',
+          'font-size': '50px',
           padding: '10px 18px',
           border: '2px solid black',
         }}
@@ -70,20 +76,20 @@ export const HTMLTransformSt = () => <HTMLTransformScene />
 HTMLTransformSt.storyName = 'Transform mode'
 
 function HTMLOrthographicScene() {
-  const camera = useThree((state) => state.camera)
-  const [zoomIn, setZoomIn] = React.useState(true)
+  const store = useThree()
+  const [zoomIn, setZoomIn] = createSignal(true)
 
   const initialCamera = {
     position: new THREE.Vector3(0, 0, -10),
   }
 
   useFrame(() => {
-    zoomIn ? (camera.zoom += 0.01) : (camera.zoom -= 0.01)
-    camera.updateProjectionMatrix()
+    zoomIn() ? (store.camera.zoom += 0.01) : (store.camera.zoom -= 0.01)
+    store.camera.updateProjectionMatrix()
 
-    if (camera.zoom > 3) {
+    if (store.camera.zoom > 3) {
       setZoomIn(false)
-    } else if (camera.zoom < 1) {
+    } else if (store.camera.zoom < 1) {
       setZoomIn(true)
     }
   })
@@ -91,18 +97,17 @@ function HTMLOrthographicScene() {
   return (
     <>
       <OrthographicCamera makeDefault={true} applyMatrix4={undefined} {...initialCamera} />
-
       <Icosahedron args={[200, 5]} position={[0, 0, 0]}>
-        <meshBasicMaterial color="hotpink" wireframe />
+        <T.MeshBasicMaterial color="hotpink" wireframe />
         {
           // for smoother text use css will-change: transform
-          <Html className="html-story-label" distanceFactor={1}>
+          <Html class="html-story-label" distanceFactor={1}>
             Orthographic
           </Html>
         }
       </Icosahedron>
-      <ambientLight intensity={0.8} />
-      <pointLight intensity={1} position={[0, 6, 0]} />
+      <T.AmbientLight intensity={0.8} />
+      <T.PointLight intensity={1} position={[0, 6, 0]} />
     </>
   )
 }
@@ -123,38 +128,39 @@ const overrideCalculatePosition: CalculatePosition = (el, camera, size) => {
 }
 
 export const HTMLCalculatePosition = () => (
-  <HTMLScene className="html-story-label" calculatePosition={overrideCalculatePosition} />
+  <HTMLScene class="html-story-label" calculatePosition={overrideCalculatePosition} />
 )
 HTMLCalculatePosition.storyName = 'Custom Calculate Position'
 
 function HTMLOccluderScene() {
-  const turntableRef = useTurntable()
-  const occluderRef = React.useRef<Object3D>(null!)
+  const turntable = useTurntable()
+  let occluderRef: Object3D
 
+  // s3f:  I don't think occlusion='blending' is working properly
   return (
     <>
-      <group ref={turntableRef}>
+      <T.Group ref={turntable}>
         <Icosahedron name="pink" args={[5, 5]} position={[0, 0, 0]}>
-          <meshBasicMaterial color="hotpink" />
-          <Html position={[0, 0, -6]} className="html-story-label" occlude="blending">
+          <T.MeshBasicMaterial color="hotpink" />
+          <Html position={[0, 0, -6]} class="html-story-label" occlude="blending">
             Blending
           </Html>
         </Icosahedron>
         <Icosahedron name="yellow" args={[5, 5]} position={[16, 0, 0]}>
-          <meshBasicMaterial color="yellow" />
-          <Html transform position={[0, 0, -6]} className="html-story-label html-story-label-B" occlude="blending">
+          <T.MeshBasicMaterial color="yellow" />
+          <Html transform position={[0, 0, -6]} class="html-story-label html-story-label-B" occlude="blending">
             Blending w/ transform
           </Html>
         </Icosahedron>
-        <Icosahedron ref={occluderRef} name="orange" args={[5, 5]} position={[0, 0, 16]}>
-          <meshBasicMaterial color="orange" />
-          <Html position={[0, 0, -6]} className="html-story-label" occlude={[occluderRef]}>
+        <Icosahedron ref={occluderRef!} name="orange" args={[5, 5]} position={[0, 0, 16]}>
+          <T.MeshBasicMaterial color="orange" />
+          <Html position={[0, 0, -6]} class="html-story-label" occlude={[occluderRef]}>
             Raycast occlusion
           </Html>
         </Icosahedron>
-      </group>
-      <ambientLight intensity={0.8} />
-      <pointLight intensity={1} position={[0, 6, 0]} />
+      </T.Group>
+      <T.AmbientLight intensity={0.8} />
+      <T.PointLight intensity={1} position={[0, 6, 0]} />
     </>
   )
 }

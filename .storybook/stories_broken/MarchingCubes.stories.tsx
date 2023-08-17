@@ -1,10 +1,9 @@
-import * as React from 'react'
 import { Color, Group, Vector3 } from 'three'
 
 import { Setup } from '../Setup'
 
+import { T, useFrame } from '@solid-three/fiber'
 import { MarchingCube, MarchingCubes, MarchingPlane, OrbitControls } from '../../src'
-import { useFrame } from '@react-three/fiber'
 
 export default {
   title: 'Abstractions/MarchingCubes',
@@ -19,26 +18,26 @@ export default {
 }
 
 const MarchingCubesScene = ({ resolution, maxPolyCount, planeX, planeY, planeZ }) => {
-  const cubeRefOne = React.useRef<Group>()
-  const cubeRefTwo = React.useRef<Group>()
+  let cubeRefOne: Group
+  let cubeRefTwo: Group
 
   useFrame(({ clock }) => {
-    if (!cubeRefOne.current || !cubeRefTwo.current) return
+    if (!cubeRefOne || !cubeRefTwo) return
     const time = clock.getElapsedTime()
-    cubeRefOne.current.position.set(0.5, Math.sin(time * 0.4) * 0.5 + 0.5, 0.5)
-    cubeRefTwo.current.position.set(0.5, Math.cos(time * 0.4) * 0.5 + 0.5, 0.5)
+    cubeRefOne.position.set(0.5, Math.sin(time * 0.4) * 0.5 + 0.5, 0.5)
+    cubeRefTwo.position.set(0.5, Math.cos(time * 0.4) * 0.5 + 0.5, 0.5)
   })
 
   return (
     <MarchingCubes resolution={resolution} maxPolyCount={maxPolyCount} enableColors={true} scale={2}>
-      <MarchingCube ref={cubeRefOne} color={new Color('#f0f')} position={[0.5, 0.6, 0.5]} />
-      <MarchingCube ref={cubeRefTwo} color={new Color('#ff0')} position={[0.5, 0.5, 0.5]} />
+      <MarchingCube ref={cubeRefOne!} color={new Color('#f0f')} position={[0.5, 0.6, 0.5]} />
+      <MarchingCube ref={cubeRefTwo!} color={new Color('#ff0')} position={[0.5, 0.5, 0.5]} />
 
       {planeX && <MarchingPlane planeType="x" />}
       {planeY && <MarchingPlane planeType="y" />}
       {planeZ && <MarchingPlane planeType="z" />}
 
-      <meshPhongMaterial specular={0xffffff} shininess={2} vertexColors={true} />
+      <T.MeshPhongMaterial specular={0xffffff} shininess={2} vertexColors={true} />
     </MarchingCubes>
   )
 }
@@ -53,7 +52,7 @@ export const MarchingCubesStory = ({ resolution, maxPolyCount, planeX, planeY, p
         planeY={planeY}
         planeZ={planeZ}
       />
-      <axesHelper />
+      <T.AxesHelper />
       <OrbitControls enablePan={false} zoomSpeed={0.5} />
     </>
   )

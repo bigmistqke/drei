@@ -1,10 +1,10 @@
-import * as React from 'react'
+import { For, createEffect, createSignal, splitProps } from 'solid-js'
 import { MathUtils, Quaternion, Vector3 } from 'three'
 
 import { Setup } from '../Setup'
 
-import { Point, Points, PointMaterial, shaderMaterial } from '../../src'
-import { extend, useFrame, useThree } from '@react-three/fiber'
+import { T, extend, useFrame, useThree } from '@solid-three/fiber'
+import { Point, PointMaterial, Points, shaderMaterial } from '../../src'
 
 import * as buffer from 'maath/buffer'
 import * as misc from 'maath/misc'
@@ -54,11 +54,11 @@ const makeBuffer = (...args) => Float32Array.from(...args)
 
 function BasicPointsBufferScene() {
   const n = 10_000
-  const [positionA] = React.useState(() => makeBuffer({ length: n * 3 }, () => MathUtils.randFloatSpread(5)))
-  const [positionB] = React.useState(() => makeBuffer({ length: n * 3 }, () => MathUtils.randFloatSpread(10)))
-  const [positionFinal] = React.useState(() => positionB.slice(0))
-  const [color] = React.useState(() => makeBuffer({ length: n * 3 }, () => Math.random()))
-  const [size] = React.useState(() => makeBuffer({ length: n }, () => Math.random() * 0.2))
+  const positionA = makeBuffer({ length: n * 3 }, () => MathUtils.randFloatSpread(5))
+  const positionB = makeBuffer({ length: n * 3 }, () => MathUtils.randFloatSpread(10))
+  const positionFinal = positionB.slice(0)
+  const color = makeBuffer({ length: n * 3 }, () => Math.random())
+  const size = makeBuffer({ length: n }, () => Math.random() * 0.2)
 
   useFrame(({ clock }) => {
     const et = clock.getElapsedTime()
@@ -76,7 +76,7 @@ function BasicPointsBufferScene() {
     <>
       <Points positions={positionFinal} colors={color} sizes={size}>
         {/* @ts-ignore */}
-        <myPointsMaterial />
+        <T.MyPointsMaterial />
       </Points>
     </>
   )
@@ -89,13 +89,15 @@ export function BasicPointsBuffer() {
 BasicPointsBuffer.storyName = 'Buffer'
 BasicPointsBuffer.decorators = [(storyFn) => <Setup cameraPosition={new Vector3(10, 10, 10)}>{storyFn()}</Setup>]
 
-function PointEvent({ color, ...props }) {
-  const [hovered, setHover] = React.useState(false)
-  const [clicked, setClick] = React.useState(false)
+function PointEvent(_props) {
+  const [props, rest] = splitProps(_props, ['color'])
+
+  const [hovered, setHover] = createSignal(false)
+  const [clicked, setClick] = createSignal(false)
   return (
     <Point
-      {...props}
-      color={clicked ? 'hotpink' : hovered ? 'red' : color}
+      {...rest}
+      color={clicked() ? 'hotpink' : hovered() ? 'red' : props.color}
       onPointerOver={(e) => (e.stopPropagation(), setHover(true))}
       onPointerOut={(e) => setHover(false)}
       onClick={(e) => (e.stopPropagation(), setClick((state) => !state))}
@@ -104,34 +106,36 @@ function PointEvent({ color, ...props }) {
 }
 
 function BasicPointsInstancesScene() {
-  const [points] = React.useState(() => {
+  const points = (() => {
     const n = 10
     return Array.from({ length: n * n * n }, () => {
       return [MathUtils.randFloatSpread(4), MathUtils.randFloatSpread(4), MathUtils.randFloatSpread(4)]
     })
-  })
-  const raycaster = useThree((state) => state.raycaster)
-  React.useEffect(() => {
-    if (raycaster.params.Points) {
-      const old = raycaster.params.Points.threshold
-      raycaster.params.Points.threshold = 0.05
+  })()
+  const store = useThree()
+  createEffect(() => {
+    if (store.raycaster.params.Points) {
+      const old = store.raycaster.params.Points.threshold
+      store.raycaster.params.Points.threshold = 0.05
       return () => {
-        if (raycaster.params.Points) raycaster.params.Points.threshold = old
+        if (store.raycaster.params.Points) store.raycaster.params.Points.threshold = old
       }
     }
-  }, [])
+  })
   return (
     <>
       <Points>
-        {points.map((p) => (
-          <PointEvent
-            position={p as [number, number, number]}
-            color={p as [number, number, number]}
-            size={Math.random() * 0.5 + 0.1}
-          />
-        ))}
+        <For each={points}>
+          {(p) => (
+            <PointEvent
+              position={p as [number, number, number]}
+              color={p as [number, number, number]}
+              size={Math.random() * 0.5 + 0.1}
+            />
+          )}
+        </For>
         {/* @ts-ignore */}
-        <myPointsMaterial />
+        <T.MyPointsMaterial />
       </Points>
     </>
   )
@@ -145,21 +149,19 @@ BasicPointsInstances.storyName = 'Instances'
 BasicPointsInstances.decorators = [(storyFn) => <Setup cameraPosition={new Vector3(10, 10, 10)}>{storyFn()}</Setup>]
 
 function BasicPointsInstancesSelectionScene() {
-  const [points] = React.useState(() =>
-    Array.from({ length: 100 }, (i) => [
-      MathUtils.randFloatSpread(10),
-      MathUtils.randFloatSpread(10),
-      MathUtils.randFloatSpread(10),
-    ])
-  )
+  const points = Array.from({ length: 100 }, (i) => [
+    MathUtils.randFloatSpread(10),
+    MathUtils.randFloatSpread(10),
+    MathUtils.randFloatSpread(10),
+  ])
 
-  const raycaster = useThree((state) => state.raycaster)
-  React.useEffect(() => {
-    if (raycaster.params.Points) {
-      const old = raycaster.params.Points.threshold
-      raycaster.params.Points.threshold = 0.175
+  const store = useThree()
+  createEffect(() => {
+    if (store.raycaster.params.Points) {
+      const old = store.raycaster.params.Points.threshold
+      store.raycaster.params.Points.threshold = 0.175
       return () => {
-        if (raycaster.params.Points) raycaster.params.Points.threshold = old
+        if (store.raycaster.params.Points) store.raycaster.params.Points.threshold = old
       }
     }
   }, [])
@@ -168,9 +170,7 @@ function BasicPointsInstancesSelectionScene() {
     <>
       <Points limit={points.length} range={points.length}>
         <PointMaterial transparent vertexColors size={15} sizeAttenuation={false} depthWrite={false} />
-        {points.map((position, i) => (
-          <PointEvent key={i} color="orange" position={position} />
-        ))}
+        <For each={points}>{(position, i) => <PointEvent key={i} color="orange" position={position} />}</For>
       </Points>
     </>
   )

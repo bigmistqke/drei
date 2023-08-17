@@ -1,10 +1,8 @@
-import * as React from 'react'
-
 import { Setup } from '../Setup'
 
-import { Sphere, Sampler, Float, ComputedAttribute, TransformFn } from '../../src'
-import { useFrame } from '@react-three/fiber'
-import { BufferAttribute, Mesh, Vector3 } from 'three'
+import { T } from '@solid-three/fiber'
+import { BufferAttribute, Vector3 } from 'three'
+import { ComputedAttribute, Sampler, TransformFn } from '../../src'
 
 export default {
   title: 'Misc/Sampler',
@@ -16,15 +14,15 @@ function SamplerScene() {
   return (
     <>
       <Sampler count={500}>
-        <mesh>
-          <torusKnotGeometry />
-          <meshNormalMaterial />
-        </mesh>
+        <T.Mesh>
+          <T.TorusKnotGeometry />
+          <T.MeshNormalMaterial />
+        </T.Mesh>
 
-        <instancedMesh args={[null!, null!, 1_000]}>
-          <sphereGeometry args={[0.1, 32, 32]} />
-          <meshNormalMaterial />
-        </instancedMesh>
+        <T.InstancedMesh args={[null!, null!, 1_000]}>
+          <T.SphereGeometry args={[0.1, 32, 32]} />
+          <T.MeshNormalMaterial />
+        </T.InstancedMesh>
       </Sampler>
     </>
   )
@@ -34,22 +32,21 @@ export const SamplerSt = () => <SamplerScene />
 SamplerSt.storyName = 'Default'
 
 function RefAPIScene() {
-  const meshRef = React.useRef(null)
-  const instancesRef = React.useRef(null)
+  let meshRef
+  let instancesRef
 
   return (
     <>
+      <T.Mesh ref={meshRef}>
+        <T.TorusKnotGeometry />
+        <T.MeshNormalMaterial />
+      </T.Mesh>
+
+      <T.InstancedMesh ref={instancesRef} args={[null!, null!, 1_000]}>
+        <T.SphereGeometry args={[0.1, 32, 32]} />
+        <T.MeshNormalMaterial />
+      </T.InstancedMesh>
       <Sampler count={500} mesh={meshRef} instances={instancesRef} />
-
-      <mesh ref={meshRef}>
-        <torusKnotGeometry />
-        <meshNormalMaterial />
-      </mesh>
-
-      <instancedMesh ref={instancesRef} args={[null!, null!, 1_000]}>
-        <sphereGeometry args={[0.1, 32, 32]} />
-        <meshNormalMaterial />
-      </instancedMesh>
     </>
   )
 }
@@ -61,15 +58,15 @@ function TransformSamplerScene() {
   return (
     <>
       <Sampler count={500} transform={transformInstances}>
-        <mesh>
-          <torusKnotGeometry />
-          <meshNormalMaterial />
-        </mesh>
+        <T.Mesh>
+          <T.TorusKnotGeometry />
+          <T.MeshNormalMaterial />
+        </T.Mesh>
 
-        <instancedMesh args={[null!, null!, 1_000]}>
-          <sphereGeometry args={[0.1, 32, 32]} />
-          <meshNormalMaterial />
-        </instancedMesh>
+        <T.InstancedMesh args={[null!, null!, 1_000]}>
+          <T.SphereGeometry args={[0.1, 32, 32]} />
+          <T.MeshNormalMaterial />
+        </T.InstancedMesh>
       </Sampler>
     </>
   )
@@ -79,20 +76,22 @@ export const SamplerTransformSt = () => <TransformSamplerScene />
 SamplerTransformSt.storyName = 'With transform'
 
 function SamplerWeightScene() {
+  let mesh
+
   return (
     <>
       <Sampler count={500} weight="upness" transform={transformInstances}>
-        <mesh>
-          <torusKnotGeometry>
+        <T.Mesh ref={mesh}>
+          <T.TorusKnotGeometry>
             <ComputedAttribute name="upness" compute={computeUpness} />
-          </torusKnotGeometry>
-          <meshNormalMaterial />
-        </mesh>
+          </T.TorusKnotGeometry>
+          <T.MeshNormalMaterial />
+        </T.Mesh>
 
-        <instancedMesh args={[null!, null!, 1_000]}>
-          <sphereGeometry args={[0.1, 32, 32, Math.PI / 2]} />
-          <meshNormalMaterial />
-        </instancedMesh>
+        <T.InstancedMesh args={[null!, null!, 1_000]}>
+          <T.SphereGeometry args={[0.1, 32, 32, Math.PI / 2]} />
+          <T.MeshNormalMaterial />
+        </T.InstancedMesh>
       </Sampler>
     </>
   )

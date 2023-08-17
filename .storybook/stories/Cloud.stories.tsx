@@ -1,8 +1,8 @@
-import * as React from 'react'
 import { Vector3 } from 'three'
 
 import { Setup } from '../Setup'
 
+import { T } from '@solid-three/fiber'
 import { Cloud, OrbitControls } from '../../src'
 
 export default {
@@ -19,13 +19,14 @@ export default {
 
 export const CloudStory = () => (
   <>
-    <React.Suspense fallback={null}>
+    <T.Suspense fallback={null}>
+      {/* s3f:  no idea what args are supposed to do. those props lead to <T.Group {...rest} /> */}
       <Cloud position={[-4, -2, 0]} args={[3, 2]} />
       <Cloud position={[-4, 2, 0]} args={[3, 2]} />
       <Cloud args={[3, 2]} />
       <Cloud position={[4, -2, 0]} args={[3, 2]} />
       <Cloud position={[4, 2, 0]} args={[3, 2]} />
-    </React.Suspense>
+    </T.Suspense>
     <OrbitControls enablePan={false} zoomSpeed={0.5} />
   </>
 )

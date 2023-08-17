@@ -1,9 +1,9 @@
-import * as React from 'react'
 import * as THREE from 'three'
 
 import { Setup } from '../Setup'
 import { useTurntable } from '../useTurntable'
 
+import { T } from '@solid-three/fiber'
 import { Tube } from '../../src'
 
 export default {
@@ -14,7 +14,7 @@ export default {
 
 function TubeScene() {
   // curve example from https://threejs.org/docs/#api/en/geometries/TubeGeometry
-  const path = React.useMemo(() => {
+  const path = (() => {
     class CustomSinCurve extends THREE.Curve<THREE.Vector3> {
       private scale: number
 
@@ -34,13 +34,13 @@ function TubeScene() {
     }
 
     return new CustomSinCurve(10)
-  }, [])
+  })()
 
-  const ref = useTurntable()
+  const turntable = useTurntable()
 
   return (
-    <Tube ref={ref} args={[path]}>
-      <meshPhongMaterial color="#f3f3f3" wireframe />
+    <Tube ref={turntable} args={[path]}>
+      <T.MeshPhongMaterial color="#f3f3f3" wireframe />
     </Tube>
   )
 }

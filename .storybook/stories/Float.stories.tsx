@@ -1,10 +1,10 @@
-import React, { forwardRef, Suspense, useRef } from 'react'
+import { number, withKnobs } from '@storybook/addon-knobs'
+
 import * as THREE from 'three'
-import { withKnobs, number, array } from '@storybook/addon-knobs'
-import { useFrame } from '@react-three/fiber'
 
 import { Setup } from '../Setup'
 
+import { T } from '@solid-three/fiber'
 import { Float } from '../../src'
 
 export default {
@@ -14,11 +14,11 @@ export default {
 }
 
 function FloatScene() {
-  const cube = useRef()
+  let cube
 
   return (
     <>
-      <Suspense fallback={null}>
+      <T.Suspense fallback={null}>
         <Float
           position={[0, 1.1, 0]}
           floatingRange={[number('Min Floating Range', undefined), number('Max Floating Range', 1)]}
@@ -27,18 +27,18 @@ function FloatScene() {
           floatIntensity={number('Float Intensity', 2)}
           speed={number('Speed', 5)}
         >
-          <mesh ref={cube}>
-            <boxGeometry args={[2, 2, 2]} />
-            <meshStandardMaterial wireframe color="white" />
-          </mesh>
+          <T.Mesh ref={cube}>
+            <T.BoxGeometry args={[2, 2, 2]} />
+            <T.MeshStandardMaterial wireframe color="white" />
+          </T.Mesh>
         </Float>
-      </Suspense>
+      </T.Suspense>
 
       {/* ground plane */}
-      <mesh position={[0, -6, 0]} rotation={[Math.PI / -2, 0, 0]}>
-        <planeGeometry args={[200, 200, 75, 75]} />
-        <meshBasicMaterial wireframe color="red" side={THREE.DoubleSide} />
-      </mesh>
+      <T.Mesh position={[0, -6, 0]} rotation={[Math.PI / -2, 0, 0]}>
+        <T.PlaneGeometry args={[200, 200, 75, 75]} />
+        <T.MeshBasicMaterial wireframe color="red" side={THREE.DoubleSide} />
+      </T.Mesh>
     </>
   )
 }

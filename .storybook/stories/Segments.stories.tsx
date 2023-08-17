@@ -1,11 +1,10 @@
-import * as React from 'react'
-import { Vector3 } from 'three'
-import { useFrame } from '@react-three/fiber'
+import { useFrame } from '@solid-three/fiber'
 import { withKnobs } from '@storybook/addon-knobs'
+import { Vector3 } from 'three'
 
 import { Setup } from '../Setup'
 
-import { Segment, Segments, OrbitControls, SegmentObject } from '../../src'
+import { OrbitControls, Segment, SegmentObject, Segments } from '../../src'
 
 export default {
   title: 'Performance/Segments',
@@ -40,9 +39,9 @@ BasicSegments.decorators = [
 ]
 
 function AnimatedSegments() {
-  const ref = React.useRef<SegmentObject[]>([])
+  const ref: SegmentObject[] = []
   useFrame(({ clock }) => {
-    ref.current.forEach((r, i) => {
+    ref.forEach((r, i) => {
       const time = clock.elapsedTime
       const x = Math.sin((i / 5000) * Math.PI) * 10
       const y = Math.cos((i / 5000) * Math.PI) * 10
@@ -55,7 +54,7 @@ function AnimatedSegments() {
   return (
     <Segments limit={10000} lineWidth={0.1}>
       {Array.from({ length: 10000 }).map((_, i) => (
-        <Segment key={i} ref={(r) => (ref.current[i] = r)} color="orange" start={[0, 0, 0]} end={[0, 0, 0]} />
+        <Segment ref={(r) => (ref[i] = r)} color="orange" start={[0, 0, 0]} end={[0, 0, 0]} />
       ))}
     </Segments>
   )

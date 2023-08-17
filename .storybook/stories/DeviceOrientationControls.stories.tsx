@@ -1,16 +1,16 @@
-import * as React from 'react'
-
 import { Setup } from '../Setup'
 
-import { DeviceOrientationControls, Box } from '../../src'
+import { T } from '@solid-three/fiber'
+import { Box, DeviceOrientationControls } from '../../src'
 
 export function DeviceOrientationControlsStory() {
+  // s3f:   something going wrong with the args-prop: should be a | and not &
   return (
     <>
       <DeviceOrientationControls />
       <Box args={[100, 100, 100, 4, 4, 4]}>
-        <meshBasicMaterial wireframe />
-        <axesHelper args={[100]} />
+        <T.MeshBasicMaterial wireframe />
+        <T.AxesHelper args={[100]} />
       </Box>
     </>
   )

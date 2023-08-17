@@ -1,9 +1,9 @@
-import * as React from 'react'
 import { Vector3 } from 'three'
 
 import { Setup } from '../Setup'
 import { useTurntable } from '../useTurntable'
 
+import { Primitive, T } from '@solid-three/fiber'
 import { Box, Center, useGLTF } from '../../src'
 
 export default {
@@ -13,24 +13,24 @@ export default {
 }
 
 const SimpleExample = () => {
-  const { scene } = useGLTF('LittlestTokyo.glb')
+  const resource = useGLTF('LittlestTokyo.glb')
 
-  const ref = useTurntable()
+  const turntable = useTurntable()
 
   return (
     <Center position={[5, 5, 10]}>
       <Box args={[10, 10, 10]}>
-        <meshNormalMaterial wireframe />
+        <T.MeshNormalMaterial wireframe />
       </Box>
-      <primitive ref={ref} object={scene} scale={[0.01, 0.01, 0.01]} />
+      <Primitive ref={turntable} object={resource()?.scene!} scale={[0.01, 0.01, 0.01]} />
     </Center>
   )
 }
 
 export const DefaultStory = () => (
-  <React.Suspense fallback={null}>
+  <T.Suspense fallback={null}>
     <SimpleExample />
-  </React.Suspense>
+  </T.Suspense>
 )
 
 DefaultStory.storyName = 'Default'

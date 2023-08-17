@@ -1,9 +1,9 @@
-import * as React from 'react'
-import { withKnobs, number } from '@storybook/addon-knobs'
+import { number, withKnobs } from '@storybook/addon-knobs'
 import { Mesh, Vector2, Vector3 } from 'three'
 
-import { Setup } from '../Setup'
+import { T } from '@solid-three/fiber'
 import { useGLTF, useNormalTexture } from '../../src'
+import { Setup } from '../Setup'
 
 export default {
   title: 'Staging/useNormalTexture',
@@ -12,32 +12,32 @@ export default {
 }
 
 function Suzanne() {
-  const { nodes } = useGLTF('suzanne.glb', true) as any
+  const gltf = useGLTF('suzanne.glb', true)
   const repeat = number('texture repeat', 8)
   const scale = number('texture scale', 4)
-  const [normalTexture] = useNormalTexture(number('texture index', 3), {
+  const resource = useNormalTexture(number('texture index', 3), {
     repeat: [repeat, repeat],
     anisotropy: 8,
   })
 
   return (
-    <mesh geometry={(nodes.Suzanne as Mesh).geometry}>
-      <meshStandardMaterial
+    <T.Mesh geometry={(gltf()?.nodes.Suzanne as Mesh).geometry}>
+      <T.MeshStandardMaterial
         color="darkmagenta"
         roughness={0.9}
         metalness={0.1}
         normalScale={new Vector2(scale, scale)}
-        normalMap={normalTexture}
+        normalMap={resource()?.texture}
       />
-    </mesh>
+    </T.Mesh>
   )
 }
 
 function UseNormalTexture() {
   return (
-    <React.Suspense fallback={null}>
+    <T.Suspense fallback={null}>
       <Suzanne />
-    </React.Suspense>
+    </T.Suspense>
   )
 }
 
