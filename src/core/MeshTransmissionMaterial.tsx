@@ -4,7 +4,8 @@
  *    https://github.com/junni-inc/next.junni.co.jp/blob/master/src/ts/MainScene/World/Sections/Section2/Transparents/Transparent/shaders/transparent.fs
  */
 
-import { T, ThreeProps, extend, useFrame } from '@solid-three/fiber'
+import { Instance, T, ThreeProps, extend, useFrame } from '@solid-three/fiber'
+import { createSignal } from 'solid-js'
 import * as THREE from 'three'
 import { processProps } from '../helpers/processProps'
 import { RefComponent } from '../helpers/typeHelpers'
@@ -31,9 +32,9 @@ type MeshTransmissionMaterialType = Omit<
   /* Distortion, default: 0 */
   distortion?: number
   /* Distortion scale, default: 0.5 */
-  distortionScale: number
+  distortionScale?: number
   /* Temporal distortion (speed of movement), default: 0.0 */
-  temporalDistortion: number
+  temporalDistortion?: number
   /** The scene rendered into a texture (use it to share a texture between materials), default: null  */
   buffer?: THREE.Texture
   /** Internals */
@@ -404,7 +405,7 @@ export const MeshTransmissionMaterial: RefComponent<any, MeshTransmissionMateria
 
   extend({ MeshTransmissionMaterial: MeshTransmissionMaterialImpl })
 
-  let ref: ThreeProps<'MeshTransmissionMaterial'> = null!
+  const [ref, setRef] = createSignal<Instance<MeshTransmissionMaterialType>['object']>(null!)
   const discardMaterial = new DiscardMaterial()
   const fboBack = useFBO(props.backsideResolution || props.resolution)
   const fboMain = useFBO(props.resolution)
@@ -413,10 +414,10 @@ export const MeshTransmissionMaterial: RefComponent<any, MeshTransmissionMateria
   let oldTone
   let parent
   useFrame((state) => {
-    ref.time = state.clock.getElapsedTime()
+    ref()!.time = state.clock.getElapsedTime()
     // Render only if the buffer matches the built-in and no transmission sampler is set
-    if (ref.buffer === fboMain.texture && !props.transmissionSampler) {
-      parent = ref.__r3f.parent as THREE.Object3D
+    if (ref().buffer === fboMain.texture && !props.transmissionSampler) {
+      parent = ref().__r3f?.parent
       if (parent) {
         // Save defaults
         oldTone = state.gl.toneMapping
@@ -458,14 +459,14 @@ export const MeshTransmissionMaterial: RefComponent<any, MeshTransmissionMateria
   })
 
   // Forward ref
-  createImperativeHandle(props, () => ref)
+  createImperativeHandle(props, ref)
 
   return (
     <T.MeshTransmissionMaterial
       // Samples must re-compile the shader so we memoize it
       args={[props.samples, props.transmissionSampler]}
+      ref={setRef}
       {...rest}
-      ref={ref!}
       buffer={props.buffer || fboMain.texture}
       // @ts-ignore
       _transmission={props.transmission}
