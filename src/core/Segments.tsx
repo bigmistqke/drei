@@ -1,72 +1,78 @@
+import { Object3DNode, Primitive, SolidThreeFiber, T, ThreeProps, extend, useFrame } from '@solid-three/fiber'
+import { createContext, createSignal, onMount, useContext, type JSX } from 'solid-js'
 import * as THREE from 'three'
-import * as React from 'react'
-import mergeRefs from 'react-merge-refs'
-import { extend, useFrame, ReactThreeFiber } from '@react-three/fiber'
-import { Line2, LineSegmentsGeometry, LineMaterial } from 'three-stdlib'
+import { Line2, LineMaterial, LineSegmentsGeometry } from 'three-stdlib'
+import { createRef } from '../helpers/createRef'
+import { mergeRefs } from '../helpers/mergeRefs'
+import { processProps } from '../helpers/processProps'
+import { RefComponent } from '../helpers/typeHelpers'
 
 type SegmentsProps = {
   limit?: number
   lineWidth?: number
-  children: React.ReactNode
+  children: JSX.Element
 }
 
 type Api = {
-  subscribe: (ref: React.RefObject<SegmentObject>) => void
+  subscribe: (ref: SegmentObject) => void
 }
 
-type SegmentRef = React.RefObject<SegmentObject>
-type SegmentProps = Omit<JSX.IntrinsicElements['segmentObject'], 'start' | 'end' | 'color'> & {
-  start: ReactThreeFiber.Vector3
-  end: ReactThreeFiber.Vector3
-  color?: ReactThreeFiber.Color
+// type SegmentRef = React.RefObject<SegmentObject>
+type SegmentProps = Omit<ThreeProps<'SegmentObject'>, 'start' | 'end' | 'color'> & {
+  start: SolidThreeFiber.Vector3
+  end: SolidThreeFiber.Vector3
+  color?: SolidThreeFiber.Color
 }
 
-const context = React.createContext<Api>(null!)
+const context = createContext<Api>()
 
-const Segments = React.forwardRef<Line2, SegmentsProps>((props, forwardedRef) => {
-  React.useMemo(() => extend({ SegmentObject }), [])
+const Segments: RefComponent<Line2, SegmentsProps> = (_props) => {
+  extend({ SegmentObject })
 
-  const { limit = 1000, lineWidth = 1.0, children, ...rest } = props
-  const [segments, setSegments] = React.useState<Array<SegmentRef>>([])
-
-  const [line] = React.useState(() => new Line2())
-  const [material] = React.useState(() => new LineMaterial())
-  const [geometry] = React.useState(() => new LineSegmentsGeometry())
-  const [resolution] = React.useState(() => new THREE.Vector2(512, 512))
-
-  const [positions] = React.useState<number[]>(() => Array(limit * 6).fill(0))
-  const [colors] = React.useState<number[]>(() => Array(limit * 6).fill(0))
-
-  const api: Api = React.useMemo(
-    () => ({
-      subscribe: (ref: React.RefObject<SegmentObject>) => {
-        setSegments((segments) => [...segments, ref])
-        return () => setSegments((segments) => segments.filter((item) => item.current !== ref.current))
-      },
-    }),
-    []
+  const [props, rest] = processProps(
+    _props,
+    {
+      limit: 1000,
+      lineWidth: 1.0,
+    },
+    ['ref', 'limit', 'lineWidth', 'children']
   )
 
+  const [segments, setSegments] = createSignal<Array<SegmentObject>>([])
+
+  const line = new Line2()
+  const material = new LineMaterial()
+  const geometry = new LineSegmentsGeometry()
+  const resolution = new THREE.Vector2(512, 512)
+  const positions = Array(props.limit * 6).fill(0)
+  const colors = Array(props.limit * 6).fill(0)
+
+  const api: Api = {
+    subscribe: (ref: SegmentObject) => {
+      setSegments((segments) => [...segments, ref])
+      return () => setSegments((segments) => segments.filter((item) => item !== ref))
+    },
+  }
+
   useFrame(() => {
+    const limit = Math.min(segments().length, props.limit)
     for (let i = 0; i < limit; i++) {
-      const segment = segments[i]?.current
-      if (segment) {
-        positions[i * 6 + 0] = segment.start.x
-        positions[i * 6 + 1] = segment.start.y
-        positions[i * 6 + 2] = segment.start.z
+      const segment = segments()[i]
+      positions[i * 6 + 0] = segment.start.x
+      positions[i * 6 + 1] = segment.start.y
+      positions[i * 6 + 2] = segment.start.z
 
-        positions[i * 6 + 3] = segment.end.x
-        positions[i * 6 + 4] = segment.end.y
-        positions[i * 6 + 5] = segment.end.z
+      positions[i * 6 + 3] = segment.end.x
+      positions[i * 6 + 4] = segment.end.y
+      positions[i * 6 + 5] = segment.end.z
 
-        colors[i * 6 + 0] = segment.color.r
-        colors[i * 6 + 1] = segment.color.g
-        colors[i * 6 + 2] = segment.color.b
+      colors[i * 6 + 0] = segment.color.r
+      colors[i * 6 + 1] = segment.color.g
+      colors[i * 6 + 2] = segment.color.b
 
-        colors[i * 6 + 3] = segment.color.r
-        colors[i * 6 + 4] = segment.color.g
-        colors[i * 6 + 5] = segment.color.b
-      }
+      colors[i * 6 + 3] = segment.color.r
+      colors[i * 6 + 4] = segment.color.g
+      colors[i * 6 + 5] = segment.color.b
     }
     geometry.setColors(colors)
     geometry.setPositions(positions)
@@ -74,25 +80,25 @@ const Segments = React.forwardRef<Line2, SegmentsProps>((props, forwardedRef) =>
   })
 
   return (
-    <primitive object={line} ref={forwardedRef}>
-      <primitive object={geometry} attach="geometry" />
-      <primitive
+    <Primitive object={line} ref={props.ref}>
+      <Primitive object={geometry} attach="geometry" />
+      <Primitive
         object={material}
         attach="material"
         vertexColors={true}
         resolution={resolution}
-        linewidth={lineWidth}
+        linewidth={props.lineWidth}
         {...rest}
       />
-      <context.Provider value={api}>{children}</context.Provider>
-    </primitive>
+      <context.Provider value={api}>{props.children}</context.Provider>
+    </Primitive>
   )
-})
+}
 
 declare global {
-  namespace JSX {
+  namespace SolidThree {
     interface IntrinsicElements {
-      segmentObject: ReactThreeFiber.Object3DNode<SegmentObject, typeof SegmentObject>
+      SegmentObject: Object3DNode<SegmentObject>
     }
   }
 }
@@ -111,12 +117,20 @@ export class SegmentObject {
 const normPos = (pos: SegmentProps['start']): SegmentObject['start'] =>
   pos instanceof THREE.Vector3 ? pos : new THREE.Vector3(...(typeof pos === 'number' ? [pos, pos, pos] : pos))
 
-const Segment = React.forwardRef<SegmentObject, SegmentProps>(({ color, start, end }, forwardedRef) => {
-  const api = React.useContext<Api>(context)
-  if (!api) throw 'Segment must used inside Segments component.'
-  const ref = React.useRef<SegmentObject>(null)
-  React.useLayoutEffect(() => api.subscribe(ref), [])
-  return <segmentObject ref={mergeRefs([ref, forwardedRef])} color={color} start={normPos(start)} end={normPos(end)} />
-})
+const Segment: RefComponent<SegmentObject, SegmentProps> = (props) => {
+  const api = useContext(context)
 
-export { Segments, Segment }
+  if (!api) throw 'Segment must used inside Segments component.'
+  const segmentRef = createRef<SegmentObject>(null!)
+  onMount(() => api.subscribe(segmentRef.ref))
+  return (
+    <T.SegmentObject
+      ref={mergeRefs(segmentRef, props)}
+      color={props.color}
+      start={normPos(props.start)}
+      end={normPos(props.end)}
+    />
+  )
+}
+
+export { Segment, Segments }

@@ -1,5 +1,5 @@
-import { useMemo, useCallback } from 'react'
-import { ThreeEvent, useFrame } from '@react-three/fiber'
+import { useFrame } from '@solid-three/fiber'
+import { Accessor, createMemo } from 'solid-js'
 import { Texture } from 'three'
 
 /**
@@ -196,13 +196,16 @@ class TrailTexture {
   }
 }
 
-export function useTrailTexture(config: Partial<TrailConfig> = {}): [Texture, (ThreeEvent) => void] {
-  const { size, maxAge, radius, intensity, interpolate, smoothing, minForce, blend, ease } = config
-  const trail = useMemo(
-    () => new TrailTexture(config),
-    [size, maxAge, radius, intensity, interpolate, smoothing, minForce, blend, ease]
-  )
-  useFrame((_, delta) => void trail.update(delta))
-  const onMove = useCallback((e) => trail.addTouch(e.uv), [trail])
-  return [trail.texture, onMove]
+// s3f:   currently config would not be reactive. should we do Accessor<config>?
+export function useTrailTexture(
+  config: Partial<TrailConfig> = {}
+): Accessor<{ texture: Texture; onMove: (ThreeEvent) => void }> {
+  const trail = createMemo(() => new TrailTexture(config))
+  useFrame((_, delta) => void trail().update(delta))
+  const onMove = (e) => trail().addTouch(e.uv)
+
+  return () => ({
+    texture: trail()?.texture,
+    onMove,
+  })
 }

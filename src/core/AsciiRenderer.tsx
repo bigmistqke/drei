@@ -1,5 +1,5 @@
-import * as React from 'react'
-import { useFrame, useThree } from '@react-three/fiber'
+import { useFrame, useThree } from '@solid-three/fiber'
+import { createEffect, createMemo, createRenderEffect, mergeProps, onCleanup } from 'solid-js'
 import { AsciiEffect } from 'three-stdlib'
 
 type AsciiRendererProps = {
@@ -19,53 +19,61 @@ type AsciiRendererProps = {
   resolution?: number
 }
 
-export function AsciiRenderer({
-  renderIndex = 1,
-  bgColor = 'black',
-  fgColor = 'white',
-  characters = ' .:-+*=%@#',
-  invert = true,
-  color = false,
-  resolution = 0.15,
-}: AsciiRendererProps) {
+export function AsciiRenderer(_props: AsciiRendererProps) {
+  const props = mergeProps(
+    {
+      renderIndex: 1,
+      bgColor: 'black',
+      fgColor: 'white',
+      characters: ' .:-+*=%@#',
+      invert: true,
+      color: false,
+      resolution: 0.15,
+    },
+    _props
+  )
   // Reactive state
-  const { size, gl, scene, camera } = useThree()
+  const store = useThree()
 
   // Create effect
-  const effect = React.useMemo(() => {
-    const effect = new AsciiEffect(gl, characters, { invert, color, resolution })
+  const effect = createMemo(() => {
+    const effect = new AsciiEffect(store.gl, props.characters, {
+      invert: props.invert,
+      color: props.color,
+      resolution: props.resolution,
+    })
     effect.domElement.style.position = 'absolute'
     effect.domElement.style.top = '0px'
     effect.domElement.style.left = '0px'
     effect.domElement.style.pointerEvents = 'none'
     return effect
-  }, [characters, invert, color, resolution])
+  })
 
   // Styling
-  React.useLayoutEffect(() => {
-    effect.domElement.style.color = fgColor
-    effect.domElement.style.backgroundColor = bgColor
-  }, [fgColor, bgColor])
+  createRenderEffect(() => {
+    effect().domElement.style.color = props.fgColor
+    effect().domElement.style.backgroundColor = props.bgColor
+  })
 
   // Append on mount, remove on unmount
-  React.useEffect(() => {
-    gl.domElement.style.opacity = '0'
-    gl.domElement.parentNode!.appendChild(effect.domElement)
-    return () => {
-      gl.domElement.style.opacity = '1'
-      gl.domElement.parentNode!.removeChild(effect.domElement)
-    }
-  }, [effect])
+  createEffect(() => {
+    store.gl.domElement.style.opacity = '0'
+    store.gl.domElement.parentNode!.appendChild(effect().domElement)
+    onCleanup(() => {
+      store.gl.domElement.style.opacity = '1'
+      store.gl.domElement.parentNode!.removeChild(effect().domElement)
+    })
+  })
 
   // Set size
-  React.useEffect(() => {
-    effect.setSize(size.width, size.height)
-  }, [effect, size])
+  createEffect(() => {
+    effect().setSize(store.size.width, store.size.height)
+  })
 
   // Take over render-loop (that is what the index is for)
   useFrame((state) => {
-    effect.render(scene, camera)
-  }, renderIndex)
+    effect().render(store.scene, store.camera)
+  }, props.renderIndex)
 
   // return something to not break type signatures
   return <></>

@@ -1,14 +1,12 @@
-import { useEffect } from 'react'
-import { useThree } from '@react-three/fiber'
+import { useThree } from '@solid-three/fiber'
+import { createEffect, onCleanup } from 'solid-js'
 
 export function BakeShadows() {
-  const gl = useThree((state) => state.gl)
-  useEffect(() => {
-    gl.shadowMap.autoUpdate = false
-    gl.shadowMap.needsUpdate = true
-    return () => {
-      gl.shadowMap.autoUpdate = gl.shadowMap.needsUpdate = true
-    }
-  }, [gl.shadowMap])
+  const store = useThree()
+  createEffect(() => {
+    store.gl.shadowMap.autoUpdate = false
+    store.gl.shadowMap.needsUpdate = true
+    onCleanup(() => (store.gl.shadowMap.autoUpdate = store.gl.shadowMap.needsUpdate = true))
+  })
   return null
 }

@@ -1,8 +1,9 @@
-import * as React from 'react'
+import { Primitive, ThreeProps, useFrame } from '@solid-three/fiber'
 import { MeshStandardMaterial, MeshStandardMaterialParameters, Shader } from 'three'
-import { useFrame } from '@react-three/fiber'
+import { processProps } from '../helpers/processProps'
+import { RefComponent } from '../helpers/typeHelpers'
 
-type WobbleMaterialType = JSX.IntrinsicElements['meshStandardMaterial'] & {
+type WobbleMaterialType = ThreeProps<'MeshStandardMaterial'> & {
   time?: number
   factor?: number
   speed?: number
@@ -14,9 +15,9 @@ type Props = WobbleMaterialType & {
 }
 
 declare global {
-  namespace JSX {
+  namespace SolidThree {
     interface IntrinsicElements {
-      wobbleMaterialImpl: WobbleMaterialType
+      WobbleMaterialImpl: WobbleMaterialType
     }
   }
 }
@@ -73,8 +74,16 @@ class WobbleMaterialImpl extends MeshStandardMaterial {
   }
 }
 
-export const MeshWobbleMaterial = React.forwardRef(({ speed = 1, ...props }: Props, ref) => {
-  const [material] = React.useState(() => new WobbleMaterialImpl())
-  useFrame((state) => material && (material.time = state.clock.getElapsedTime() * speed))
-  return <primitive object={material} ref={ref} attach="material" {...props} />
-})
+export const MeshWobbleMaterial: RefComponent<any, Props> = (_props) => {
+  const [props, rest] = processProps(
+    _props,
+    {
+      speed: 1,
+    },
+    ['ref', 'speed']
+  )
+
+  const material = new WobbleMaterialImpl()
+  useFrame((state) => material && (material.time = state.clock.getElapsedTime() * props.speed))
+  return <Primitive object={material} ref={props.ref!} attach="material" {...rest} />
+}

@@ -1,10 +1,10 @@
-import * as React from 'react'
-import { Raycaster, Camera, Intersection } from 'three'
-import { useThree, applyProps } from '@react-three/fiber'
+import { applyProps, useThree } from '@solid-three/fiber'
+import { Accessor, createSignal } from 'solid-js'
+import { Camera, Intersection, Raycaster } from 'three'
 
-export function useCamera(camera: Camera | React.MutableRefObject<Camera>, props?: Partial<Raycaster>) {
-  const pointer = useThree((state) => state.pointer)
-  const [raycast] = React.useState(() => {
+export function useCamera(camera: Camera | Accessor<Camera>, props?: Partial<Raycaster>) {
+  const store = useThree()
+  const [raycast] = createSignal(() => {
     const raycaster = new Raycaster()
     /**
      * applyProps is an internal method of r3f and
@@ -15,7 +15,7 @@ export function useCamera(camera: Camera | React.MutableRefObject<Camera>, props
     // @ts-expect-error
     if (props) applyProps(raycaster, props, {})
     return function (_: Raycaster, intersects: Intersection[]): void {
-      raycaster.setFromCamera(pointer, camera instanceof Camera ? camera : camera.current)
+      raycaster.setFromCamera(store.pointer, camera instanceof Camera ? camera : camera())
       const rc = this.constructor.prototype.raycast.bind(this)
       if (rc) rc(raycaster, intersects)
     }

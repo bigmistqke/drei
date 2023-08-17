@@ -1,8 +1,9 @@
+import { useThree } from '@solid-three/fiber'
+import { createMemo, onCleanup } from 'solid-js'
 import * as THREE from 'three'
-import { HalfFloatType, Fog, FogExp2, WebGLCubeRenderTarget } from 'three'
-import * as React from 'react'
-import { useEffect, useMemo } from 'react'
-import { useThree } from '@react-three/fiber'
+import { Fog, FogExp2, HalfFloatType, WebGLCubeRenderTarget } from 'three'
+import { defaultProps } from '../helpers/defaultProps'
+import { when } from '../helpers/when'
 
 export type CubeCameraOptions = {
   /** Resolution of the FBO, 256 */
@@ -17,35 +18,36 @@ export type CubeCameraOptions = {
   fog?: Fog | FogExp2
 }
 
-export function useCubeCamera({ resolution = 256, near = 0.1, far = 1000, envMap, fog }: CubeCameraOptions = {}) {
-  const gl = useThree(({ gl }) => gl)
-  const scene = useThree(({ scene }) => scene)
+export function useCubeCamera(_props: CubeCameraOptions = {}) {
+  const props = defaultProps(_props, {
+    resolution: 256,
+    near: 0.1,
+    far: 1000,
+  })
 
-  const fbo = useMemo(() => {
-    const fbo = new WebGLCubeRenderTarget(resolution)
+  const store = useThree()
+
+  const fbo = createMemo(() => {
+    const fbo = new WebGLCubeRenderTarget(props.resolution)
     fbo.texture.type = HalfFloatType
+    onCleanup(() => fbo.dispose())
     return fbo
-  }, [resolution])
+  })
 
-  useEffect(() => {
-    return () => {
-      fbo.dispose()
-    }
-  }, [fbo])
-
-  const camera = useMemo(() => new THREE.CubeCamera(near, far, fbo), [near, far, fbo])
+  const camera = createMemo(() => when(fbo)((fbo) => new THREE.CubeCamera(props.near, props.far, fbo)))
 
   let originalFog
   let originalBackground
-  const update = React.useCallback(() => {
-    originalFog = scene.fog
-    originalBackground = scene.background
-    scene.background = envMap || originalBackground
-    scene.fog = fog || originalFog
-    camera.update(gl, scene)
-    scene.fog = originalFog
-    scene.background = originalBackground
-  }, [gl, scene, camera])
+  const update = () =>
+    when(camera)((camera) => {
+      originalFog = store.scene.fog
+      originalBackground = store.scene.background
+      store.scene.background = props.envMap || originalBackground
+      store.scene.fog = props.fog || originalFog
+      camera.update(store.gl, store.scene)
+      store.scene.fog = originalFog
+      store.scene.background = originalBackground
+    })
 
   return {
     fbo,

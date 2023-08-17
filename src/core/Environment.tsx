@@ -1,21 +1,15 @@
-import * as React from 'react'
-import { useThree, createPortal, useFrame, extend, Object3DNode } from '@react-three/fiber'
-import {
-  WebGLCubeRenderTarget,
-  Texture,
-  Scene,
-  Loader,
-  CubeCamera,
-  HalfFloatType,
-  CubeTexture,
-  TextureEncoding,
-} from 'three'
+import { Object3DNode, T, createPortal, extend, useFrame, useThree } from '@solid-three/fiber'
+import { Accessor, JSXElement, Show, createMemo, createRenderEffect, onCleanup } from 'solid-js'
+import { CubeCamera, CubeTexture, HalfFloatType, Scene, Texture, WebGLCubeRenderTarget } from 'three'
 import { GroundProjectedEnv as GroundProjectedEnvImpl } from 'three-stdlib'
+import { defaultProps } from '../helpers/defaultProps'
 import { PresetsType } from '../helpers/environment-assets'
+import { processProps } from '../helpers/processProps'
+import { when } from '../helpers/when'
 import { EnvironmentLoaderProps, useEnvironment } from './useEnvironment'
 
 export type EnvironmentProps = {
-  children?: React.ReactNode
+  children?: JSXElement
   frames?: number
   near?: number
   far?: number
@@ -24,7 +18,7 @@ export type EnvironmentProps = {
   blur?: number
   map?: THREE.Texture
   preset?: PresetsType
-  scene?: Scene | React.MutableRefObject<THREE.Scene>
+  scene?: Scene | Accessor<THREE.Scene>
   ground?:
     | boolean
     | {
@@ -34,13 +28,13 @@ export type EnvironmentProps = {
       }
 } & EnvironmentLoaderProps
 
-const isRef = (obj: any): obj is React.MutableRefObject<THREE.Scene> => obj.current && obj.current.isScene
-const resolveScene = (scene: THREE.Scene | React.MutableRefObject<THREE.Scene>) =>
-  isRef(scene) ? scene.current : scene
+const isAccessor = (obj: any): obj is Accessor<THREE.Scene> => typeof obj === 'function'
+const resolveScene = (scene: THREE.Scene | Accessor<THREE.Scene>) => (isAccessor(scene) ? scene() : scene)
 
+// s3f: we could mb prevent unnecessary cleanups by passing accessors instead of raw values
 function setEnvProps(
   background: boolean | 'only',
-  scene: Scene | React.MutableRefObject<Scene> | undefined,
+  scene: Scene | Accessor<Scene> | undefined,
   defaultScene: Scene,
   texture: Texture,
   blur = 0
@@ -48,6 +42,7 @@ function setEnvProps(
   const target = resolveScene(scene || defaultScene)
   const oldbg = target.background
   const oldenv = target.environment
+
   // @ts-ignore
   const oldBlur = target.backgroundBlurriness || 0
   if (background !== 'only') target.environment = texture
@@ -62,57 +57,59 @@ function setEnvProps(
   }
 }
 
-export function EnvironmentMap({ scene, background = false, blur, map }: EnvironmentProps) {
-  const defaultScene = useThree((state) => state.scene)
-  React.useLayoutEffect(() => {
-    if (map) return setEnvProps(background, scene, defaultScene, map, blur)
-  }, [defaultScene, scene, map, background, blur])
+export function EnvironmentMap(_props: EnvironmentProps) {
+  const props = defaultProps(_props, { background: false })
+  const store = useThree()
+  createRenderEffect(() => {
+    if (props.map) {
+      const cleanup = setEnvProps(props.background, props.scene, store.scene, props.map, props.blur)
+      onCleanup(cleanup)
+    }
+  })
   return null
 }
 
-export function EnvironmentCube({ background = false, scene, blur, ...rest }: EnvironmentProps) {
+export function EnvironmentCube(_props: EnvironmentProps) {
+  const [props, rest] = processProps(_props, { background: false }, ['background', 'scene', 'blur'])
   const texture = useEnvironment(rest)
-  const defaultScene = useThree((state) => state.scene)
-  React.useLayoutEffect(() => {
-    return setEnvProps(background, scene, defaultScene, texture, blur)
-  }, [texture, background, scene, defaultScene, blur])
+
+  const store = useThree()
+  createRenderEffect(() => {
+    when(texture)((texture) => {
+      const cleanup = setEnvProps(props.background, props.scene, store.scene, texture, props.blur)
+      onCleanup(cleanup)
+    })
+  })
   return null
 }
 
-export function EnvironmentPortal({
-  children,
-  near = 1,
-  far = 1000,
-  resolution = 256,
-  frames = 1,
-  map,
-  background = false,
-  blur,
-  scene,
-  files,
-  path,
-  preset = undefined,
-  extensions,
-}: EnvironmentProps) {
-  const gl = useThree((state) => state.gl)
-  const defaultScene = useThree((state) => state.scene)
-  const camera = React.useRef<CubeCamera>(null!)
-  const [virtualScene] = React.useState(() => new Scene())
-  const fbo = React.useMemo(() => {
-    const fbo = new WebGLCubeRenderTarget(resolution)
+export function EnvironmentPortal(_props: EnvironmentProps) {
+  const [props] = processProps(_props, {
+    near: 1,
+    far: 1000,
+    resolution: 256,
+    frames: 1,
+    background: false,
+  })
+  const store = useThree()
+  let camera: CubeCamera = null!
+  const virtualScene = new Scene()
+  const fbo = createMemo(() => {
+    const fbo = new WebGLCubeRenderTarget(props.resolution)
     fbo.texture.type = HalfFloatType
     return fbo
-  }, [resolution])
+  }, [props.resolution])
 
-  React.useLayoutEffect(() => {
-    if (frames === 1) camera.current.update(gl, virtualScene)
-    return setEnvProps(background, scene, defaultScene, fbo.texture, blur)
-  }, [children, virtualScene, fbo.texture, scene, defaultScene, background, frames, gl])
+  createRenderEffect(() => {
+    if (props.frames === 1) camera.update(store.gl, virtualScene)
+    const cleanup = setEnvProps(props.background, props.scene, store.scene, fbo().texture, props.blur)
+    onCleanup(cleanup)
+  })
 
   let count = 1
   useFrame(() => {
-    if (frames === Infinity || count < frames) {
-      camera.current.update(gl, virtualScene)
+    if (props.frames === Infinity || count < props.frames) {
+      camera.update(store.gl, virtualScene)
       count++
     }
   })
@@ -121,13 +118,19 @@ export function EnvironmentPortal({
     <>
       {createPortal(
         <>
-          {children}
+          {props.children}
           {/* @ts-ignore */}
-          <cubeCamera ref={camera} args={[near, far, fbo]} />
-          {files || preset ? (
-            <EnvironmentCube background files={files} preset={preset} path={path} extensions={extensions} />
-          ) : map ? (
-            <EnvironmentMap background map={map} extensions={extensions} />
+          <T.CubeCamera ref={camera} args={[props.near, props.far, fbo]} />
+          {props.files || props.preset ? (
+            <EnvironmentCube
+              background
+              files={props.files}
+              preset={props.preset}
+              path={props.path}
+              extensions={props.extensions}
+            />
+          ) : props.map ? (
+            <EnvironmentMap background map={props.map} extensions={props.extensions} />
           ) : null}
         </>,
         virtualScene
@@ -137,28 +140,32 @@ export function EnvironmentPortal({
 }
 
 declare global {
-  namespace JSX {
+  namespace SolidThree {
     interface IntrinsicElements {
-      groundProjectedEnvImpl: Object3DNode<GroundProjectedEnvImpl, typeof GroundProjectedEnvImpl>
+      GroundProjectedEnvImpl: Object3DNode<GroundProjectedEnvImpl>
     }
   }
 }
 
 function EnvironmentGround(props: EnvironmentProps) {
   const textureDefault = useEnvironment(props)
-  const texture = props.map || textureDefault
+  const texture = () => props.map || textureDefault()
 
-  React.useMemo(() => extend({ GroundProjectedEnvImpl }), [])
+  extend({ GroundProjectedEnvImpl })
 
-  const args = React.useMemo<[CubeTexture | Texture]>(() => [texture], [texture])
-  const height = (props.ground as any)?.height
-  const radius = (props.ground as any)?.radius
-  const scale = (props.ground as any)?.scale ?? 1000
+  const args = createMemo<[CubeTexture | Texture | undefined]>(() => [texture()])
 
   return (
     <>
-      <EnvironmentMap {...props} map={texture} />
-      <groundProjectedEnvImpl args={args} scale={scale} height={height} radius={radius} />
+      <EnvironmentMap {...props} map={texture()} />
+      <Show when={args()[0]}>
+        <T.GroundProjectedEnvImpl
+          args={args()}
+          scale={props.ground?.scale ?? 1000}
+          height={props.ground?.height}
+          radius={props.ground?.radius}
+        />
+      </Show>
     </>
   )
 }

@@ -1,22 +1,27 @@
-import * as React from 'react'
+import { T, useFrame } from '@solid-three/fiber'
 import { Group } from 'three'
-import mergeRefs from 'react-merge-refs'
-import { useFrame } from '@react-three/fiber'
+import { createRef } from '../helpers/createRef'
+import { mergeRefs } from '../helpers/mergeRefs'
+import { processProps } from '../helpers/processProps'
+import { RefComponent } from '../helpers/typeHelpers'
 
 export type ScreenSpaceProps = {
   depth?: number
-} & JSX.IntrinsicElements['group']
+} & Parameters<typeof T.Group>[0]
 
-export const ScreenSpace = React.forwardRef<Group, ScreenSpaceProps>(({ children, depth = -1, ...rest }, ref) => {
-  const localRef = React.useRef<Group>(null!)
+export const ScreenSpace: RefComponent<Group, ScreenSpaceProps> = (_props) => {
+  const [props, rest] = processProps(_props, { depth: -1 }, ['ref', 'children', 'depth'])
+
+  const localRef = createRef<Group>(null!)
 
   useFrame(({ camera }) => {
-    localRef.current.quaternion.copy(camera.quaternion)
-    localRef.current.position.copy(camera.position)
+    if (!localRef.ref) return
+    localRef.ref.quaternion.copy(camera.quaternion)
+    localRef.ref.position.copy(camera.position)
   })
   return (
-    <group ref={mergeRefs([ref, localRef])} {...rest}>
-      <group position-z={-depth}>{children}</group>
-    </group>
+    <T.Group ref={mergeRefs(props, localRef)} {...rest}>
+      <T.Group position-z={-props.depth}>{props.children}</T.Group>
+    </T.Group>
   )
-})
+}

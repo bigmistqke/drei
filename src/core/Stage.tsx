@@ -1,15 +1,12 @@
-import * as React from 'react'
-import { EnvironmentProps, Environment } from './Environment'
-import { ContactShadowsProps, ContactShadows } from './ContactShadows'
-import { CenterProps, Center } from './Center'
-import {
-  AccumulativeShadowsProps,
-  RandomizedLightProps,
-  AccumulativeShadows,
-  RandomizedLight,
-} from './AccumulativeShadows'
-import { useBounds, Bounds } from './Bounds'
+import { T, ThreeProps } from '@solid-three/fiber'
+import { Show, createEffect, createSignal, on } from 'solid-js'
 import { PresetsType } from '../helpers/environment-assets'
+import { processProps } from '../helpers/processProps'
+import { AccumulativeShadowsProps, RandomizedLightProps } from './AccumulativeShadows'
+import { Bounds, useBounds } from './Bounds'
+import { Center, CenterProps } from './Center'
+import { ContactShadowsProps } from './ContactShadows'
+import { Environment, EnvironmentProps } from './Environment'
 
 const presets = {
   rembrandt: {
@@ -64,88 +61,128 @@ type StageProps = {
   center?: Partial<CenterProps>
 }
 
-function Refit({ radius, adjustCamera }) {
+function Refit(props: { radius: number; adjustCamera: number | boolean }) {
   const api = useBounds()
-  React.useEffect(() => {
-    if (adjustCamera) api.refresh().clip().fit()
-  }, [radius, adjustCamera])
+  createEffect(
+    on(
+      () => [props.radius, props.adjustCamera],
+      () => {
+        if (props.adjustCamera) api?.refresh().clip().fit()
+      }
+    )
+  )
   return null
 }
 
-export function Stage({
-  children,
-  center,
-  adjustCamera = true,
-  intensity = 0.5,
-  shadows = 'contact',
-  environment = 'city',
-  preset = 'rembrandt',
-  ...props
-}: JSX.IntrinsicElements['group'] & StageProps) {
-  const config = typeof preset === 'string' ? presets[preset] : preset
-  const [{ radius, height }, set] = React.useState({ radius: 0, width: 0, height: 0, depth: 0 })
-  const shadowBias = (shadows as StageShadows)?.bias ?? -0.0001
-  const normalBias = (shadows as StageShadows)?.normalBias ?? 0
-  const shadowSize = (shadows as StageShadows)?.size ?? 1024
-  const shadowOffset = (shadows as StageShadows)?.offset ?? 0
-  const contactShadow = shadows === 'contact' || (shadows as StageShadows)?.type === 'contact'
-  const accumulativeShadow = shadows === 'accumulative' || (shadows as StageShadows)?.type === 'accumulative'
-  const shadowSpread = { ...(typeof shadows === 'object' ? shadows : {}) }
-  const environmentProps = !environment ? null : typeof environment === 'string' ? { preset: environment } : environment
-  const onCentered = React.useCallback((props) => {
+export function Stage(_props: ThreeProps<'Group'> & StageProps) {
+  const [props, rest] = processProps(
+    _props,
+    {
+      adjustCamera: true,
+      intensity: 0.5,
+      shadows: 'contact',
+      environment: 'city',
+      preset: 'rembrandt',
+    },
+    ['children', 'center', 'adjustCamera', 'intensity', 'shadows', 'environment', 'preset']
+  )
+
+  const config = typeof props.preset === 'string' ? presets[props.preset] : props.preset
+  const [dimensions, setDimensions] = createSignal({ radius: 0, width: 0, height: 0, depth: 0 })
+
+  const shadowBias = (props.shadows as StageShadows)?.bias ?? -0.0001
+  const normalBias = (props.shadows as StageShadows)?.normalBias ?? 0
+  const shadowSize = (props.shadows as StageShadows)?.size ?? 1024
+  const shadowOffset = (props.shadows as StageShadows)?.offset ?? 0
+  const contactShadow = props.shadows === 'contact' || (props.shadows as StageShadows)?.type === 'contact'
+  const accumulativeShadow =
+    props.shadows === 'accumulative' || (props.shadows as StageShadows)?.type === 'accumulative'
+  const shadowSpread = { ...(typeof props.shadows === 'object' ? props.shadows : {}) }
+  const environmentProps = () =>
+    !props.environment
+      ? null
+      : typeof props.environment === 'string'
+      ? { preset: props.environment }
+      : props.environment
+  const onCentered = (props) => {
     const { width, height, depth, boundingSphere } = props
-    set({ radius: boundingSphere.radius, width, height, depth })
-    if (center?.onCentered) center.onCentered(props)
-  }, [])
+    setDimensions({ radius: boundingSphere.radius, width, height, depth })
+    if (props.center?.onCentered) props.center.onCentered(props)
+  }
   return (
     <>
-      <ambientLight intensity={intensity / 3} />
-      <spotLight
+      <T.AmbientLight intensity={props.intensity / 3} />
+      <T.SpotLight
         penumbra={1}
-        position={[config.main[0] * radius, config.main[1] * radius, config.main[2] * radius]}
-        intensity={intensity * 2}
-        castShadow={!!shadows}
+        position={[
+          config.main[0] * dimensions().radius,
+          config.main[1] * dimensions().radius,
+          config.main[2] * dimensions().radius,
+        ]}
+        intensity={props.intensity * 2}
+        castShadow={!!props.shadows}
         shadow-bias={shadowBias}
         shadow-normalBias={normalBias}
         shadow-mapSize={shadowSize}
       />
-      <pointLight
-        position={[config.fill[0] * radius, config.fill[1] * radius, config.fill[2] * radius]}
-        intensity={intensity}
+      <T.PointLight
+        position={[
+          config.fill[0] * dimensions().radius,
+          config.fill[1] * dimensions().radius,
+          config.fill[2] * dimensions().radius,
+        ]}
+        intensity={props.intensity}
       />
-      <Bounds fit={!!adjustCamera} clip={!!adjustCamera} margin={Number(adjustCamera)} observe {...props}>
-        <Refit radius={radius} adjustCamera={adjustCamera} />
-        <Center {...center} position={[0, shadowOffset / 2, 0]} onCentered={onCentered}>
-          {children}
+      <Bounds
+        fit={!!props.adjustCamera}
+        clip={!!props.adjustCamera}
+        margin={Number(props.adjustCamera)}
+        observe
+        {...rest}
+      >
+        <Refit radius={dimensions().radius} adjustCamera={props.adjustCamera} />
+        <Center {...props.center} position={[0, shadowOffset / 2, 0]} onCentered={onCentered}>
+          {props.children}
         </Center>
       </Bounds>
-      <group position={[0, -height / 2 - shadowOffset / 2, 0]}>
-        {contactShadow && (
-          <ContactShadows scale={radius * 4} far={radius} blur={2} {...(shadowSpread as ContactShadowsProps)} />
-        )}
-        {accumulativeShadow && (
+      <T.Group position={[0, -dimensions().height / 2 - shadowOffset / 2, 0]}>
+        {/* {contactShadow && (
+          <ContactShadows
+            scale={dimensions().radius * 4}
+            far={dimensions().radius}
+            blur={2}
+            {...(shadowSpread as ContactShadowsProps)}
+          />
+        )} */}
+        {/* {accumulativeShadow && (
           <AccumulativeShadows
             temporal
             frames={100}
             alphaTest={0.9}
             toneMapped={true}
-            scale={radius * 4}
+            scale={dimensions().radius * 4}
             {...(shadowSpread as AccumulativeShadowsProps)}
           >
             <RandomizedLight
               amount={(shadowSpread as RandomizedLightProps).amount ?? 8}
-              radius={(shadowSpread as RandomizedLightProps).radius ?? radius}
+              radius={(shadowSpread as RandomizedLightProps).radius ?? dimensions().radius}
               ambient={(shadowSpread as RandomizedLightProps).ambient ?? 0.5}
               intensity={(shadowSpread as RandomizedLightProps).intensity ?? 1}
-              position={[config.main[0] * radius, config.main[1] * radius, config.main[2] * radius]}
-              size={radius * 4}
+              position={[
+                config.main[0] * dimensions().radius,
+                config.main[1] * dimensions().radius,
+                config.main[2] * dimensions().radius,
+              ]}
+              size={dimensions().radius * 4}
               bias={-shadowBias}
               mapSize={shadowSize}
             />
           </AccumulativeShadows>
-        )}
-      </group>
-      {environment && <Environment {...environmentProps} />}
+        )} */}
+      </T.Group>
+      <Show when={props.environment}>
+        <Environment {...environmentProps()} />
+      </Show>
     </>
   )
 }

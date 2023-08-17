@@ -1,39 +1,48 @@
+import { Primitive, T, ThreeProps, useFrame } from '@solid-three/fiber'
+import { JSX } from 'solid-js'
 import { Group, Texture } from 'three'
-import * as React from 'react'
-import { useFrame } from '@react-three/fiber'
 
-import { useCubeCamera, CubeCameraOptions } from './useCubeCamera'
+import { processProps } from '../helpers/processProps'
+import { CubeCameraOptions, useCubeCamera } from './useCubeCamera'
 
-type Props = Omit<JSX.IntrinsicElements['group'], 'children'> & {
+type Props = Omit<ThreeProps<'Group'>, 'children'> & {
   /** The contents of CubeCamera will be hidden when filming the cube */
-  children: (tex: Texture) => React.ReactNode
+  children: (tex: Texture) => JSX.Element
   /** Number of frames to render, Infinity */
   frames?: number
 } & CubeCameraOptions
 
-export function CubeCamera({ children, frames = Infinity, resolution, near, far, envMap, fog, ...props }: Props) {
-  const ref = React.useRef<Group>()
+export function CubeCamera(_props: Props) {
+  const [props, rest] = processProps(
+    _props,
+    {
+      frames: Infinity,
+    },
+    ['children', 'frames', 'resolution', 'near', 'far', 'envMap', 'fog']
+  )
+
+  let ref: Group
   const { fbo, camera, update } = useCubeCamera({
-    resolution,
-    near,
-    far,
-    envMap,
-    fog,
+    resolution: props.resolution,
+    near: props.near,
+    far: props.far,
+    envMap: props.envMap,
+    fog: props.fog,
   })
 
   let count = 0
   useFrame(() => {
-    if (ref.current && (frames === Infinity || count < frames)) {
-      ref.current.visible = false
+    if (ref && (props.frames === Infinity || count < props.frames)) {
+      ref.visible = false
       update()
-      ref.current.visible = true
+      ref.visible = true
       count++
     }
   })
   return (
-    <group {...props}>
-      <primitive object={camera} />
-      <group ref={ref}>{children(fbo.texture)}</group>
-    </group>
+    <T.Group {...rest}>
+      <Primitive object={camera()} />
+      <T.Group ref={ref!}>{props.children(fbo().texture)}</T.Group>
+    </T.Group>
   )
 }

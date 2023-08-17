@@ -1,9 +1,11 @@
-import * as React from 'react'
-import { MathUtils } from 'three'
-import { useThree } from '@react-three/fiber'
 import { a, useSpring } from '@react-spring/three'
+import { useThree } from '@solid-three/fiber'
 import { useGesture } from '@use-gesture/react'
-import { SpringConfig } from '@react-spring/core'
+import { createEffect, createMemo } from 'solid-js'
+import { SpringConfig } from 'solid-spring/core'
+import { MathUtils } from 'three'
+
+/* s3f currently not working due to missing external dependencies */
 
 export type PresentationControlProps = {
   snap?: Boolean | SpringConfig
@@ -16,7 +18,7 @@ export type PresentationControlProps = {
   azimuth?: [number, number]
   config?: any
   enabled?: boolean
-  children?: React.ReactNode
+  children?: JSX.Element
   domElement?: HTMLElement
 }
 
@@ -39,21 +41,21 @@ export function PresentationControls({
   const explDomElement = domElement || events.connected || gl.domElement
 
   const { size } = useThree()
-  const rPolar = React.useMemo(
+  const rPolar = createMemo(
     () => [rotation[0] + polar[0], rotation[0] + polar[1]],
     [rotation[0], polar[0], polar[1]]
   ) as [number, number]
-  const rAzimuth = React.useMemo(
+  const rAzimuth = createMemo(
     () => [rotation[1] + azimuth[0], rotation[1] + azimuth[1]],
     [rotation[1], azimuth[0], azimuth[1]]
   ) as [number, number]
-  const rInitial = React.useMemo(
+  const rInitial = createMemo(
     () => [MathUtils.clamp(rotation[0], ...rPolar), MathUtils.clamp(rotation[1], ...rAzimuth), rotation[2]],
     [rotation[0], rotation[1], rotation[2], rPolar, rAzimuth]
   )
   const [spring, api] = useSpring(() => ({ scale: 1, rotation: rInitial, config }))
-  React.useEffect(() => void api.start({ scale: 1, rotation: rInitial, config }), [rInitial])
-  React.useEffect(() => {
+  createEffect(() => void api.start({ scale: 1, rotation: rInitial, config }), [rInitial])
+  createEffect(() => {
     if (global && cursor && enabled) {
       explDomElement.style.cursor = 'grab'
       gl.domElement.style.cursor = ''

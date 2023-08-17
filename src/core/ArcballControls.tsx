@@ -1,15 +1,15 @@
-import { EventManager, ReactThreeFiber, useFrame, useThree } from '@react-three/fiber'
-import * as React from 'react'
-import { forwardRef, useEffect, useMemo } from 'react'
+import { Primitive, SolidThreeFiber, useFrame, useThree } from '@solid-three/fiber'
 import { ArcballControls as ArcballControlsImpl } from 'three-stdlib'
 
+import { createEffect, createMemo, on, onCleanup, splitProps, untrack } from 'solid-js'
 import type { Event, OrthographicCamera, PerspectiveCamera } from 'three'
+import { RefComponent } from '../helpers/typeHelpers'
 
 export type ArcballControlsProps = Omit<
-  ReactThreeFiber.Overwrite<
-    ReactThreeFiber.Object3DNode<ArcballControlsImpl, typeof ArcballControlsImpl>,
+  SolidThreeFiber.Overwrite<
+    SolidThreeFiber.Object3DNode<ArcballControlsImpl>,
     {
-      target?: ReactThreeFiber.Vector3
+      target?: SolidThreeFiber.Vector3
       camera?: OrthographicCamera | PerspectiveCamera
       domElement?: HTMLElement
       regress?: boolean
@@ -22,54 +22,61 @@ export type ArcballControlsProps = Omit<
   'ref'
 >
 
-export const ArcballControls = forwardRef<ArcballControlsImpl, ArcballControlsProps>(
-  ({ camera, makeDefault, regress, domElement, onChange, onStart, onEnd, ...restProps }, ref) => {
-    const invalidate = useThree((state) => state.invalidate)
-    const defaultCamera = useThree((state) => state.camera)
-    const gl = useThree((state) => state.gl)
-    const events = useThree((state) => state.events) as EventManager<HTMLElement>
-    const set = useThree((state) => state.set)
-    const get = useThree((state) => state.get)
-    const performance = useThree((state) => state.performance)
-    const explCamera = camera || defaultCamera
-    const explDomElement = (domElement || events.connected || gl.domElement) as HTMLElement
-    const controls = useMemo(() => new ArcballControlsImpl(explCamera), [explCamera])
+export const ArcballControls: RefComponent<ArcballControlsImpl, ArcballControlsProps> = (_props) => {
+  const [props, rest] = splitProps(_props, [
+    'ref',
+    'camera',
+    'makeDefault',
+    'regress',
+    'domElement',
+    'onChange',
+    'onStart',
+    'onEnd',
+  ])
+  const store = useThree()
+  const explCamera = () => props.camera || store.camera
+  const explDomElement = () => (props.domElement || store.events.connected || store.gl.domElement) as HTMLElement
+  const controls = createMemo(() => new ArcballControlsImpl(explCamera()))
 
-    useFrame(() => {
-      if (controls.enabled) controls.update()
-    }, -1)
+  useFrame(() => {
+    if (controls().enabled) controls().update()
+  }, -1)
 
-    useEffect(() => {
-      controls.connect(explDomElement)
-      return () => void controls.dispose()
-    }, [explDomElement, regress, controls, invalidate])
-
-    useEffect(() => {
-      const callback = (e: Event) => {
-        invalidate()
-        if (regress) performance.regress()
-        if (onChange) onChange(e)
+  createEffect(
+    on(
+      () => [explDomElement(), props.regress, controls(), store.invalidate],
+      () => {
+        controls().connect(explDomElement())
+        onCleanup(() => controls().dispose())
       }
+    )
+  )
 
-      controls.addEventListener('change', callback)
-      if (onStart) controls.addEventListener('start', onStart)
-      if (onEnd) controls.addEventListener('end', onEnd)
+  createEffect(() => {
+    const callback = (e: Event) => {
+      store.invalidate()
+      if (props.regress) store.performance.regress()
+      if (props.onChange) props.onChange(e)
+    }
 
-      return () => {
-        controls.removeEventListener('change', callback)
-        if (onStart) controls.removeEventListener('start', onStart)
-        if (onEnd) controls.removeEventListener('end', onEnd)
-      }
-    }, [onChange, onStart, onEnd])
+    controls().addEventListener('change', callback)
+    if (props.onStart) controls().addEventListener('start', props.onStart)
+    if (props.onEnd) controls().addEventListener('end', props.onEnd)
 
-    useEffect(() => {
-      if (makeDefault) {
-        const old = get().controls
-        set({ controls })
-        return () => set({ controls: old })
-      }
-    }, [makeDefault, controls])
+    onCleanup(() => {
+      controls().removeEventListener('change', callback)
+      if (props.onStart) controls().removeEventListener('start', props.onStart)
+      if (props.onEnd) controls().removeEventListener('end', props.onEnd)
+    })
+  })
 
-    return <primitive ref={ref} object={controls} {...restProps} />
-  }
-)
+  createEffect(() => {
+    if (props.makeDefault) {
+      const old = untrack(() => store.controls)
+      store.set({ controls: controls() })
+      onCleanup(() => store.set({ controls: old }))
+    }
+  })
+
+  return <Primitive ref={props.ref} object={controls()} {...rest} />
+}

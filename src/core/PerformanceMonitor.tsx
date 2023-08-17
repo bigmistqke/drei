@@ -1,6 +1,5 @@
-import * as React from 'react'
-import { createContext, useContext, useRef, useState, useLayoutEffect } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useFrame } from '@solid-three/fiber'
+import { createContext, createRenderEffect, useContext, type JSX } from 'solid-js'
 
 type PerformanceMonitorHookApi = {
   onIncline: (api: PerformanceMonitorApi) => void
@@ -24,7 +23,7 @@ export type PerformanceMonitorApi = {
   flipped: number
   fallback: boolean
   subscriptions: Map<Symbol, Partial<PerformanceMonitorHookApi>>
-  subscribe: (ref: React.MutableRefObject<Partial<PerformanceMonitorHookApi>>) => () => void
+  subscribe: (ref: Partial<PerformanceMonitorHookApi>) => () => void
 }
 
 type PerformanceMonitorProps = {
@@ -51,7 +50,7 @@ type PerformanceMonitorProps = {
   /** Called after when the number of flipflops is reached, it indicates instability, use the function to set a fixed baseline */
   onFallback?: (api: PerformanceMonitorApi) => void
   /** Children may use the usePerformanceMonitor hook */
-  children?: React.ReactNode
+  children?: JSX.Element
 }
 
 const context = createContext<PerformanceMonitorApi>(null!)
@@ -71,7 +70,7 @@ export function PerformanceMonitor({
   children,
 }: PerformanceMonitorProps) {
   const decimalPlacesRatio = Math.pow(10, 0)
-  const [api, _] = useState<PerformanceMonitorApi>(() => ({
+  const api: PerformanceMonitorApi = {
     fps: 0,
     index: 0,
     factor: _factor,
@@ -83,10 +82,10 @@ export function PerformanceMonitor({
     subscriptions: new Map(),
     subscribe: (ref) => {
       const key = Symbol()
-      api.subscriptions.set(key, ref.current)
+      api.subscriptions.set(key, ref)
       return () => void api.subscriptions.delete(key)
     },
-  }))
+  }
 
   let lastFactor = 0
   useFrame(() => {
@@ -151,12 +150,12 @@ export function usePerformanceMonitor({
   onFallback,
 }: Partial<PerformanceMonitorHookApi>) {
   const api = useContext(context)
-  const ref = useRef({ onIncline, onDecline, onChange, onFallback })
-  useLayoutEffect(() => {
-    ref.current.onIncline = onIncline
-    ref.current.onDecline = onDecline
-    ref.current.onChange = onChange
-    ref.current.onFallback = onFallback
-  }, [onIncline, onDecline, onChange, onFallback])
-  useLayoutEffect(() => api.subscribe(ref), [api])
+  const ref = { onIncline, onDecline, onChange, onFallback }
+  createRenderEffect(() => {
+    ref.onIncline = onIncline
+    ref.onDecline = onDecline
+    ref.onChange = onChange
+    ref.onFallback = onFallback
+  })
+  createRenderEffect(() => api?.subscribe(ref))
 }

@@ -1,12 +1,13 @@
-import { EventManager, ReactThreeFiber, useFrame, useThree } from '@react-three/fiber'
-import * as React from 'react'
+import { Primitive, SolidThreeFiber, useFrame, useThree } from '@solid-three/fiber'
+import { createEffect, createMemo, onCleanup, splitProps, untrack } from 'solid-js'
 import * as THREE from 'three'
 import { MapControls as MapControlsImpl } from 'three-stdlib'
+import { RefComponent } from '../helpers/typeHelpers'
 
-export type MapControlsProps = ReactThreeFiber.Overwrite<
-  ReactThreeFiber.Object3DNode<MapControlsImpl, typeof MapControlsImpl>,
+export type MapControlsProps = SolidThreeFiber.Overwrite<
+  SolidThreeFiber.Object3DNode<MapControlsImpl>,
   {
-    target?: ReactThreeFiber.Vector3
+    target?: SolidThreeFiber.Vector3
     camera?: THREE.Camera
     makeDefault?: boolean
     onChange?: (e?: THREE.Event) => void
@@ -16,49 +17,41 @@ export type MapControlsProps = ReactThreeFiber.Overwrite<
   }
 >
 
-export const MapControls = React.forwardRef<MapControlsImpl, MapControlsProps>(
-  (props = { enableDamping: true }, ref) => {
-    const { domElement, camera, makeDefault, onChange, onStart, onEnd, ...rest } = props
-    const invalidate = useThree((state) => state.invalidate)
-    const defaultCamera = useThree((state) => state.camera)
-    const gl = useThree((state) => state.gl)
-    const events = useThree((state) => state.events) as EventManager<HTMLElement>
-    const set = useThree((state) => state.set)
-    const get = useThree((state) => state.get)
-    const explDomElement = (domElement || events.connected || gl.domElement) as HTMLElement
+export const MapControls: RefComponent<MapControlsImpl, MapControlsProps> = (props) => {
+  const [rest] = splitProps(props, ['domElement', 'camera', 'makeDefault', 'onChange', 'onStart', 'onEnd'])
+  const store = useThree()
+  const explDomElement = () => (props.domElement || store.events.connected || store.gl.domElement) as HTMLElement
 
-    const explCamera = (camera || defaultCamera) as THREE.OrthographicCamera | THREE.PerspectiveCamera
-    const controls = React.useMemo(() => new MapControlsImpl(explCamera), [explCamera])
+  const explCamera = () => (props.camera || store.camera) as THREE.OrthographicCamera | THREE.PerspectiveCamera
+  const controls = createMemo(() => new MapControlsImpl(explCamera()))
 
-    React.useEffect(() => {
-      controls.connect(explDomElement)
-      const callback = (e: THREE.Event) => {
-        invalidate()
-        if (onChange) onChange(e)
-      }
-      controls.addEventListener('change', callback)
+  createEffect(() => {
+    controls().connect(explDomElement())
+    const callback = (e: THREE.Event) => {
+      store.invalidate()
+      if (props.onChange) props.onChange(e)
+    }
+    controls().addEventListener('change', callback)
 
-      if (onStart) controls.addEventListener('start', onStart)
-      if (onEnd) controls.addEventListener('end', onEnd)
+    if (props.onStart) controls().addEventListener('start', props.onStart)
+    if (props.onEnd) controls().addEventListener('end', props.onEnd)
 
-      return () => {
-        controls.dispose()
-        controls.removeEventListener('change', callback)
-        if (onStart) controls.removeEventListener('start', onStart)
-        if (onEnd) controls.removeEventListener('end', onEnd)
-      }
-    }, [onChange, onStart, onEnd, controls, invalidate, explDomElement])
+    onCleanup(() => {
+      controls().dispose()
+      controls().removeEventListener('change', callback)
+      if (props.onStart) controls().removeEventListener('start', props.onStart)
+      if (props.onEnd) controls().removeEventListener('end', props.onEnd)
+    })
+  })
 
-    React.useEffect(() => {
-      if (makeDefault) {
-        const old = get().controls
-        set({ controls })
-        return () => set({ controls: old })
-      }
-    }, [makeDefault, controls])
+  createEffect(() => {
+    if (props.makeDefault) {
+      const old = untrack(() => store.controls)
+      store.set({ controls: controls() })
+      onCleanup(() => store.set({ controls: old }))
+    }
+  })
 
-    useFrame(() => controls.update(), -1)
-
-    return <primitive ref={ref} object={controls} enableDamping {...rest} />
-  }
-)
+  useFrame(() => controls().update(), -1)
+  return <Primitive ref={props.ref} object={controls()} enableDamping={props.enableDamping || true} {...rest} />
+}

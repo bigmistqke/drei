@@ -1,9 +1,11 @@
-import * as React from 'react'
+import { Accessor, ParentComponent, createRenderEffect, createSignal, untrack } from 'solid-js'
 
 import { MeshSurfaceSampler } from 'three-stdlib'
 
+import { T, ThreeProps } from '@solid-three/fiber'
 import { Color, Group, InstancedBufferAttribute, InstancedMesh, Mesh, Object3D, Vector3 } from 'three'
-import { GroupProps } from '@react-three/fiber'
+import { processProps } from '../helpers/processProps'
+import { when } from '../helpers/when'
 
 type SamplePayload = {
   /**
@@ -42,7 +44,7 @@ type Props = {
    * The mesh that will be used to sample.
    * Does not need to be in the scene graph.
    */
-  mesh?: React.RefObject<Mesh>
+  mesh?: Mesh
   /**
    * The InstancedMesh that will be controlled by the component.
    * This InstancedMesh's count value will determine how many samples are taken.
@@ -50,7 +52,7 @@ type Props = {
    * @see Props.transform to see how to apply transformations to your instances based on the samples.
    *
    */
-  instances?: React.RefObject<InstancedMesh>
+  instances?: InstancedMesh
   /**
    * The NAME of the weight attribute to use when sampling.
    *
@@ -77,100 +79,101 @@ export interface useSurfaceSamplerProps {
   count?: number
 }
 
+// s3f:   unsure if hooks work the same way as they would in `react`
 export function useSurfaceSampler(
-  mesh: React.MutableRefObject<Mesh>,
+  mesh: Accessor<Mesh | undefined>,
   count: number = 16,
   transform?: TransformFn,
   weight?: string,
-  instanceMesh?: React.MutableRefObject<InstancedMesh> | null
+  instanceMesh?: Accessor<InstancedMesh | undefined>
 ) {
-  const [buffer, setBuffer] = React.useState<InstancedBufferAttribute>(() => {
-    const arr = Array.from({ length: count }, () => [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]).flat()
-    return new InstancedBufferAttribute(Float32Array.from(arr), 16)
-  })
+  const arr = Array.from({ length: count }, () => [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]).flat()
 
-  React.useLayoutEffect(() => {
-    if (typeof mesh.current === 'undefined') return
-
-    const sampler = new MeshSurfaceSampler(mesh.current)
-
-    if (weight) {
-      sampler.setWeightAttribute(weight)
+  const [buffer, setBuffer] = createSignal<InstancedBufferAttribute>(
+    new InstancedBufferAttribute(Float32Array.from(arr), 16),
+    {
+      equals: false,
     }
+  )
 
-    sampler.build()
-
-    const position = new Vector3()
-    const normal = new Vector3()
-    const color = new Color()
-    const dummy = new Object3D()
-
-    mesh.current.updateMatrixWorld(true)
-
-    for (let i = 0; i < count; i++) {
-      sampler.sample(position, normal, color)
-
-      if (typeof transform === 'function') {
-        transform(
-          {
-            dummy,
-            sampledMesh: mesh.current,
-            position,
-            normal,
-            color,
-          },
-          i
-        )
-      } else {
-        dummy.position.copy(position)
+  createRenderEffect(() =>
+    when(mesh)((mesh) => {
+      const sampler = new MeshSurfaceSampler(mesh)
+      if (weight) {
+        sampler.setWeightAttribute(weight)
       }
 
-      dummy.updateMatrix()
+      sampler.build()
 
-      if (instanceMesh?.current) {
-        instanceMesh.current.setMatrixAt(i, dummy.matrix)
+      const position = new Vector3()
+      const normal = new Vector3()
+      const color = new Color()
+      const dummy = new Object3D()
+
+      mesh.updateMatrixWorld(true)
+
+      for (let i = 0; i < count; i++) {
+        sampler.sample(position, normal, color)
+
+        if (typeof transform === 'function') {
+          transform(
+            {
+              dummy,
+              sampledMesh: mesh,
+              position,
+              normal,
+              color,
+            },
+            i
+          )
+        } else {
+          dummy.position.copy(position)
+        }
+
+        dummy.updateMatrix()
+        when(instanceMesh)((instanceMesh) => instanceMesh.setMatrixAt(i, dummy.matrix))
+
+        untrack(() => dummy.matrix.toArray(buffer().array, i * 16))
       }
 
-      dummy.matrix.toArray(buffer.array, i * 16)
-    }
+      when(instanceMesh)((instanceMesh) => (instanceMesh.instanceMatrix.needsUpdate = true))
 
-    if (instanceMesh?.current) {
-      instanceMesh.current.instanceMatrix.needsUpdate = true
-    }
+      untrack(() => {
+        buffer().needsUpdate = true
 
-    buffer.needsUpdate = true
-
-    setBuffer(buffer.clone())
-  }, [mesh, instanceMesh, weight, count, transform])
+        setBuffer(buffer().clone())
+      })
+    })
+  )
 
   return buffer
 }
 
-export function Sampler({
-  children,
-  weight,
-  transform,
-  instances,
-  mesh,
-  count = 16,
-  ...props
-}: React.PropsWithChildren<Props & GroupProps>) {
-  const group = React.useRef<Group>(null!)
-  const instancedRef = React.useRef<InstancedMesh>(null!)
-  const meshToSampleRef = React.useRef<Mesh>(null!)
+export const Sampler: ParentComponent<Props & ThreeProps<'Group'>> = function (_props) {
+  const [props, rest] = processProps(
+    _props,
+    {
+      count: 16,
+    },
+    ['children', 'weight', 'transform', 'instances', 'mesh', 'count']
+  )
 
-  React.useLayoutEffect(() => {
-    instancedRef.current =
-      instances?.current ?? (group.current!.children.find((c) => c.hasOwnProperty('instanceMatrix')) as InstancedMesh)
+  const [group, setGroup] = createSignal<Group>()
+  const [instance, setInstance] = createSignal<InstancedMesh>()
+  const [meshToSample, setMeshToSample] = createSignal<Mesh>()
 
-    meshToSampleRef.current = mesh?.current ?? (group.current!.children.find((c) => c.type === 'Mesh') as Mesh)
-  }, [children, mesh?.current, instances?.current])
+  createRenderEffect(() =>
+    when(group)((group) => {
+      setInstance(props.instances ?? (group.children.find((c) => c.hasOwnProperty('instanceMatrix')) as InstancedMesh))
+      setMeshToSample(props.mesh ?? (group.children.find((c) => c.type === 'Mesh') as Mesh))
+    })
+  )
 
-  useSurfaceSampler(meshToSampleRef, count, transform, weight, instancedRef)
+  useSurfaceSampler(meshToSample, props.count, props.transform, props.weight, instance)
 
   return (
-    <group ref={group} {...props}>
-      {children}
-    </group>
+    <T.Group ref={setGroup} {...rest}>
+      {props.children}
+    </T.Group>
   )
 }

@@ -1,69 +1,70 @@
-import { applyProps, ReactThreeFiber, useThree } from '@react-three/fiber'
-import * as React from 'react'
+import { applyProps, Primitive, SolidThreeFiber, T, ThreeProps } from '@solid-three/fiber'
+import { createRenderEffect } from 'solid-js'
 import * as THREE from 'three'
-import mergeRefs from 'react-merge-refs'
+import { capitalize } from '../helpers/capitalize'
+import { createRef } from '../helpers/createRef'
+import { mergeRefs } from '../helpers/mergeRefs'
+import { processProps } from '../helpers/processProps'
+import { RefComponent } from '../helpers/typeHelpers'
 
-export type LightProps = JSX.IntrinsicElements['mesh'] & {
+export type LightProps = ThreeProps<'Mesh'> & {
   args?: any[]
   map?: THREE.Texture
   toneMapped?: boolean
-  color?: ReactThreeFiber.Color
-  form?: 'circle' | 'ring' | 'rect' | any
+  color?: SolidThreeFiber.Color
+  form?: 'circle' | 'ring' | 'rect' | (string & {})
   scale?: number | [number, number, number] | [number, number]
   intensity?: number
   target?: [number, number, number] | THREE.Vector3
 }
 
-export const Lightformer = React.forwardRef(
-  (
+export const Lightformer: RefComponent<any, LightProps, true> = (_props) => {
+  const [props, rest] = processProps(
+    _props,
     {
-      args,
-      map,
-      toneMapped = false,
-      color = 'white',
-      form: Form = 'rect',
-      intensity = 1,
-      scale = 1,
-      target,
-      children,
-      ...props
-    }: LightProps,
-    forwardRef
-  ) => {
-    // Apply emissive power
-    const ref = React.useRef<THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>>(null!)
-    React.useLayoutEffect(() => {
-      if (!children && !props.material) {
-        applyProps(ref.current.material as any, { color })
-        ref.current.material.color.multiplyScalar(intensity)
-      }
-    }, [color, intensity, children, props.material])
+      toneMapped: false,
+      color: 'white',
+      form: 'rect',
+      intensity: 1,
+      scale: 1,
+    },
+    ['ref', 'args', 'map', 'toneMapped', 'color', 'form', 'intensity', 'scale', 'target', 'children']
+  )
+  // Apply emissive power
+  const meshRef = createRef<THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>>(null!)
+  createRenderEffect(() => {
+    if (!props.children && !rest.material) {
+      applyProps(meshRef.ref.material as any, { color: props.color })
+      meshRef.ref.material.color.multiplyScalar(props.intensity)
+    }
+  }, [props.color, props.intensity, props.children, rest.material])
 
-    // Target light
-    React.useLayoutEffect(() => {
-      if (target) ref.current.lookAt(Array.isArray(target) ? new THREE.Vector3(...target) : target)
-    }, [target])
+  // Target light
+  createRenderEffect(() => {
+    if (props.target)
+      meshRef.ref.lookAt(Array.isArray(props.target) ? new THREE.Vector3(...props.target) : props.target)
+  }, [props.target])
 
-    // Fix 2-dimensional scale
-    scale = Array.isArray(scale) && scale.length === 2 ? [scale[0], scale[1], 1] : scale
+  // Fix 2-dimensional scale
+  props.scale =
+    Array.isArray(props.scale) && props.scale.length === 2 ? [props.scale[0], props.scale[1], 1] : props.scale
 
-    return (
-      <mesh ref={mergeRefs([ref, forwardRef])} scale={scale} {...props}>
-        {Form === 'circle' ? (
-          <ringGeometry args={[0, 1, 64]} />
-        ) : Form === 'ring' ? (
-          <ringGeometry args={[0.5, 1, 64]} />
-        ) : Form === 'rect' ? (
-          <planeGeometry />
-        ) : (
-          <Form args={args} />
-        )}
-        {children ? (
-          children
-        ) : !props.material ? (
-          <meshBasicMaterial toneMapped={toneMapped} map={map} side={THREE.DoubleSide} />
-        ) : null}
-      </mesh>
-    )
-  }
-)
+  return (
+    <T.Mesh ref={mergeRefs(meshRef, props)} scale={props.scale} {...rest}>
+      {props.form === 'circle' ? (
+        <T.RingGeometry args={[0, 1, 64]} />
+      ) : props.form === 'ring' ? (
+        <T.RingGeometry args={[0.5, 1, 64]} />
+      ) : props.form === 'rect' ? (
+        <T.PlaneGeometry />
+      ) : (
+        <Primitive object={T[capitalize(props.form)]} args={props.args} />
+      )}
+      {props.children ? (
+        props.children
+      ) : !rest.material ? (
+        <T.MeshBasicMaterial toneMapped={props.toneMapped} map={props.map} side={THREE.DoubleSide} />
+      ) : null}
+    </T.Mesh>
+  )
+}

@@ -1,32 +1,34 @@
 // SpotLight Inspired by http://john-chapman-graphics.blogspot.com/2013/01/good-enough-volumetrics-for-spotlights.html
 
-import * as React from 'react'
+import { Primitive, T, ThreeProps, useFrame, useThree } from '@solid-three/fiber'
+import { ParentProps, Show, createEffect, createMemo, createRenderEffect, createSignal } from 'solid-js'
 import {
-  Mesh,
-  DepthTexture,
-  Vector3,
   CylinderGeometry,
-  Matrix4,
-  SpotLight as SpotLightImpl,
+  DepthTexture,
   DoubleSide,
-  Texture,
-  WebGLRenderTarget,
-  ShaderMaterial,
-  RGBAFormat,
   LinearEncoding,
-  RepeatWrapping,
+  Matrix4,
+  Mesh,
   Object3D,
+  RGBAFormat,
+  RepeatWrapping,
+  ShaderMaterial,
+  SpotLight as SpotLightImpl,
+  Texture,
+  Vector3,
+  WebGLRenderTarget,
 } from 'three'
-import { useFrame, useThree } from '@react-three/fiber'
 import { FullScreenQuad } from 'three-stdlib'
-import mergeRefs from 'react-merge-refs'
+import { mergeRefs } from '../helpers/mergeRefs'
 import { SpotLightMaterial } from '../materials/SpotLightMaterial'
 
 // eslint-disable-next-line
 // @ts-ignore
 import SpotlightShadowShader from '../helpers/glsl/DefaultSpotlightShadowShadows.glsl'
+import { processProps } from '../helpers/processProps'
+import { RefComponent } from '../helpers/typeHelpers'
 
-type SpotLightProps = JSX.IntrinsicElements['spotLight'] & {
+type SpotLightProps = ThreeProps<'SpotLight'> & {
   depthBuffer?: DepthTexture
   attenuation?: number
   anglePower?: number
@@ -42,90 +44,83 @@ const isSpotLight = (child: Object3D | null): child is SpotLightImpl => {
   return (child as SpotLightImpl)?.isSpotLight
 }
 
-function VolumetricMesh({
-  opacity = 1,
-  radiusTop,
-  radiusBottom,
-  depthBuffer,
-  color = 'white',
-  distance = 5,
-  angle = 0.15,
-  attenuation = 5,
-  anglePower = 5,
-}: Omit<SpotLightProps, 'volumetric'>) {
-  const mesh = React.useRef<Mesh>(null!)
-  const size = useThree((state) => state.size)
-  const camera = useThree((state) => state.camera)
-  const dpr = useThree((state) => state.viewport.dpr)
-  const [material] = React.useState(() => new SpotLightMaterial())
-  const [vec] = React.useState(() => new Vector3())
-
-  radiusTop = radiusTop === undefined ? 0.1 : radiusTop
-  radiusBottom = radiusBottom === undefined ? angle * 7 : radiusBottom
-
-  useFrame(() => {
-    material.uniforms.spotPosition.value.copy(mesh.current.getWorldPosition(vec))
-    mesh.current.lookAt((mesh.current.parent as any).target.getWorldPosition(vec))
+function VolumetricMesh(_props: Omit<SpotLightProps, 'volumetric'>) {
+  const [props] = processProps(_props, {
+    opacity: 1,
+    color: 'white',
+    distance: 5,
+    angle: 0.15,
+    attenuation: 5,
+    anglePower: 5,
   })
 
-  const geom = React.useMemo(() => {
-    const geometry = new CylinderGeometry(radiusTop, radiusBottom, distance, 128, 64, true)
-    geometry.applyMatrix4(new Matrix4().makeTranslation(0, -distance / 2, 0))
+  let mesh: Mesh = null!
+  const store = useThree()
+  const material = new SpotLightMaterial()
+  const vec = new Vector3()
+
+  let radiusTop = () => (props.radiusTop === undefined ? 0.1 : props.radiusTop)
+  let radiusBottom = () => (props.radiusBottom === undefined ? props.angle * 7 : props.radiusBottom)
+
+  useFrame(() => {
+    material.uniforms.spotPosition.value.copy(mesh.getWorldPosition(vec))
+    mesh.lookAt((mesh.parent as any).target.getWorldPosition(vec))
+  })
+
+  const geom = createMemo(() => {
+    const geometry = new CylinderGeometry(radiusTop(), radiusBottom(), props.distance, 128, 64, true)
+    geometry.applyMatrix4(new Matrix4().makeTranslation(0, -props.distance / 2, 0))
     geometry.applyMatrix4(new Matrix4().makeRotationX(-Math.PI / 2))
     return geometry
-  }, [distance, radiusTop, radiusBottom])
+  })
 
   return (
     <>
-      <mesh ref={mesh} geometry={geom} raycast={() => null}>
-        <primitive
+      <T.Mesh ref={mesh} geometry={geom()} raycast={() => null}>
+        <Primitive
           object={material}
           attach="material"
-          uniforms-opacity-value={opacity}
-          uniforms-lightColor-value={color}
-          uniforms-attenuation-value={attenuation}
-          uniforms-anglePower-value={anglePower}
-          uniforms-depth-value={depthBuffer}
-          uniforms-cameraNear-value={camera.near}
-          uniforms-cameraFar-value={camera.far}
-          uniforms-resolution-value={depthBuffer ? [size.width * dpr, size.height * dpr] : [0, 0]}
+          uniforms-opacity-value={props.opacity}
+          uniforms-lightColor-value={props.color}
+          uniforms-attenuation-value={props.attenuation}
+          uniforms-anglePower-value={props.anglePower}
+          uniforms-depth-value={props.depthBuffer}
+          uniforms-cameraNear-value={store.camera.near}
+          uniforms-cameraFar-value={store.camera.far}
+          uniforms-resolution-value={
+            props.depthBuffer ? [store.size.width * store.viewport.dpr, store.size.height * store.viewport.dpr] : [0, 0]
+          }
         />
-      </mesh>
+      </T.Mesh>
     </>
   )
 }
 
-function useCommon(
-  spotlight: React.MutableRefObject<SpotLightImpl>,
-  mesh: React.MutableRefObject<Mesh>,
-  width: number,
-  height: number,
-  distance: number
-) {
-  const [[pos, dir]] = React.useState(() => [new Vector3(), new Vector3()])
+function useCommon(spotlight: SpotLightImpl, mesh: Mesh, width: number, height: number, distance: number) {
+  const [pos, dir] = [new Vector3(), new Vector3()]
 
-  React.useLayoutEffect(() => {
-    if (isSpotLight(spotlight.current)) {
-      spotlight.current.shadow.mapSize.set(width, height)
-      spotlight.current.shadow.needsUpdate = true
+  createRenderEffect(() => {
+    if (isSpotLight(spotlight)) {
+      spotlight.shadow.mapSize.set(width, height)
+      spotlight.shadow.needsUpdate = true
     } else {
       throw new Error('SpotlightShadow must be a child of a SpotLight')
     }
   }, [spotlight, width, height])
 
   useFrame(() => {
-    if (!spotlight.current) return
+    if (!spotlight) return
 
-    const A = spotlight.current.position
-    const B = spotlight.current.target.position
+    const A = spotlight.position
+    const B = spotlight.target.position
 
     dir.copy(B).sub(A)
     var len = dir.length()
     dir.normalize().multiplyScalar(len * distance)
     pos.copy(A).add(dir)
 
-    mesh.current.position.copy(pos)
-    mesh.current.lookAt(spotlight.current.target.position)
+    mesh.position.copy(pos)
+    mesh.lookAt(spotlight.target.position)
   })
 }
 
@@ -139,50 +134,53 @@ interface ShadowMeshProps {
   height?: number
 }
 
-function SpotlightShadowWithShader({
-  distance = 0.4,
-  alphaTest = 0.5,
-  map,
-  shader = SpotlightShadowShader,
-  width = 512,
-  height = 512,
-  scale = 1,
-  children,
-  ...rest
-}: React.PropsWithChildren<ShadowMeshProps>) {
-  const mesh = React.useRef<Mesh>(null!)
+function SpotlightShadowWithShader(_props: ParentProps<ShadowMeshProps>) {
+  const [props, rest] = processProps(
+    _props,
+    {
+      distance: 0.4,
+      alphaTest: 0.5,
+      shader: SpotlightShadowShader,
+      width: 512,
+      height: 512,
+      scale: 1,
+    },
+    ['distance', 'alphaTest', 'map', 'shader', 'width', 'height', 'scale', 'children']
+  )
+
+  const mesh: Mesh = null!
   const spotlight = (rest as any).spotlightRef
   const debug = (rest as any).debug
 
-  useCommon(spotlight, mesh, width, height, distance)
+  useCommon(spotlight, mesh, props.width, props.height, props.distance)
 
-  const renderTarget = React.useMemo(
+  const renderTarget = createMemo(
     () =>
-      new WebGLRenderTarget(width, height, {
+      new WebGLRenderTarget(props.width, props.height, {
         format: RGBAFormat,
         encoding: LinearEncoding,
         stencilBuffer: false,
         // depthTexture: null!
       }),
-    [width, height]
+    [props.width, props.height]
   )
 
-  const uniforms = React.useRef({
+  let uniforms = {
     uShadowMap: {
-      value: map,
+      value: props.map,
     },
     uTime: {
       value: 0,
     },
-  })
+  }
 
-  React.useEffect(() => void (uniforms.current.uShadowMap.value = map), [map])
+  createEffect(() => void (uniforms.uShadowMap.value = props.map))
 
-  const fsQuad = React.useMemo(
+  const fsQuad = createMemo(
     () =>
       new FullScreenQuad(
         new ShaderMaterial({
-          uniforms: uniforms.current,
+          uniforms: uniforms,
           vertexShader: /* glsl */ `
           varying vec2 vUv;
 
@@ -191,148 +189,159 @@ function SpotlightShadowWithShader({
             gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
           }
           `,
-          fragmentShader: shader,
+          fragmentShader: props.shader,
         })
       ),
-    [shader]
+    [props.shader]
   )
 
-  React.useEffect(
+  createEffect(
     () => () => {
-      fsQuad.material.dispose()
-      fsQuad.dispose()
+      fsQuad().material.dispose()
+      fsQuad().dispose()
     },
     [fsQuad]
   )
 
-  React.useEffect(() => () => renderTarget.dispose(), [renderTarget])
+  createEffect(() => () => renderTarget().dispose(), [renderTarget])
 
   useFrame(({ gl }, dt) => {
-    uniforms.current.uTime.value += dt
+    uniforms.uTime.value += dt
 
-    gl.setRenderTarget(renderTarget)
-    fsQuad.render(gl)
+    gl.setRenderTarget(renderTarget())
+    fsQuad().render(gl)
     gl.setRenderTarget(null)
   })
 
   return (
     <>
-      <mesh ref={mesh} scale={scale} castShadow>
-        <planeGeometry />
-        <meshBasicMaterial
+      <T.Mesh ref={mesh} scale={props.scale} castShadow>
+        <T.PlaneGeometry />
+        <T.MeshBasicMaterial
           transparent
           side={DoubleSide}
-          alphaTest={alphaTest}
-          alphaMap={renderTarget.texture}
+          alphaTest={props.alphaTest}
+          alphaMap={renderTarget().texture}
           alphaMap-wrapS={RepeatWrapping}
           alphaMap-wrapT={RepeatWrapping}
           opacity={debug ? 1 : 0}
         >
-          {children}
-        </meshBasicMaterial>
-      </mesh>
+          {props.children}
+        </T.MeshBasicMaterial>
+      </T.Mesh>
     </>
   )
 }
 
-function SpotlightShadowWithoutShader({
-  distance = 0.4,
-  alphaTest = 0.5,
-  map,
-  width = 512,
-  height = 512,
-  scale,
-  children,
-  ...rest
-}: React.PropsWithChildren<ShadowMeshProps>) {
-  const mesh = React.useRef<Mesh>(null!)
+function SpotlightShadowWithoutShader(_props: ParentProps<ShadowMeshProps>) {
+  const [props, rest] = processProps(
+    _props,
+    {
+      distance: 0.4,
+      alphaTest: 0.5,
+      width: 512,
+      height: 512,
+    },
+    ['distance', 'alphaTest', 'map', 'width', 'height', 'scale', 'children']
+  )
+
+  let mesh: Mesh = null!
   const spotlight = (rest as any).spotlightRef
   const debug = (rest as any).debug
 
-  useCommon(spotlight, mesh, width, height, distance)
+  useCommon(spotlight, mesh, props.width, props.height, props.distance)
 
   return (
     <>
-      <mesh ref={mesh} scale={scale} castShadow>
-        <planeGeometry />
-        <meshBasicMaterial
+      <T.Mesh ref={mesh} scale={props.scale} castShadow>
+        <T.PlaneGeometry />
+        <T.MeshBasicMaterial
           transparent
           side={DoubleSide}
-          alphaTest={alphaTest}
-          alphaMap={map}
+          alphaTest={props.alphaTest}
+          alphaMap={props.map}
           alphaMap-wrapS={RepeatWrapping}
           alphaMap-wrapT={RepeatWrapping}
           opacity={debug ? 1 : 0}
         >
-          {children}
-        </meshBasicMaterial>
-      </mesh>
+          {props.children}
+        </T.MeshBasicMaterial>
+      </T.Mesh>
     </>
   )
 }
 
-export function SpotLightShadow(props: React.PropsWithChildren<ShadowMeshProps>) {
+export function SpotLightShadow(props: ParentProps<ShadowMeshProps>) {
   if (props.shader) return <SpotlightShadowWithShader {...props} />
   return <SpotlightShadowWithoutShader {...props} />
 }
 
-const SpotLight = React.forwardRef(
-  (
+const SpotLight: RefComponent<SpotLightImpl, ParentProps<SpotLightProps>> = (_props) => {
+  const [props, rest] = processProps(
+    _props,
     {
-      // Volumetric
-      opacity = 1,
-      radiusTop,
-      radiusBottom,
-      depthBuffer,
-      color = 'white',
-      distance = 5,
-      angle = 0.15,
-      attenuation = 5,
-      anglePower = 5,
-      volumetric = true,
-      debug = false,
-      children,
-      ...props
-    }: React.PropsWithChildren<SpotLightProps>,
-    ref: React.ForwardedRef<SpotLightImpl>
-  ) => {
-    const spotlight = React.useRef<any>(null!)
+      opacity: 1,
+      color: 'white',
+      distance: 5,
+      angle: 0.15,
+      attenuation: 5,
+      anglePower: 5,
+      volumetric: true,
+      debug: false,
+    },
+    [
+      'ref',
+      'opacity',
+      'radiusTop',
+      'radiusBottom',
+      'depthBuffer',
+      'color',
+      'distance',
+      'angle',
+      'attenuation',
+      'anglePower',
+      'volumetric',
+      'debug',
+      'children',
+    ]
+  )
 
-    return (
-      <group>
-        {debug && spotlight.current && <spotLightHelper args={[spotlight.current]} />}
+  const [spotlight, setSpotlight] = createSignal<SpotLightImpl>()
 
-        <spotLight
-          ref={mergeRefs([ref, spotlight])}
-          angle={angle}
-          color={color}
-          distance={distance}
-          castShadow
-          {...props}
-        >
-          {volumetric && (
-            <VolumetricMesh
-              debug={debug}
-              opacity={opacity}
-              radiusTop={radiusTop}
-              radiusBottom={radiusBottom}
-              depthBuffer={depthBuffer}
-              color={color}
-              distance={distance}
-              angle={angle}
-              attenuation={attenuation}
-              anglePower={anglePower}
-            />
-          )}
-        </spotLight>
-        {children &&
-          React.cloneElement(children as any, {
-            spotlightRef: spotlight,
-            debug: debug,
-          })}
-      </group>
-    )
-  }
-)
+  return (
+    <T.Group>
+      <Show when={spotlight()}>{(spotlight) => <T.SpotLightHelper args={[spotlight()]} />}</Show>
+      <T.SpotLight
+        ref={mergeRefs(props, setSpotlight)}
+        angle={props.angle}
+        color={props.color}
+        distance={props.distance}
+        castShadow
+        {...rest}
+      >
+        {props.volumetric && (
+          <VolumetricMesh
+            debug={props.debug}
+            opacity={props.opacity}
+            radiusTop={props.radiusTop}
+            radiusBottom={props.radiusBottom}
+            depthBuffer={props.depthBuffer}
+            color={props.color}
+            distance={props.distance}
+            angle={props.angle}
+            attenuation={props.attenuation}
+            anglePower={props.anglePower}
+          />
+        )}
+      </T.SpotLight>
+      {/* s3f   React.cloneElement alternative? */}
+      {props.children &&
+        React.cloneElement(props.children as any, {
+          spotlightRef: spotlight,
+          debug: props.debug,
+        })}
+    </T.Group>
+  )
+}
 
 export { SpotLight }

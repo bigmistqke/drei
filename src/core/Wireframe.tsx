@@ -1,6 +1,9 @@
-import * as React from 'react'
+import * as FIBER from '@solid-three/fiber'
+import { T } from '@solid-three/fiber'
+
+import { createEffect, createMemo, createRenderEffect, createSignal, onCleanup, onMount } from 'solid-js'
 import * as THREE from 'three'
-import * as FIBER from '@react-three/fiber'
+import { processProps } from '../helpers/processProps'
 import {
   WireframeMaterial,
   WireframeMaterialProps,
@@ -10,9 +13,9 @@ import {
 } from '../materials/WireframeMaterial'
 
 declare global {
-  namespace JSX {
+  namespace SolidThree {
     interface IntrinsicElements {
-      meshWireframeMaterial: FIBER.MaterialNode<THREE.ShaderMaterial, WireframeMaterialProps>
+      MeshWireframeMaterial: FIBER.ThreeProps<'ShaderMaterial'> & WireframeMaterialProps
     }
   }
 }
@@ -20,7 +23,7 @@ declare global {
 FIBER.extend({ MeshWireframeMaterial: WireframeMaterial })
 
 interface WireframeProps {
-  geometry?: THREE.BufferGeometry | React.RefObject<THREE.BufferGeometry>
+  geometry?: THREE.BufferGeometry //| Accessor<THREE.BufferGeometry>
   simplify?: boolean
 }
 
@@ -46,7 +49,7 @@ function isRef<T>(object?: any | null): object is React.Ref<T> {
 }
 
 function isWireframeGeometry(geometry: any): geometry is THREE.WireframeGeometry {
-  return (geometry as THREE.WireframeGeometry).type === 'WireframeGeometry'
+  return (geometry as THREE.WireframeGeometry)?.type === 'WireframeGeometry'
 }
 
 function getUniforms() {
@@ -76,10 +79,8 @@ function getBarycentricCoordinates(geometry: THREE.BufferGeometry, removeEdge?: 
   return new THREE.BufferAttribute(Float32Array.from(barycentric), 3)
 }
 
-function getInputGeometry(
-  inputGeometry: THREE.BufferGeometry | React.RefObject<THREE.BufferGeometry> | React.RefObject<THREE.Object3D>
-) {
-  const geo = (isRefObject(inputGeometry) ? inputGeometry.current : inputGeometry)!
+function getInputGeometry(inputGeometry: THREE.BufferGeometry | THREE.Object3D) {
+  const geo = inputGeometry // (isRefObject(inputGeometry) ? inputGeometry.current : inputGeometry)!
 
   if (!isGeometry(geo)) {
     // Disallow WireframeGeometry
@@ -115,40 +116,44 @@ function setBarycentricCoordinates(geometry: THREE.BufferGeometry, simplify: boo
   geometry.setAttribute('barycentric', newBarycentric)
 }
 
-function WireframeWithCustomGeo({
-  geometry: customGeometry,
-  simplify = false,
-  ...props
-}: WireframeProps & WireframeMaterialProps) {
-  const [geometry, setGeometry] = React.useState<THREE.BufferGeometry>(null!)
+function WireframeWithCustomGeo(_props: WireframeProps & WireframeMaterialProps) {
+  const [props, rest] = processProps(
+    _props,
+    {
+      simplify: false,
+    },
+    ['simplify', 'geometry']
+  )
 
-  React.useLayoutEffect(() => {
-    const geom = getInputGeometry(customGeometry!)
+  const [geometry, setGeometry] = createSignal<THREE.BufferGeometry>(null!)
+
+  createRenderEffect(() => {
+    const geom = getInputGeometry(props.geometry!)
 
     if (!geom) {
       throw new Error('Wireframe: geometry prop must be a BufferGeometry or a ref to a BufferGeometry.')
     }
 
-    setBarycentricCoordinates(geom, simplify)
+    setBarycentricCoordinates(geom, props.simplify)
 
-    if (isRef(customGeometry)) {
+    if (isRef(props.geometry)) {
       setGeometry(geom)
     }
-  }, [simplify, customGeometry])
+  })
 
-  const drawnGeo = isRef(customGeometry) ? geometry : customGeometry
+  const drawnGeo = isRef(props.geometry) ? geometry : props.geometry
 
   return (
     <>
       {drawnGeo && (
-        <mesh geometry={drawnGeo}>
-          <meshWireframeMaterial
+        <T.Mesh geometry={drawnGeo}>
+          <T.MeshWireframeMaterial
             attach="material"
             transparent
             side={THREE.DoubleSide}
             polygonOffset={true} //
             polygonOffsetFactor={-4}
-            {...props}
+            {...rest}
             extensions={{
               derivatives: true,
               fragDepth: false,
@@ -156,21 +161,20 @@ function WireframeWithCustomGeo({
               shaderTextureLOD: false,
             }}
           />
-        </mesh>
+        </T.Mesh>
       )}
     </>
   )
 }
 
-function WireframeWithoutCustomGeo({
-  simplify = false,
-  ...props
-}: Omit<WireframeProps, 'geometry'> & WireframeMaterialProps) {
-  const objectRef = React.useRef<THREE.Object3D>(null!)
-  const uniforms = React.useMemo(() => getUniforms(), [WireframeMaterialShaders.uniforms])
-  useWireframeUniforms(uniforms, props)
+function WireframeWithoutCustomGeo(_props: Omit<WireframeProps, 'geometry'> & WireframeMaterialProps) {
+  const [props, rest] = processProps(_props, { simplify: false }, ['simplify'])
 
-  React.useLayoutEffect(() => {
+  let objectRef: THREE.Object3D = null!
+  const uniforms = createMemo(() => getUniforms(), [WireframeMaterialShaders.uniforms])
+  useWireframeUniforms(uniforms, rest)
+
+  createEffect(() => {
     const geom = getInputGeometry(objectRef)
 
     if (!geom) {
@@ -178,27 +182,27 @@ function WireframeWithoutCustomGeo({
     }
     const og = geom.clone()
 
-    setBarycentricCoordinates(geom, simplify)
+    setBarycentricCoordinates(geom, props.simplify)
 
-    return () => {
+    onCleanup(() => {
       geom.copy(og)
       og.dispose()
-    }
-  }, [simplify])
+    })
+  })
 
-  React.useLayoutEffect(() => {
-    const parentMesh = objectRef.current.parent as THREE.Mesh<THREE.BufferGeometry, THREE.Material>
+  // s3f:   was originally `React.useLayoutEffect` but with `createRenderEffect` objectRef would not be defined yet.
+  onMount(() => {
+    const parentMesh = objectRef.parent as THREE.Mesh<THREE.BufferGeometry, THREE.Material>
     const og = parentMesh.material.clone()
 
     setWireframeOverride(parentMesh.material, uniforms)
-
-    return () => {
+    onCleanup(() => {
       parentMesh.material.dispose()
       parentMesh.material = og
-    }
-  }, [])
+    })
+  })
 
-  return <object3D ref={objectRef} />
+  return <T.Object3D ref={objectRef} />
 }
 
 export function Wireframe({ geometry: customGeometry, ...props }: WireframeProps & WireframeMaterialProps) {

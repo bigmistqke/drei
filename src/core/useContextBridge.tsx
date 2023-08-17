@@ -1,15 +1,16 @@
 /* eslint-disable react-hooks/rules-of-hooks */
-import * as React from 'react'
+import { Context, JSX, createMemo, useContext } from 'solid-js'
+import { Dynamic } from 'solid-js/web'
 
-export function useContextBridge(...contexts: Array<React.Context<any>>) {
-  const cRef = React.useRef<Array<React.Context<any>>>([])
-  cRef.current = contexts.map((context) => React.useContext(context))
-  return React.useMemo(
+export function useContextBridge(...contexts: Array<Context<any>>) {
+  let cRef: Array<Context<any>> = []
+  cRef = contexts.map((context) => useContext(context))
+  const memo = createMemo(
     () =>
-      ({ children }: { children: React.ReactNode }): JSX.Element =>
+      (props: { children: JSX.Element }): JSX.Element =>
         contexts.reduceRight(
-          (acc, Context, i) => <Context.Provider value={cRef.current[i]} children={acc} />,
-          children
+          (acc, Context, i) => <Context.Provider value={cRef[i]} children={acc} />,
+          props.children
           /*
            * done this way in reference to:
            * https://github.com/DefinitelyTyped/DefinitelyTyped/issues/44572#issuecomment-625878049
@@ -17,5 +18,9 @@ export function useContextBridge(...contexts: Array<React.Context<any>>) {
            */
         ) as unknown as JSX.Element,
     []
+  )
+
+  return (props: { children: JSX.Element | Array<JSX.Element> }) => (
+    <Dynamic component={memo()}>{props.children}</Dynamic>
   )
 }

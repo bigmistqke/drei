@@ -1,17 +1,20 @@
-import * as React from 'react'
+import * as FIBER from '@solid-three/fiber'
+import { T, ThreeProps, applyProps } from '@solid-three/fiber'
+import { Accessor, JSX, Show, createEffect, onCleanup } from 'solid-js'
 import * as THREE from 'three'
-import * as FIBER from '@react-three/fiber'
-import { applyProps } from '@react-three/fiber'
 import { DecalGeometry } from 'three-stdlib'
+import { processProps } from '../helpers/processProps'
+import { RefComponent } from '../helpers/typeHelpers'
+import { createImperativeHandle } from '../helpers/useImperativeHandle'
 
-export type DecalProps = Omit<JSX.IntrinsicElements['mesh'], 'children'> & {
+export type DecalProps = Omit<ThreeProps<'Mesh'>, 'children'> & {
   debug?: boolean
-  mesh?: React.MutableRefObject<THREE.Mesh>
+  mesh?: Accessor<THREE.Mesh>
   position?: FIBER.Vector3
   rotation?: FIBER.Euler | number
   scale?: FIBER.Vector3
   map?: THREE.Texture
-  children?: React.ReactNode
+  children?: JSX.Element
   polygonOffsetFactor?: number
   depthTest?: boolean
 }
@@ -30,17 +33,22 @@ function vecToArray(vec: number[] | FIBER.Vector3 | FIBER.Euler | number = [0, 0
   }
 }
 
-export const Decal = React.forwardRef<THREE.Mesh, DecalProps>(function Decal(
-  { debug, depthTest = false, polygonOffsetFactor = -10, map, mesh, children, position, rotation, scale, ...props },
-  forwardRef
-) {
-  const ref = React.useRef<THREE.Mesh>(null!)
-  React.useImperativeHandle(forwardRef, () => ref.current)
-  const helper = React.useRef<THREE.Mesh>(null!)
+export const Decal: RefComponent<THREE.Mesh, DecalProps> = function Decal(_props) {
+  const [props, rest] = processProps(
+    _props,
+    {
+      depthTest: false,
+      polygonOffsetFactor: -1,
+    },
+    ['ref', 'debug', 'depthTest', 'polygonOffsetFactor', 'map', 'mesh', 'children', 'position', 'rotation', 'scale']
+  )
 
-  React.useLayoutEffect(() => {
-    const parent = mesh?.current || ref.current.parent
-    const target = ref.current
+  let ref: THREE.Mesh = null!
+  createImperativeHandle(props, () => ref)
+  let helper: THREE.Mesh = null!
+
+  createEffect(() => {
+    const parent = props.mesh || ref.parent
     if (!(parent instanceof THREE.Mesh)) {
       throw new Error('Decal must have a Mesh as parent or specify its "mesh" prop')
     }
@@ -51,58 +59,55 @@ export const Decal = React.forwardRef<THREE.Mesh, DecalProps>(function Decal(
       scale: new THREE.Vector3(1, 1, 1),
     }
 
-    if (parent) {
-      applyProps(state as any, { position, scale })
+    if (parent && ref) {
+      applyProps(state, { position: props.position, scale: props.scale })
 
       // Zero out the parents matrix world for this operation
       const matrixWorld = parent.matrixWorld.clone()
       parent.matrixWorld.identity()
 
-      if (!rotation || typeof rotation === 'number') {
+      /* if (!props.rotation || typeof props.rotation === 'number') {
         const o = new THREE.Object3D()
 
         o.position.copy(state.position)
         o.lookAt(parent.position)
-        if (typeof rotation === 'number') o.rotateZ(rotation)
+        if (typeof props.rotation === 'number') o.rotateZ(props.rotation)
         applyProps(state as any, { rotation: o.rotation })
       } else {
-        applyProps(state as any, { rotation })
-      }
+        applyProps(state as any, { rotation: props.rotation })
+      } */
 
-      target.geometry = new DecalGeometry(parent, state.position, state.rotation, state.scale)
-      if (helper.current) {
-        applyProps(helper.current as any, state)
+      ref.geometry = new DecalGeometry(parent, state.position, state.rotation, state.scale)
+      if (helper) {
+        applyProps(helper as any, state)
         // Prevent the helpers from blocking rays
-        helper.current.traverse((child) => (child.raycast = () => null))
+        helper.traverse((child) => (child.raycast = () => null))
       }
       // Reset parents matix-world
       parent.matrixWorld = matrixWorld
-
-      return () => {
-        target.geometry.dispose()
-      }
+      onCleanup(() => ref.geometry.dispose())
     }
-  }, [mesh, ...vecToArray(position), ...vecToArray(scale), ...vecToArray(rotation)])
+  })
 
-  // <meshStandardMaterial transparent polygonOffset polygonOffsetFactor={-10} {...props} />}
+  // <T.MeshStandardMaterial transparent polygonOffset polygonOffsetFactor={-10} {...props} />}
   return (
-    <mesh
+    <T.Mesh
       ref={ref}
       material-transparent
       material-polygonOffset
-      material-polygonOffsetFactor={polygonOffsetFactor}
-      material-depthTest={depthTest}
-      material-map={map}
-      {...props}
+      material-polygonOffsetFactor={props.polygonOffsetFactor}
+      material-depthTest={props.depthTest}
+      material-map={props.map}
+      {...rest}
     >
-      {children}
-      {debug && (
-        <mesh ref={helper}>
-          <boxGeometry />
-          <meshNormalMaterial wireframe />
-          <axesHelper />
-        </mesh>
-      )}
-    </mesh>
+      {props.children}
+      <Show when={props.debug}>
+        <T.Mesh ref={helper}>
+          <T.BoxGeometry />
+          <T.MeshNormalMaterial wireframe />
+          <T.AxesHelper />
+        </T.Mesh>
+      </Show>
+    </T.Mesh>
   )
-})
+}

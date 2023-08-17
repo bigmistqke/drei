@@ -1,34 +1,31 @@
-import * as React from 'react'
-import { EventManager, Object3DNode, useFrame, useThree } from '@react-three/fiber'
+import { Object3DNode, Primitive, useFrame, useThree } from '@solid-three/fiber'
+import { createEffect, onCleanup, splitProps, untrack } from 'solid-js'
 import { FirstPersonControls as FirstPersonControlImpl } from 'three-stdlib'
+import { RefComponent } from '../helpers/typeHelpers'
 
-export type FirstPersonControlsProps = Object3DNode<FirstPersonControlImpl, typeof FirstPersonControlImpl> & {
+export type FirstPersonControlsProps = Object3DNode<FirstPersonControlImpl> & {
   domElement?: HTMLElement
   makeDefault?: boolean
 }
 
-export const FirstPersonControls = React.forwardRef<FirstPersonControlImpl, FirstPersonControlsProps>(
-  ({ domElement, makeDefault, ...props }, ref) => {
-    const camera = useThree((state) => state.camera)
-    const gl = useThree((state) => state.gl)
-    const events = useThree((state) => state.events) as EventManager<HTMLElement>
-    const get = useThree((state) => state.get)
-    const set = useThree((state) => state.set)
-    const explDomElement = (domElement || events.connected || gl.domElement) as HTMLElement
-    const [controls] = React.useState(() => new FirstPersonControlImpl(camera, explDomElement))
+export const FirstPersonControls: RefComponent<FirstPersonControlImpl, FirstPersonControlsProps> = (_props) => {
+  const [props, rest] = splitProps(_props, ['ref', 'domElement', 'makeDefault'])
+  const store = useThree()
 
-    React.useEffect(() => {
-      if (makeDefault) {
-        const old = get().controls
-        set({ controls })
-        return () => set({ controls: old })
-      }
-    }, [makeDefault, controls])
+  const explDomElement = () => (props.domElement || store.events.connected || store.gl.domElement) as HTMLElement
+  const controls = new FirstPersonControlImpl(store.camera, explDomElement())
 
-    useFrame((_, delta) => {
-      controls.update(delta)
-    }, -1)
+  createEffect(() => {
+    if (props.makeDefault) {
+      const old = untrack(() => store.controls)
+      store.set({ controls })
+      onCleanup(() => store.set({ controls: old }))
+    }
+  })
 
-    return controls ? <primitive ref={ref} object={controls} {...props} /> : null
-  }
-)
+  useFrame((_, delta) => {
+    controls.update(delta)
+  }, -1)
+
+  return controls ? <Primitive ref={props.ref} object={controls} {...rest} /> : null
+}

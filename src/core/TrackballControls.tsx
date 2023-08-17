@@ -1,12 +1,13 @@
-import { ReactThreeFiber, useFrame, useThree } from '@react-three/fiber'
-import * as React from 'react'
+import { Primitive, SolidThreeFiber, useFrame, useThree } from '@solid-three/fiber'
+import { createEffect, createMemo, onCleanup, splitProps, untrack } from 'solid-js'
 import * as THREE from 'three'
 import { TrackballControls as TrackballControlsImpl } from 'three-stdlib'
+import { RefComponent } from '../helpers/typeHelpers'
 
-export type TrackballControlsProps = ReactThreeFiber.Overwrite<
-  ReactThreeFiber.Object3DNode<TrackballControlsImpl, typeof TrackballControlsImpl>,
+export type TrackballControlsProps = SolidThreeFiber.Overwrite<
+  SolidThreeFiber.Object3DNode<TrackballControlsImpl>,
   {
-    target?: ReactThreeFiber.Vector3
+    target?: SolidThreeFiber.Vector3
     camera?: THREE.Camera
     domElement?: HTMLElement
     regress?: boolean
@@ -17,50 +18,54 @@ export type TrackballControlsProps = ReactThreeFiber.Overwrite<
   }
 >
 
-export const TrackballControls = React.forwardRef<TrackballControlsImpl, TrackballControlsProps>(
-  ({ makeDefault, camera, domElement, regress, onChange, onStart, onEnd, ...restProps }, ref) => {
-    const { invalidate, camera: defaultCamera, gl, events, set, get, performance, viewport } = useThree()
-    const explCamera = camera || defaultCamera
-    const explDomElement = (domElement || events.connected || gl.domElement) as HTMLElement
-    const controls = React.useMemo(() => new TrackballControlsImpl(explCamera as THREE.PerspectiveCamera), [explCamera])
+export const TrackballControls: RefComponent<TrackballControlsImpl, TrackballControlsProps> = (props) => {
+  const [, rest] = splitProps(props, ['makeDefault', 'camera', 'domElement', 'regress', 'onChange', 'onStart', 'onEnd'])
 
-    useFrame(() => {
-      if (controls.enabled) controls.update()
-    }, -1)
-
-    React.useEffect(() => {
-      controls.connect(explDomElement)
-      return () => void controls.dispose()
-    }, [explDomElement, regress, controls, invalidate])
-
-    React.useEffect(() => {
-      const callback = (e: THREE.Event) => {
-        invalidate()
-        if (regress) performance.regress()
-        if (onChange) onChange(e)
-      }
-      controls.addEventListener('change', callback)
-      if (onStart) controls.addEventListener('start', onStart)
-      if (onEnd) controls.addEventListener('end', onEnd)
-      return () => {
-        if (onStart) controls.removeEventListener('start', onStart)
-        if (onEnd) controls.removeEventListener('end', onEnd)
-        controls.removeEventListener('change', callback)
-      }
-    }, [onChange, onStart, onEnd, controls, invalidate])
-
-    React.useEffect(() => {
-      controls.handleResize()
-    }, [viewport])
-
-    React.useEffect(() => {
-      if (makeDefault) {
-        const old = get().controls
-        set({ controls })
-        return () => set({ controls: old })
-      }
-    }, [makeDefault, controls])
-
-    return <primitive ref={ref} object={controls} {...restProps} />
+  const store = useThree()
+  const explCamera = () => {
+    return props.camera || store.camera
   }
-)
+  const explDomElement = () => (props.domElement || store.events.connected || store.gl.domElement) as HTMLElement
+  const controls = createMemo(() => new TrackballControlsImpl(explCamera() as THREE.PerspectiveCamera))
+
+  useFrame(() => {
+    if (controls().enabled) controls().update()
+  }, -1)
+
+  createEffect(() => {
+    controls().connect(explDomElement())
+    onCleanup(() => controls().dispose())
+  })
+
+  createEffect(() => {
+    const callback = (e: THREE.Event) => {
+      store.invalidate()
+      if (props.regress) store.performance.regress()
+      if (props.onChange) props.onChange(e)
+    }
+    controls().addEventListener('change', callback)
+    if (props.onStart) controls().addEventListener('start', props.onStart)
+    if (props.onEnd) controls().addEventListener('end', props.onEnd)
+
+    onCleanup(() => {
+      if (props.onStart) controls().removeEventListener('start', props.onStart)
+      if (props.onEnd) controls().removeEventListener('end', props.onEnd)
+      controls().removeEventListener('change', callback)
+    })
+  })
+
+  createEffect(() => {
+    controls().handleResize()
+  })
+
+  createEffect(() => {
+    if (props.makeDefault) {
+      console.log('TrackballControls is ', store, store.portal)
+      const old = untrack(() => store.controls)
+      store.set({ controls: controls() })
+      onCleanup(() => store.set({ controls: old }))
+    }
+  })
+
+  return <Primitive ref={props.ref} object={controls()} {...rest} />
+}

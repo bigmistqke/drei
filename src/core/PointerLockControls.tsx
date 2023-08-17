@@ -1,13 +1,10 @@
-import { EventManager, ReactThreeFiber, RootState, useThree } from '@react-three/fiber'
-import { DomEvent } from '@react-three/fiber/dist/declarations/src/core/events'
-import * as React from 'react'
+import { DomEvent, Primitive, RootState, SolidThreeFiber, useThree } from '@solid-three/fiber'
+import { createEffect, createMemo, onCleanup, splitProps, untrack } from 'solid-js'
 import * as THREE from 'three'
 import { PointerLockControls as PointerLockControlsImpl } from 'three-stdlib'
+import { RefComponent } from '../helpers/typeHelpers'
 
-export type PointerLockControlsProps = ReactThreeFiber.Object3DNode<
-  PointerLockControlsImpl,
-  typeof PointerLockControlsImpl
-> & {
+export type PointerLockControlsProps = SolidThreeFiber.Object3DNode<PointerLockControlsImpl> & {
   domElement?: HTMLElement
   selector?: string
   enabled?: boolean
@@ -18,73 +15,80 @@ export type PointerLockControlsProps = ReactThreeFiber.Object3DNode<
   makeDefault?: boolean
 }
 
-export const PointerLockControls = React.forwardRef<PointerLockControlsImpl, PointerLockControlsProps>(
-  ({ domElement, selector, onChange, onLock, onUnlock, enabled = true, makeDefault, ...props }, ref) => {
-    const { camera, ...rest } = props
-    const setEvents = useThree((state) => state.setEvents)
-    const gl = useThree((state) => state.gl)
-    const defaultCamera = useThree((state) => state.camera)
-    const invalidate = useThree((state) => state.invalidate)
-    const events = useThree((state) => state.events) as EventManager<HTMLElement>
-    const get = useThree((state) => state.get)
-    const set = useThree((state) => state.set)
-    const explCamera = camera || defaultCamera
-    const explDomElement = (domElement || events.connected || gl.domElement) as HTMLElement
+export const PointerLockControls: RefComponent<PointerLockControlsImpl, PointerLockControlsProps> = (props) => {
+  const [, rest] = splitProps(props, [
+    'domElement',
+    'selector',
+    'onChange',
+    'onLock',
+    'onUnlock',
+    'enabled',
+    'makeDefault',
+  ])
 
-    const [controls] = React.useState(() => new PointerLockControlsImpl(explCamera))
+  const store = useThree()
 
-    React.useEffect(() => {
-      if (enabled) {
-        controls.connect(explDomElement)
-        // Force events to be centered while PLC is active
-        const oldComputeOffsets = get().events.compute
-        setEvents({
-          compute(event: DomEvent, state: RootState) {
-            const offsetX = state.size.width / 2
-            const offsetY = state.size.height / 2
-            state.pointer.set((offsetX / state.size.width) * 2 - 1, -(offsetY / state.size.height) * 2 + 1)
-            state.raycaster.setFromCamera(state.pointer, state.camera)
-          },
-        })
-        return () => {
-          controls.disconnect()
-          setEvents({ compute: oldComputeOffsets })
-        }
-      }
-    }, [enabled, controls])
+  const explCamera = () => props.camera || store.camera
+  const explDomElement = () => (props.domElement || store.events.connected || store.gl.domElement) as HTMLElement
 
-    React.useEffect(() => {
-      const callback = (e: THREE.Event) => {
-        invalidate()
-        if (onChange) onChange(e)
-      }
+  const controls = createMemo(() => {
+    const pointerLock = new PointerLockControlsImpl(explCamera())
+    return pointerLock
+  })
 
-      controls.addEventListener('change', callback)
+  createEffect(() => {
+    if (props.makeDefault) {
+      const old = untrack(() => store.controls)
+      store.set({ controls: controls() })
+      onCleanup(() => store.set({ controls: old }))
+    }
+  })
 
-      if (onLock) controls.addEventListener('lock', onLock)
-      if (onUnlock) controls.addEventListener('unlock', onUnlock)
+  createEffect(() => {
+    if (props.enabled || props.enabled === undefined) {
+      controls().connect(explDomElement())
 
-      // Enforce previous interaction
-      const handler = () => controls.lock()
-      const elements = selector ? Array.from(document.querySelectorAll(selector)) : [document]
-      elements.forEach((element) => element && element.addEventListener('click', handler))
+      // Force events to be centered while PLC is active
+      const oldComputeOffsets = untrack(() => store.events.compute)
+      store.setEvents({
+        compute(event: DomEvent, state: RootState) {
+          const offsetX = state.size.width / 2
+          const offsetY = state.size.height / 2
+          state.pointer.set((offsetX / state.size.width) * 2 - 1, -(offsetY / state.size.height) * 2 + 1)
+          state.raycaster.setFromCamera(state.pointer, state.camera)
+        },
+      })
+      onCleanup(() => {
+        controls().disconnect()
+        store.setEvents({ compute: oldComputeOffsets })
+      })
+    }
+  })
 
-      return () => {
-        controls.removeEventListener('change', callback)
-        if (onLock) controls.addEventListener('lock', onLock)
-        if (onUnlock) controls.addEventListener('unlock', onUnlock)
-        elements.forEach((element) => (element ? element.removeEventListener('click', handler) : undefined))
-      }
-    }, [onChange, onLock, onUnlock, selector, controls, invalidate])
+  createEffect(() => {
+    const callback = (e: THREE.Event) => {
+      store.invalidate()
+      if (props.onChange) props.onChange(e)
+    }
 
-    React.useEffect(() => {
-      if (makeDefault) {
-        const old = get().controls
-        set({ controls })
-        return () => set({ controls: old })
-      }
-    }, [makeDefault, controls])
+    controls().addEventListener('change', callback)
 
-    return <primitive ref={ref} object={controls} {...rest} />
-  }
-)
+    if (props.onLock) controls().addEventListener('lock', props.onLock)
+    if (props.onUnlock) controls().addEventListener('unlock', props.onUnlock)
+
+    // Enforce previous interaction
+    const handler = () => controls().lock()
+    const elements = props.selector ? Array.from(document.querySelectorAll(props.selector)) : [document]
+
+    elements.forEach((element) => element && element.addEventListener('click', handler))
+
+    onCleanup(() => {
+      controls().removeEventListener('change', callback)
+      if (props.onLock) controls().addEventListener('lock', props.onLock)
+      if (props.onUnlock) controls().addEventListener('unlock', props.onUnlock)
+      elements.forEach((element) => (element ? element.removeEventListener('click', handler) : undefined))
+    })
+  })
+
+  return <Primitive ref={props.ref} object={controls()} {...rest} />
+}

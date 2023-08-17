@@ -1,6 +1,7 @@
-import { BufferAttributeProps } from '@react-three/fiber'
-import * as React from 'react'
+import { Instance, Primitive, ThreeProps } from '@solid-three/fiber'
+import { ParentComponent, createRenderEffect, createSignal } from 'solid-js'
 import { BufferAttribute, BufferGeometry } from 'three'
+import { processProps } from '../helpers/processProps'
 
 type Props = {
   compute: (geometry: BufferGeometry) => BufferAttribute
@@ -12,23 +13,19 @@ type Props = {
  * Computes the BufferAttribute by calling the `compute` function
  * and attaches the attribute to the geometry.
  */
-export const ComputedAttribute = ({
-  compute,
-  name,
-  ...props
-}: React.PropsWithChildren<Props & BufferAttributeProps>) => {
-  const [bufferAttribute] = React.useState(() => new BufferAttribute(new Float32Array(0), 1))
-  const primitive = React.useRef<BufferAttribute>(null)
+export const ComputedAttribute: ParentComponent<Props & ThreeProps<'BufferAttribute'>> = (_props) => {
+  const [props, rest] = processProps(_props, {}, ['compute', 'name'])
 
-  React.useLayoutEffect(() => {
-    if (primitive.current) {
-      // @ts-expect-error brittle
-      const parent = (primitive.current.parent as BufferGeometry) ?? primitive.current.__r3f.parent
+  const bufferAttribute = new BufferAttribute(new Float32Array(0), 1)
 
-      const attr = compute(parent)
-      primitive.current.copy(attr)
-    }
-  }, [compute])
+  const [primitive, setPrimitive] = createSignal<Instance<BufferAttribute>['object']>()
 
-  return <primitive ref={primitive} object={bufferAttribute} attach={`attributes-${name}`} {...props} />
+  createRenderEffect(() => {
+    const parent = primitive()?.__r3f?.parent?.object
+    if (!parent) return
+    const attr = props.compute(parent)
+    primitive()!.copy(attr)
+  })
+
+  return <Primitive ref={setPrimitive} object={bufferAttribute} attach={`attributes-${props.name}`} {...rest} />
 }

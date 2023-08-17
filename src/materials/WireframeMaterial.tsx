@@ -1,5 +1,5 @@
+import { Accessor, createEffect } from 'solid-js'
 import * as THREE from 'three'
-import * as React from 'react'
 import { shaderMaterial } from '../core/shaderMaterial'
 
 export interface WireframeMaterialProps extends THREE.ShaderMaterialParameters {
@@ -168,14 +168,14 @@ export const WireframeMaterial = shaderMaterial(
 
 export function setWireframeOverride(
   material: THREE.Material,
-  uniforms: {
+  uniforms: Accessor<{
     [key: string]: THREE.IUniform<any>
-  }
+  }>
 ) {
   material.onBeforeCompile = (shader) => {
     shader.uniforms = {
       ...shader.uniforms,
-      ...uniforms,
+      ...uniforms(),
     }
 
     shader.vertexShader = shader.vertexShader.replace(
@@ -218,57 +218,31 @@ export function setWireframeOverride(
 }
 
 export function useWireframeUniforms(
-  uniforms: {
+  uniforms: Accessor<{
     [key: string]: THREE.IUniform<any>
-  },
+  }>,
   props: WireframeMaterialProps
 ) {
-  React.useEffect(
-    () => void (uniforms.fillOpacity.value = props.fillOpacity ?? uniforms.fillOpacity.value),
-    [props.fillOpacity]
+  createEffect(() => void (uniforms().fillOpacity.value = props.fillOpacity ?? uniforms().fillOpacity.value))
+  createEffect(() => void (uniforms().fillMix.value = props.fillMix ?? uniforms().fillMix.value))
+  createEffect(() => void (uniforms().strokeOpacity.value = props.strokeOpacity ?? uniforms().strokeOpacity.value))
+  createEffect(() => void (uniforms().thickness.value = props.thickness ?? uniforms().thickness.value))
+  createEffect(() => void (uniforms().colorBackfaces.value = !!props.colorBackfaces))
+  createEffect(() => void (uniforms().dash.value = !!props.dash))
+  createEffect(() => void (uniforms().dashInvert.value = !!props.dashInvert))
+  createEffect(() => void (uniforms().dashRepeats.value = props.dashRepeats ?? uniforms().dashRepeats.value))
+  createEffect(() => void (uniforms().dashLength.value = props.dashLength ?? uniforms().dashLength.value))
+  createEffect(() => void (uniforms().squeeze.value = !!props.squeeze), [props.squeeze])
+  createEffect(() => void (uniforms().squeezeMin.value = props.squeezeMin ?? uniforms().squeezeMin.value))
+  createEffect(() => void (uniforms().squeezeMax.value = props.squeezeMax ?? uniforms().squeezeMax.value))
+  createEffect(
+    () => void (uniforms().stroke.value = props.stroke ? new THREE.Color(props.stroke) : uniforms().stroke.value)
   )
-  React.useEffect(() => void (uniforms.fillMix.value = props.fillMix ?? uniforms.fillMix.value), [props.fillMix])
-  React.useEffect(
-    () => void (uniforms.strokeOpacity.value = props.strokeOpacity ?? uniforms.strokeOpacity.value),
-    [props.strokeOpacity]
-  )
-  React.useEffect(
-    () => void (uniforms.thickness.value = props.thickness ?? uniforms.thickness.value),
-    [props.thickness]
-  )
-  React.useEffect(() => void (uniforms.colorBackfaces.value = !!props.colorBackfaces), [props.colorBackfaces])
-  React.useEffect(() => void (uniforms.dash.value = !!props.dash), [props.dash])
-  React.useEffect(() => void (uniforms.dashInvert.value = !!props.dashInvert), [props.dashInvert])
-  React.useEffect(
-    () => void (uniforms.dashRepeats.value = props.dashRepeats ?? uniforms.dashRepeats.value),
-    [props.dashRepeats]
-  )
-  React.useEffect(
-    () => void (uniforms.dashLength.value = props.dashLength ?? uniforms.dashLength.value),
-    [props.dashLength]
-  )
-  React.useEffect(() => void (uniforms.squeeze.value = !!props.squeeze), [props.squeeze])
-  React.useEffect(
-    () => void (uniforms.squeezeMin.value = props.squeezeMin ?? uniforms.squeezeMin.value),
-    [props.squeezeMin]
-  )
-  React.useEffect(
-    () => void (uniforms.squeezeMax.value = props.squeezeMax ?? uniforms.squeezeMax.value),
-    [props.squeezeMax]
-  )
-  React.useEffect(
-    () => void (uniforms.stroke.value = props.stroke ? new THREE.Color(props.stroke) : uniforms.stroke.value),
-    [props.stroke]
-  )
-  React.useEffect(
-    () => void (uniforms.fill.value = props.fill ? new THREE.Color(props.fill) : uniforms.fill.value),
-    [props.fill]
-  )
-  React.useEffect(
+  createEffect(() => void (uniforms().fill.value = props.fill ? new THREE.Color(props.fill) : uniforms().fill.value))
+  createEffect(
     () =>
-      void (uniforms.backfaceStroke.value = props.backfaceStroke
+      void (uniforms().backfaceStroke.value = props.backfaceStroke
         ? new THREE.Color(props.backfaceStroke)
-        : uniforms.backfaceStroke.value),
-    [props.backfaceStroke]
+        : uniforms().backfaceStroke.value)
   )
 }

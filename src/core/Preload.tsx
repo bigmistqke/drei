@@ -1,6 +1,6 @@
-import { Object3D, Camera, WebGLCubeRenderTarget, CubeCamera, Scene } from 'three'
-import * as React from 'react'
-import { useThree } from '@react-three/fiber'
+import { useThree } from '@solid-three/fiber'
+import { createRenderEffect } from 'solid-js'
+import { Camera, CubeCamera, Object3D, Scene, WebGLCubeRenderTarget } from 'three'
 
 type Props = {
   all?: boolean
@@ -8,17 +8,16 @@ type Props = {
   camera?: Camera
 }
 
-export function Preload({ all, scene, camera }: Props) {
-  const gl = useThree(({ gl }) => gl)
-  const dCamera = useThree(({ camera }) => camera)
-  const dScene = useThree(({ scene }) => scene)
+export function Preload(props: Props) {
+  const store = useThree()
 
+  // s3f:   should we remove `createRenderEffect`?
   // Layout effect because it must run before React commits
-  React.useLayoutEffect(() => {
+  createRenderEffect(() => {
     const invisible: Object3D[] = []
-    if (all) {
+    if (props.all) {
       // Find all invisible objects, store and then flip them
-      ;(scene || dScene).traverse((object) => {
+      ;(props.scene || store.scene).traverse((object) => {
         if (object.visible === false) {
           invisible.push(object)
           object.visible = true
@@ -26,14 +25,14 @@ export function Preload({ all, scene, camera }: Props) {
       })
     }
     // Now compile the scene
-    gl.compile(scene || dScene, camera || dCamera)
+    store.gl.compile(props.scene || store.scene, props.camera || store.camera)
     // And for good measure, hit it with a cube camera
     const cubeRenderTarget = new WebGLCubeRenderTarget(128)
     const cubeCamera = new CubeCamera(0.01, 100000, cubeRenderTarget)
-    cubeCamera.update(gl, (scene || dScene) as Scene)
+    cubeCamera.update(store.gl, (props.scene || store.scene) as Scene)
     cubeRenderTarget.dispose()
     // Flips these objects back
     invisible.forEach((object) => (object.visible = false))
-  }, [])
+  })
   return null
 }

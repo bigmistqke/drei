@@ -1,9 +1,9 @@
-import * as React from 'react'
+import { T, ThreeEvent, useThree } from '@solid-three/fiber'
+import { Component, createMemo, createSignal, useContext } from 'solid-js'
 import * as THREE from 'three'
-import { ThreeEvent, useThree } from '@react-three/fiber'
 import { Line } from '../../core/Line'
 import { Html } from '../Html'
-import { context } from './context'
+import { context as pivotContext } from './context'
 
 const vec1 = new THREE.Vector3()
 const vec2 = new THREE.Vector3()
@@ -39,7 +39,7 @@ export const calculateOffset = (
 const upV = new THREE.Vector3(0, 1, 0)
 const offsetMatrix = new THREE.Matrix4()
 
-export const AxisArrow: React.FC<{ direction: THREE.Vector3; axis: 0 | 1 | 2 }> = ({ direction, axis }) => {
+export const AxisArrow: Component<{ direction: THREE.Vector3; axis: 0 | 1 | 2 }> = (props) => {
   const {
     translation,
     translationLimits,
@@ -56,99 +56,91 @@ export const AxisArrow: React.FC<{ direction: THREE.Vector3; axis: 0 | 1 | 2 }> 
     onDrag,
     onDragEnd,
     userData,
-  } = React.useContext(context)
+  } = useContext(pivotContext)!
 
-  // @ts-expect-error new in @react-three/fiber@7.0.5
-  const camControls = useThree((state) => state.controls) as { enabled: boolean }
-  const divRef = React.useRef<HTMLDivElement>(null!)
-  const objRef = React.useRef<THREE.Group>(null!)
-  const clickInfo = React.useRef<{ clickPoint: THREE.Vector3; dir: THREE.Vector3 } | null>(null)
-  const offset0 = React.useRef<number>(0)
-  const [isHovered, setIsHovered] = React.useState(false)
+  const store = useThree()
+  const controls = () => store.controls as unknown as { enabled: boolean }
 
-  const onPointerDown = React.useCallback(
-    (e: ThreeEvent<PointerEvent>) => {
+  let divRef: HTMLDivElement = null!
+  let objRef: THREE.Group = null!
+  let clickInfo: { clickPoint: THREE.Vector3; dir: THREE.Vector3 } | null = null
+  let offset0: number = 0
+  const [isHovered, setIsHovered] = createSignal(false)
+
+  const onPointerDown = (e: ThreeEvent<PointerEvent>) => {
+    if (annotations) {
+      divRef.innerText = `${translation[props.axis].toFixed(2)}`
+      divRef.style.display = 'block'
+    }
+    e.stopPropagation()
+    const rotation = new THREE.Matrix4().extractRotation(objRef.matrixWorld)
+    const clickPoint = e.point.clone()
+    const origin = new THREE.Vector3().setFromMatrixPosition(objRef.matrixWorld)
+    const dir = props.direction.clone().applyMatrix4(rotation).normalize()
+    clickInfo = { clickPoint, dir }
+    offset0 = translation[props.axis]
+    onDragStart({ component: 'Arrow', axis: props.axis, origin, directions: [dir] })
+    controls() && (controls().enabled = false)
+    // @ts-ignore - setPointerCapture is not in the type definition
+    e.target.setPointerCapture(e.pointerId)
+  }
+
+  const onPointerMove = (e: ThreeEvent<PointerEvent>) => {
+    e.stopPropagation()
+    if (!isHovered) setIsHovered(true)
+
+    if (clickInfo) {
+      const { clickPoint, dir } = clickInfo
+      const [min, max] = translationLimits?.[props.axis] || [undefined, undefined]
+
+      let offset = calculateOffset(clickPoint, dir, e.ray.origin, e.ray.direction)
+      if (min !== undefined) {
+        offset = Math.max(offset, min - offset0)
+      }
+      if (max !== undefined) {
+        offset = Math.min(offset, max - offset0)
+      }
+      translation[props.axis] = offset0 + offset
       if (annotations) {
-        divRef.current.innerText = `${translation.current[axis].toFixed(2)}`
-        divRef.current.style.display = 'block'
+        divRef.innerText = `${translation[props.axis].toFixed(2)}`
       }
-      e.stopPropagation()
-      const rotation = new THREE.Matrix4().extractRotation(objRef.current.matrixWorld)
-      const clickPoint = e.point.clone()
-      const origin = new THREE.Vector3().setFromMatrixPosition(objRef.current.matrixWorld)
-      const dir = direction.clone().applyMatrix4(rotation).normalize()
-      clickInfo.current = { clickPoint, dir }
-      offset0.current = translation.current[axis]
-      onDragStart({ component: 'Arrow', axis, origin, directions: [dir] })
-      camControls && (camControls.enabled = false)
-      // @ts-ignore - setPointerCapture is not in the type definition
-      e.target.setPointerCapture(e.pointerId)
-    },
-    [annotations, direction, camControls, onDragStart, translation, axis]
-  )
+      offsetMatrix.makeTranslation(dir.x * offset, dir.y * offset, dir.z * offset)
+      onDrag(offsetMatrix)
+    }
+  }
 
-  const onPointerMove = React.useCallback(
-    (e: ThreeEvent<PointerEvent>) => {
-      e.stopPropagation()
-      if (!isHovered) setIsHovered(true)
+  const onPointerUp = (e: ThreeEvent<PointerEvent>) => {
+    if (annotations) {
+      divRef.style.display = 'none'
+    }
+    e.stopPropagation()
+    clickInfo = null
+    onDragEnd()
+    controls() && (controls().enabled = true)
+    // @ts-ignore - releasePointerCapture & PointerEvent#pointerId is not in the type definition
+    e.target.releasePointerCapture(e.pointerId)
+  }
 
-      if (clickInfo.current) {
-        const { clickPoint, dir } = clickInfo.current
-        const [min, max] = translationLimits?.[axis] || [undefined, undefined]
-
-        let offset = calculateOffset(clickPoint, dir, e.ray.origin, e.ray.direction)
-        if (min !== undefined) {
-          offset = Math.max(offset, min - offset0.current)
-        }
-        if (max !== undefined) {
-          offset = Math.min(offset, max - offset0.current)
-        }
-        translation.current[axis] = offset0.current + offset
-        if (annotations) {
-          divRef.current.innerText = `${translation.current[axis].toFixed(2)}`
-        }
-        offsetMatrix.makeTranslation(dir.x * offset, dir.y * offset, dir.z * offset)
-        onDrag(offsetMatrix)
-      }
-    },
-    [annotations, onDrag, isHovered, translation, translationLimits, axis]
-  )
-
-  const onPointerUp = React.useCallback(
-    (e: ThreeEvent<PointerEvent>) => {
-      if (annotations) {
-        divRef.current.style.display = 'none'
-      }
-      e.stopPropagation()
-      clickInfo.current = null
-      onDragEnd()
-      camControls && (camControls.enabled = true)
-      // @ts-ignore - releasePointerCapture & PointerEvent#pointerId is not in the type definition
-      e.target.releasePointerCapture(e.pointerId)
-    },
-    [annotations, camControls, onDragEnd]
-  )
-
-  const onPointerOut = React.useCallback((e: ThreeEvent<PointerEvent>) => {
+  const onPointerOut = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation()
     setIsHovered(false)
-  }, [])
+  }
 
-  const { cylinderLength, coneWidth, coneLength, matrixL } = React.useMemo(() => {
+  const memo = createMemo(() => {
     const coneWidth = fixed ? (lineWidth / scale) * 1.6 : scale / 20
     const coneLength = fixed ? 0.2 : scale / 5
     const cylinderLength = fixed ? 1 - coneLength : scale - coneLength
-    const quaternion = new THREE.Quaternion().setFromUnitVectors(upV, direction.clone().normalize())
+    const quaternion = new THREE.Quaternion().setFromUnitVectors(upV, props.direction.clone().normalize())
     const matrixL = new THREE.Matrix4().makeRotationFromQuaternion(quaternion)
     return { cylinderLength, coneWidth, coneLength, matrixL }
-  }, [direction, scale, lineWidth, fixed])
+  })
 
-  const color_ = isHovered ? hoveredColor : axisColors[axis]
+  const color_ = isHovered() ? hoveredColor : axisColors[props.axis]
 
   return (
-    <group ref={objRef}>
-      <group
-        matrix={matrixL}
+    <T.Group ref={objRef}>
+      <T.Group
+        matrix={memo().matrixL}
         matrixAutoUpdate={false}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -156,31 +148,37 @@ export const AxisArrow: React.FC<{ direction: THREE.Vector3; axis: 0 | 1 | 2 }> 
         onPointerOut={onPointerOut}
       >
         {annotations && (
-          <Html position={[0, -coneLength, 0]}>
+          <Html position={[0, -memo().coneLength, 0]}>
             <div
               style={{
                 display: 'none',
                 background: '#151520',
                 color: 'white',
                 padding: '6px 8px',
-                borderRadius: 7,
-                whiteSpace: 'nowrap',
+                'border-radius': '7px',
+                'white-space': 'nowrap',
               }}
-              className={annotationsClass}
+              class={annotationsClass}
               ref={divRef}
             />
           </Html>
         )}
         {/* The invisible mesh being raycast */}
-        <mesh visible={false} position={[0, (cylinderLength + coneLength) / 2.0, 0]} userData={userData}>
-          <cylinderGeometry args={[coneWidth * 1.4, coneWidth * 1.4, cylinderLength + coneLength, 8, 1]} />
-        </mesh>
+        <T.Mesh
+          visible={false}
+          position={[0, (memo().cylinderLength + memo().coneLength) / 2.0, 0]}
+          userData={userData}
+        >
+          <T.CylinderGeometry
+            args={[memo().coneWidth * 1.4, memo().coneWidth * 1.4, memo().cylinderLength + memo().coneLength, 8, 1]}
+          />
+        </T.Mesh>
         {/* The visible mesh */}
         <Line
           transparent
           raycast={() => null}
           depthTest={depthTest}
-          points={[0, 0, 0, 0, cylinderLength, 0] as any}
+          points={[0, 0, 0, 0, memo().cylinderLength, 0] as any}
           lineWidth={lineWidth}
           color={color_ as any}
           opacity={opacity}
@@ -189,9 +187,13 @@ export const AxisArrow: React.FC<{ direction: THREE.Vector3; axis: 0 | 1 | 2 }> 
           polygonOffsetFactor={-10}
           fog={false}
         />
-        <mesh raycast={() => null} position={[0, cylinderLength + coneLength / 2.0, 0]} renderOrder={500}>
-          <coneGeometry args={[coneWidth, coneLength, 24, 1]} />
-          <meshBasicMaterial
+        <T.Mesh
+          raycast={() => null}
+          position={[0, memo().cylinderLength + memo().coneLength / 2.0, 0]}
+          renderOrder={500}
+        >
+          <T.ConeGeometry args={[memo().coneWidth, memo().coneLength, 24, 1]} />
+          <T.MeshBasicMaterial
             transparent
             depthTest={depthTest}
             color={color_}
@@ -200,8 +202,8 @@ export const AxisArrow: React.FC<{ direction: THREE.Vector3; axis: 0 | 1 | 2 }> 
             polygonOffsetFactor={-10}
             fog={false}
           />
-        </mesh>
-      </group>
-    </group>
+        </T.Mesh>
+      </T.Group>
+    </T.Group>
   )
 }

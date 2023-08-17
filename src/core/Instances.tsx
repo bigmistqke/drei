@@ -1,30 +1,43 @@
+import { SolidThreeFiber, T, ThreeProps, extend, useFrame } from '@solid-three/fiber'
+import {
+  Context,
+  JSX,
+  createContext,
+  createEffect,
+  createMemo,
+  createSignal,
+  onMount,
+  splitProps,
+  useContext,
+} from 'solid-js'
 import * as THREE from 'three'
-import * as React from 'react'
-import { ReactThreeFiber, extend, useFrame } from '@react-three/fiber'
-import mergeRefs from 'react-merge-refs'
-import Composer from 'react-composer'
+import Composer from '../helpers/composer'
+import { createRef } from '../helpers/createRef'
+import { mergeRefs } from '../helpers/mergeRefs'
+import { processProps } from '../helpers/processProps'
+import { RefComponent } from '../helpers/typeHelpers'
 
 declare global {
-  namespace JSX {
+  namespace SolidThree {
     interface IntrinsicElements {
-      positionMesh: ReactThreeFiber.Object3DNode<PositionMesh, typeof PositionMesh>
+      PositionMesh: SolidThreeFiber.Object3DNode<PositionMesh>
     }
   }
 }
 
 type Api = {
-  getParent: () => React.MutableRefObject<InstancedMesh>
-  subscribe: <T>(ref: React.MutableRefObject<T>) => void
+  getParent: () => InstancedMesh
+  subscribe: <T>(ref: T) => void
 }
 
-export type InstancesProps = JSX.IntrinsicElements['instancedMesh'] & {
+export type InstancesProps = ThreeProps<'InstancedMesh'> & {
   range?: number
   limit?: number
   frames?: number
 }
 
-export type InstanceProps = JSX.IntrinsicElements['positionMesh'] & {
-  context?: React.Context<Api>
+export type InstanceProps = ThreeProps<'PositionMesh'> & {
+  context?: Context<Api | undefined>
 }
 
 type InstancedMesh = Omit<THREE.InstancedMesh, 'instanceMatrix' | 'instanceColor'> & {
@@ -39,23 +52,23 @@ const _mesh = /*@__PURE__*/ new THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasic
 
 class PositionMesh extends THREE.Group {
   color: THREE.Color
-  instance: React.MutableRefObject<THREE.InstancedMesh | undefined>
-  instanceKey: React.MutableRefObject<JSX.IntrinsicElements['positionMesh'] | undefined>
+  instance: THREE.InstancedMesh | undefined
+  instanceKey: Parameters<typeof T.PositionMesh>[0] | undefined
   constructor() {
     super()
     this.color = new THREE.Color('white')
-    this.instance = { current: undefined }
-    this.instanceKey = { current: undefined }
+    this.instance = undefined
+    this.instanceKey = undefined
   }
 
   // This will allow the virtual instance have bounds
   get geometry() {
-    return this.instance.current?.geometry
+    return this.instance?.geometry
   }
 
   // And this will allow the virtual instance to receive events
   raycast(raycaster: THREE.Raycaster, intersects: THREE.Intersection[]) {
-    const parent = this.instance.current
+    const parent = this.instance
     if (!parent) return
     if (!parent.geometry || !parent.material) return
     _mesh.geometry = parent.geometry
@@ -83,7 +96,7 @@ class PositionMesh extends THREE.Group {
   }
 }
 
-const globalContext = /*@__PURE__*/ React.createContext<Api>(null!)
+const globalContext = /*@__PURE__*/ createContext<Api>(null!)
 const parentMatrix = /*@__PURE__*/ new THREE.Matrix4()
 const instanceMatrix = /*@__PURE__*/ new THREE.Matrix4()
 const tempMatrix = /*@__PURE__*/ new THREE.Matrix4()
@@ -91,139 +104,148 @@ const translation = /*@__PURE__*/ new THREE.Vector3()
 const rotation = /*@__PURE__*/ new THREE.Quaternion()
 const scale = /*@__PURE__*/ new THREE.Vector3()
 
-export const Instance = React.forwardRef(({ context, children, ...props }: InstanceProps, ref) => {
-  React.useMemo(() => extend({ PositionMesh }), [])
-  const group = React.useRef<JSX.IntrinsicElements['positionMesh']>()
-  const { subscribe, getParent } = React.useContext(context || globalContext)
-  React.useLayoutEffect(() => subscribe(group), [])
+export const Instance: RefComponent<any, InstanceProps, true> = (_props) => {
+  const [props, rest] = splitProps(_props, ['context', 'ref', 'children'])
+
+  createMemo(() => extend({ PositionMesh }), [])
+  let group: ThreeProps<'PositionMesh'> | undefined
+  const { subscribe, getParent } = useContext(props.context || globalContext)!
+  // s3f:   this used to be a `createRenderEffect` but then group would be undefined
+  onMount(() => subscribe(group))
   return (
-    <positionMesh instance={getParent()} instanceKey={group} ref={mergeRefs([ref, group])} {...props}>
-      {children}
-    </positionMesh>
+    <T.PositionMesh instance={getParent()} instanceKey={group} ref={mergeRefs(props.ref, group)} {...props}>
+      {props.children}
+    </T.PositionMesh>
   )
-})
+}
 
-export const Instances = React.forwardRef<InstancedMesh, InstancesProps>(
-  ({ children, range, limit = 1000, frames = Infinity, ...props }, ref) => {
-    const [{ context, instance }] = React.useState(() => {
-      const context = React.createContext<Api>(null!)
-      return {
-        context,
-        instance: React.forwardRef((props: InstanceProps, ref) => <Instance context={context} {...props} ref={ref} />),
+export const Instances: RefComponent<THREE.InstancedMesh, InstancesProps, true> = (_props) => {
+  const [props, rest] = processProps(
+    _props,
+    {
+      limit: 1000,
+      frames: Infinity,
+    },
+    ['ref', 'children', 'range', 'limit', 'frames']
+  )
+
+  const { context, instance } = (() => {
+    const context = createContext<Api>(null!)
+    return {
+      context,
+      instance: ((props) => <Instance context={context} {...props} />) as RefComponent<PositionMesh, InstanceProps>,
+    }
+  })()
+
+  const parentRef = createRef<InstancedMesh>(null!)
+  const [instances, setInstances] = createSignal<PositionMesh[]>([])
+  const [matrices, colors] = (() => {
+    const mArray = new Float32Array(props.limit * 16)
+    for (let i = 0; i < props.limit; i++) tempMatrix.identity().toArray(mArray, i * 16)
+    return [mArray, new Float32Array([...new Array(props.limit * 3)].map(() => 1))]
+  })()
+
+  createEffect(() => {
+    // We might be a frame too late? 🤷‍♂️
+    parentRef.ref.instanceMatrix.needsUpdate = true
+  })
+
+  let count = 0
+  let updateRange = 0
+  useFrame(() => {
+    if (props.frames === Infinity || count < props.frames) {
+      parentRef.ref.updateMatrix()
+      parentRef.ref.updateMatrixWorld()
+      parentMatrix.copy(parentRef.ref.matrixWorld).invert()
+
+      updateRange = Math.min(props.limit, props.range !== undefined ? props.range : props.limit, instances.length)
+      parentRef.ref.count = updateRange
+      parentRef.ref.instanceMatrix.updateRange.count = updateRange * 16
+      parentRef.ref.instanceColor.updateRange.count = updateRange * 3
+
+      for (let i = 0; i < instances.length; i++) {
+        const instance = instances[i]
+        // Multiply the inverse of the InstancedMesh world matrix or else
+        // Instances will be double-transformed if <Instances> isn't at identity
+        instance.matrixWorld.decompose(translation, rotation, scale)
+        instanceMatrix.compose(translation, rotation, scale).premultiply(parentMatrix)
+        instanceMatrix.toArray(matrices, i * 16)
+        parentRef.ref.instanceMatrix.needsUpdate = true
+        instance.color.toArray(colors, i * 3)
+        parentRef.ref.instanceColor.needsUpdate = true
       }
-    })
+      count++
+    }
+  })
 
-    const parentRef = React.useRef<InstancedMesh>(null!)
-    const [instances, setInstances] = React.useState<React.MutableRefObject<PositionMesh>[]>([])
-    const [[matrices, colors]] = React.useState(() => {
-      const mArray = new Float32Array(limit * 16)
-      for (let i = 0; i < limit; i++) tempMatrix.identity().toArray(mArray, i * 16)
-      return [mArray, new Float32Array([...new Array(limit * 3)].map(() => 1))]
-    })
+  const api = createMemo(() => ({
+    getParent: () => parentRef.ref,
+    subscribe: (ref) => {
+      setInstances((instances) => [...instances, ref])
+      return () => setInstances((instances) => instances.filter((item) => item !== ref))
+    },
+  }))
 
-    React.useEffect(() => {
-      // We might be a frame too late? 🤷‍♂️
-      parentRef.current.instanceMatrix.needsUpdate = true
-    })
-
-    let count = 0
-    let updateRange = 0
-    useFrame(() => {
-      if (frames === Infinity || count < frames) {
-        parentRef.current.updateMatrix()
-        parentRef.current.updateMatrixWorld()
-        parentMatrix.copy(parentRef.current.matrixWorld).invert()
-
-        updateRange = Math.min(limit, range !== undefined ? range : limit, instances.length)
-        parentRef.current.count = updateRange
-        parentRef.current.instanceMatrix.updateRange.count = updateRange * 16
-        parentRef.current.instanceColor.updateRange.count = updateRange * 3
-
-        for (let i = 0; i < instances.length; i++) {
-          const instance = instances[i].current
-          // Multiply the inverse of the InstancedMesh world matrix or else
-          // Instances will be double-transformed if <Instances> isn't at identity
-          instance.matrixWorld.decompose(translation, rotation, scale)
-          instanceMatrix.compose(translation, rotation, scale).premultiply(parentMatrix)
-          instanceMatrix.toArray(matrices, i * 16)
-          parentRef.current.instanceMatrix.needsUpdate = true
-          instance.color.toArray(colors, i * 3)
-          parentRef.current.instanceColor.needsUpdate = true
-        }
-        count++
-      }
-    })
-
-    const api = React.useMemo(
-      () => ({
-        getParent: () => parentRef,
-        subscribe: (ref) => {
-          setInstances((instances) => [...instances, ref])
-          return () => setInstances((instances) => instances.filter((item) => item.current !== ref.current))
-        },
-      }),
-      []
-    )
-
-    return (
-      <instancedMesh
-        userData={{ instances }}
-        matrixAutoUpdate={false}
-        ref={mergeRefs([ref, parentRef])}
-        args={[null as any, null as any, 0]}
-        raycast={() => null}
-        {...props}
-      >
-        <instancedBufferAttribute
-          attach="instanceMatrix"
-          count={matrices.length / 16}
-          array={matrices}
-          itemSize={16}
-          usage={THREE.DynamicDrawUsage}
-        />
-        <instancedBufferAttribute
-          attach="instanceColor"
-          count={colors.length / 3}
-          array={colors}
-          itemSize={3}
-          usage={THREE.DynamicDrawUsage}
-        />
-        {typeof children === 'function' ? (
-          <context.Provider value={api}>{children(instance)}</context.Provider>
-        ) : (
-          <globalContext.Provider value={api}>{children}</globalContext.Provider>
-        )}
-      </instancedMesh>
-    )
-  }
-)
+  return (
+    <T.InstancedMesh
+      userData={{ instances }}
+      matrixAutoUpdate={false}
+      ref={mergeRefs(props, parentRef)}
+      args={[null as any, null as any, 0]}
+      raycast={() => null}
+      {...rest}
+    >
+      <T.InstancedBufferAttribute
+        attach="instanceMatrix"
+        count={matrices.length / 16}
+        array={matrices}
+        itemSize={16}
+        usage={THREE.DynamicDrawUsage}
+      />
+      <T.InstancedBufferAttribute
+        attach="instanceColor"
+        count={colors.length / 3}
+        array={colors}
+        itemSize={3}
+        usage={THREE.DynamicDrawUsage}
+      />
+      {typeof props.children === 'function' ? (
+        <context.Provider value={api()}>{props.children(instance)}</context.Provider>
+      ) : (
+        <globalContext.Provider value={api()}>{props.children}</globalContext.Provider>
+      )}
+    </T.InstancedMesh>
+  )
+}
 
 export interface MergedProps extends InstancesProps {
   meshes: THREE.Mesh[]
-  children: React.ReactNode
+  children: JSX.Element
 }
 
-export const Merged = React.forwardRef<THREE.Group, any>(function Merged({ meshes, children, ...props }, ref) {
-  const isArray = Array.isArray(meshes)
+export const Merged: RefComponent<THREE.Group, any> = function Merged(_props) {
+  const [props, rest] = splitProps(_props, ['ref', 'meshes', 'children'])
+
+  const isArray = Array.isArray(props.meshes)
   // Filter out meshes from collections, which may contain non-meshes
-  if (!isArray) for (const key of Object.keys(meshes)) if (!meshes[key].isMesh) delete meshes[key]
+  if (!isArray) for (const key of Object.keys(props.meshes)) if (!props.meshes[key].isMesh) delete props.meshes[key]
   return (
-    <group ref={ref}>
+    <T.Group ref={props.ref}>
       <Composer
-        components={(isArray ? meshes : Object.values(meshes)).map(({ geometry, material }) => (
-          <Instances key={geometry.uuid} geometry={geometry} material={material} {...props} />
+        components={(isArray ? props.meshes : Object.values(props.meshes)).map(({ geometry, material }) => (
+          <Instances key={geometry.uuid} geometry={geometry} material={material} {...rest} />
         ))}
       >
         {(args) =>
           isArray
-            ? children(...args)
-            : children(
-                Object.keys(meshes)
-                  .filter((key) => meshes[key].isMesh)
+            ? props.children(...args)
+            : props.children(
+                Object.keys(props.meshes)
+                  .filter((key) => props.meshes[key].isMesh)
                   .reduce((acc, key, i) => ({ ...acc, [key]: args[i] }), {})
               )
         }
       </Composer>
-    </group>
+    </T.Group>
   )
-})
+}

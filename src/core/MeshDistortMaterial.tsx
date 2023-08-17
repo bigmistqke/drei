@@ -1,11 +1,12 @@
-import * as React from 'react'
+import { Primitive, ThreeProps, useFrame } from '@solid-three/fiber'
 import { MeshPhysicalMaterial, MeshPhysicalMaterialParameters, Shader } from 'three'
-import { useFrame } from '@react-three/fiber'
 // eslint-disable-next-line
 // @ts-ignore
 import distort from '../helpers/glsl/distort.vert.glsl'
+import { processProps } from '../helpers/processProps'
+import { RefComponent } from '../helpers/typeHelpers'
 
-type DistortMaterialType = JSX.IntrinsicElements['meshPhysicalMaterial'] & {
+type DistortMaterialType = ThreeProps<'MeshPhysicalMaterial'> & {
   time?: number
   distort?: number
   radius?: number
@@ -17,9 +18,9 @@ type Props = DistortMaterialType & {
 }
 
 declare global {
-  namespace JSX {
+  namespace SolidThree {
     interface IntrinsicElements {
-      distortMaterialImpl: DistortMaterialType
+      DistortMaterialImpl: DistortMaterialType
     }
   }
 }
@@ -88,8 +89,9 @@ class DistortMaterialImpl extends MeshPhysicalMaterial {
   }
 }
 
-export const MeshDistortMaterial = React.forwardRef(({ speed = 1, ...props }: Props, ref) => {
-  const [material] = React.useState(() => new DistortMaterialImpl())
-  useFrame((state) => material && (material.time = state.clock.getElapsedTime() * speed))
-  return <primitive object={material} ref={ref} attach="material" {...props} />
-})
+export const MeshDistortMaterial: RefComponent<any, Props> = (_props: Props) => {
+  const [props, rest] = processProps(_props, { speed: 1 }, ['speed'])
+  const material = new DistortMaterialImpl()
+  useFrame((state) => material && (material.time = state.clock.getElapsedTime() * props.speed))
+  return <Primitive object={material} attach="material" {...rest} />
+}

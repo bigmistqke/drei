@@ -1,20 +1,32 @@
-import * as React from 'react'
-import * as ReactDOM from 'react-dom/client'
+import { T, ThreeProps, useFrame, useThree } from '@solid-three/fiber'
 import {
-  Vector3,
-  Group,
-  Object3D,
-  Matrix4,
+  Accessor,
+  Show,
+  createEffect,
+  createMemo,
+  createRenderEffect,
+  createSignal,
+  onCleanup,
+  type JSX,
+} from 'solid-js'
+import { render } from 'solid-js/web'
+
+import {
   Camera,
-  PerspectiveCamera,
-  OrthographicCamera,
-  Raycaster,
   DoubleSide,
+  Group,
+  Matrix4,
   Mesh,
-  Material,
+  Object3D,
+  OrthographicCamera,
+  PerspectiveCamera,
+  Raycaster,
+  Vector3,
 } from 'three'
 import { Assign } from 'utility-types'
-import { MaterialProps, ReactThreeFiber, useFrame, useThree } from '@react-three/fiber'
+import { processProps } from '../helpers/processProps'
+import { RefComponent } from '../helpers/typeHelpers'
+import { when } from '../helpers/when'
 
 const v1 = new Vector3()
 const v2 = new Vector3()
@@ -114,13 +126,12 @@ function isRefObject(ref: any): ref is React.RefObject<any> {
   return ref && typeof ref === 'object' && 'current' in ref
 }
 
-export interface HtmlProps
-  extends Omit<Assign<React.HTMLAttributes<HTMLDivElement>, ReactThreeFiber.Object3DNode<Group, typeof Group>>, 'ref'> {
+export interface HtmlProps extends Omit<Assign<JSX.HTMLAttributes<HTMLDivElement>, ThreeProps<'Group'>>, 'ref'> {
   prepend?: boolean
   center?: boolean
   fullscreen?: boolean
   eps?: number
-  portal?: React.MutableRefObject<HTMLElement>
+  portal?: HTMLElement
   distanceFactor?: number
   sprite?: boolean
   transform?: boolean
@@ -133,278 +144,285 @@ export interface HtmlProps
   // Occlusion based off work by Jerome Etienne and James Baicoianu
   // https://www.youtube.com/watch?v=ScZcUEDGjJI
   // as well as Joe Pea in CodePen: https://codepen.io/trusktr/pen/RjzKJx
-  occlude?: React.RefObject<Object3D>[] | boolean | 'raycast' | 'blending'
+  occlude?: Object3D[] | boolean | 'raycast' | 'blending'
   onOcclude?: (visible: boolean) => null
-  material?: React.ReactNode // Material for occlusion plane
-  geometry?: React.ReactNode // Material for occlusion plane
+  material?: JSX.Element // Material for occlusion plane
+  geometry?: JSX.Element // Material for occlusion plane
   castShadow?: boolean // Cast shadow for occlusion plane
   receiveShadow?: boolean // Receive shadow for occlusion plane
 }
-
-export const Html = React.forwardRef(
-  (
+export const Html: RefComponent<HTMLDivElement, HtmlProps> = (_props) => {
+  const [props, rest] = processProps(
+    _props,
     {
-      children,
-      eps = 0.001,
-      style,
-      className,
-      prepend,
-      center,
-      fullscreen,
-      portal,
-      distanceFactor,
-      sprite = false,
-      transform = false,
-      occlude,
-      onOcclude,
-      castShadow,
-      receiveShadow,
-      material,
-      geometry,
-      zIndexRange = [16777271, 0],
-      calculatePosition = defaultCalculatePosition,
-      as = 'div',
-      wrapperClass,
-      pointerEvents = 'auto',
-      ...props
-    }: HtmlProps,
-    ref: React.Ref<HTMLDivElement>
-  ) => {
-    const { gl, camera, scene, size, raycaster, events, viewport } = useThree()
+      eps: 0.001,
+      sprite: false,
+      transform: false,
+      zIndexRange: [16777271, 0],
+      calculatePosition: defaultCalculatePosition,
+      as: 'div',
+      pointerEvents: 'auto',
+    },
+    [
+      'ref',
+      'children',
+      'eps',
+      'style',
+      'class',
+      'prepend',
+      'center',
+      'fullscreen',
+      'portal',
+      'distanceFactor',
+      'sprite',
+      'transform',
+      'occlude',
+      'onOcclude',
+      'castShadow',
+      'receiveShadow',
+      'material',
+      'geometry',
+      'zIndexRange',
+      'calculatePosition',
+      'as',
+      'wrapperClass',
+      'pointerEvents',
+    ]
+  )
 
-    const [el] = React.useState(() => document.createElement(as))
-    const root = React.useRef<ReactDOM.Root>()
-    const group = React.useRef<Group>(null!)
-    const oldZoom = React.useRef(0)
-    const oldPosition = React.useRef([0, 0])
-    const transformOuterRef = React.useRef<HTMLDivElement>(null!)
-    const transformInnerRef = React.useRef<HTMLDivElement>(null!)
-    // Append to the connected element, which makes HTML work with views
-    const target = (portal?.current || events.connected || gl.domElement.parentNode) as HTMLElement
+  const store = useThree()
 
-    const occlusionMeshRef = React.useRef<Mesh>(null!)
-    const isMeshSizeSet = React.useRef<boolean>(false)
+  const element = createMemo(() => document.createElement(props.as))
+  const [group, setGroup] = createSignal<Group>()
+  let oldZoom = 0
+  let oldPosition = [0, 0]
+  let transformOuterRef: HTMLDivElement = null!
+  let transformInnerRef: HTMLDivElement = null!
+  // Append to the connected element, which makes HTML work with views
+  const target = () => (props.portal || store.events.connected || store.gl.domElement.parentNode) as HTMLElement
 
-    const isRayCastOcclusion = React.useMemo(() => {
-      return (
-        (occlude && occlude !== 'blending') || (Array.isArray(occlude) && occlude.length && isRefObject(occlude[0]))
-      )
-    }, [occlude])
+  let occlusionMeshRef: Mesh = null!
+  let isMeshSizeSet: boolean = false
 
-    React.useLayoutEffect(() => {
-      const el = gl.domElement as HTMLCanvasElement
-
-      if (occlude && occlude === 'blending') {
-        el.style.zIndex = `${Math.floor(zIndexRange[0] / 2)}`
-        el.style.position = 'absolute'
-        el.style.pointerEvents = 'none'
-      } else {
-        el.style.zIndex = null!
-        el.style.position = null!
-        el.style.pointerEvents = null!
-      }
-    }, [occlude])
-
-    React.useLayoutEffect(() => {
-      if (group.current) {
-        const currentRoot = (root.current = ReactDOM.createRoot(el))
-        scene.updateMatrixWorld()
-        if (transform) {
-          el.style.cssText = `position:absolute;top:0;left:0;pointer-events:none;overflow:hidden;`
-        } else {
-          const vec = calculatePosition(group.current, camera, size)
-          el.style.cssText = `position:absolute;top:0;left:0;transform:translate3d(${vec[0]}px,${vec[1]}px,0);transform-origin:0 0;`
-        }
-        if (target) {
-          if (prepend) target.prepend(el)
-          else target.appendChild(el)
-        }
-        return () => {
-          if (target) target.removeChild(el)
-          currentRoot.unmount()
-        }
-      }
-    }, [target, transform])
-
-    React.useLayoutEffect(() => {
-      if (wrapperClass) el.className = wrapperClass
-    }, [wrapperClass])
-
-    const styles: React.CSSProperties = React.useMemo(() => {
-      if (transform) {
-        return {
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: size.width,
-          height: size.height,
-          transformStyle: 'preserve-3d',
-          pointerEvents: 'none',
-        }
-      } else {
-        return {
-          position: 'absolute',
-          transform: center ? 'translate3d(-50%,-50%,0)' : 'none',
-          ...(fullscreen && {
-            top: -size.height / 2,
-            left: -size.width / 2,
-            width: size.width,
-            height: size.height,
-          }),
-          ...style,
-        }
-      }
-    }, [style, center, fullscreen, size, transform])
-
-    const transformInnerStyles: React.CSSProperties = React.useMemo(
-      () => ({ position: 'absolute', pointerEvents }),
-      [pointerEvents]
+  const isRayCastOcclusion = createMemo(() => {
+    return (
+      (props.occlude && props.occlude !== 'blending') ||
+      (Array.isArray(props.occlude) && props.occlude.length && isRefObject(props.occlude[0]))
     )
+  })
 
-    React.useLayoutEffect(() => {
-      isMeshSizeSet.current = false
+  createRenderEffect(() => {
+    const el = store.gl.domElement as HTMLCanvasElement
 
-      if (transform) {
-        root.current?.render(
-          <div ref={transformOuterRef} style={styles}>
-            <div ref={transformInnerRef} style={transformInnerStyles}>
-              <div ref={ref} className={className} style={style} children={children} />
+    if (props.occlude && props.occlude === 'blending') {
+      el.style.zIndex = `${Math.floor(props.zIndexRange[0] / 2)}`
+      el.style.position = 'absolute'
+      el.style.pointerEvents = 'none'
+    } else {
+      el.style.zIndex = null!
+      el.style.position = null!
+      el.style.pointerEvents = null!
+    }
+  })
+
+  // s3f:   should we have group be a signal and return it back to a renderEffect?
+  createEffect(() => {
+    when(group)((group) => {
+      store.scene.updateMatrixWorld()
+      if (props.transform) {
+        element().style.cssText = `position:absolute;top:0;left:0;pointer-events:none;overflow:hidden;`
+      } else {
+        const vec = props.calculatePosition(group, store.camera, store.size)
+        element().style.cssText = `position:absolute;top:0;left:0;transform:translate3d(${vec[0]}px,${vec[1]}px,0);transform-origin:0 0;`
+      }
+      if (target()) {
+        if (props.prepend) target().prepend(element())
+        else target().appendChild(element())
+      }
+      onCleanup(() => when(target)((target) => target.removeChild(element())))
+    })
+  })
+
+  createRenderEffect(() => {
+    if (props.wrapperClass) element().className = props.wrapperClass
+  })
+
+  const styles = createMemo(() => {
+    if (props.transform) {
+      return {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: store.size.width + 'px',
+        height: store.size.height + 'px',
+        'transform-style': 'preserve-3d',
+        'pointer-events': 'none',
+      } satisfies JSX.CSSProperties
+    } else {
+      return {
+        position: 'absolute',
+        transform: props.center ? 'translate3d(-50%,-50%,0)' : 'none',
+        ...(props.fullscreen && {
+          top: -store.size.height / 2 + 'px',
+          left: -store.size.width / 2 + 'px',
+          width: store.size.width + 'px',
+          height: store.size.height + 'px',
+        }),
+        ...(typeof props.style === 'object' ? props.style : {}),
+      } satisfies JSX.CSSProperties
+    }
+  })
+
+  const transformInnerStyles: Accessor<JSX.CSSProperties> = createMemo(
+    () => ({ position: 'absolute', pointerEvents: props.pointerEvents } as const)
+  )
+
+  createRenderEffect(() => {
+    isMeshSizeSet = false
+
+    if (props.transform) {
+      render(
+        () => (
+          <div ref={transformOuterRef} style={styles()}>
+            <div ref={transformInnerRef} style={transformInnerStyles()}>
+              <div ref={props.ref} class={props.class} style={props.style} children={props.children} />
             </div>
           </div>
-        )
-      } else {
-        root.current?.render(<div ref={ref} style={styles} className={className} children={children} />)
-      }
-    })
+        ),
+        element()
+      )
+    } else {
+      render(() => <div ref={props.ref} style={styles()} class={props.class} children={props.children} />, element())
+    }
+  })
 
-    const visible = React.useRef(true)
+  let visible = true
 
-    useFrame((gl) => {
-      if (group.current) {
-        camera.updateMatrixWorld()
-        group.current.updateWorldMatrix(true, false)
-        const vec = transform ? oldPosition.current : calculatePosition(group.current, camera, size)
+  useFrame((gl) => {
+    when(group)((group) => {
+      store.camera.updateMatrixWorld()
+      group.updateWorldMatrix(true, false)
+      const vec = props.transform ? oldPosition : props.calculatePosition(group, store.camera, store.size)
 
-        if (
-          transform ||
-          Math.abs(oldZoom.current - camera.zoom) > eps ||
-          Math.abs(oldPosition.current[0] - vec[0]) > eps ||
-          Math.abs(oldPosition.current[1] - vec[1]) > eps
-        ) {
-          const isBehindCamera = isObjectBehindCamera(group.current, camera)
-          let raytraceTarget: null | undefined | boolean | Object3D[] = false
+      if (
+        props.transform ||
+        Math.abs(oldZoom - store.camera.zoom) > props.eps ||
+        Math.abs(oldPosition[0] - vec[0]) > props.eps ||
+        Math.abs(oldPosition[1] - vec[1]) > props.eps
+      ) {
+        const isBehindCamera = isObjectBehindCamera(group, store.camera)
+        let raytraceTarget: null | undefined | boolean | Object3D[] = false
 
-          if (isRayCastOcclusion) {
-            if (occlude !== 'blending') {
-              raytraceTarget = [scene]
-            } else if (Array.isArray(occlude)) {
-              raytraceTarget = occlude.map((item) => item.current) as Object3D[]
-            }
+        if (isRayCastOcclusion()) {
+          if (props.occlude !== 'blending') {
+            raytraceTarget = [store.scene]
+          } else if (Array.isArray(props.occlude)) {
+            raytraceTarget = props.occlude.map((item) => item) as Object3D[]
           }
-
-          const previouslyVisible = visible.current
-          if (raytraceTarget) {
-            const isvisible = isObjectVisible(group.current, camera, raycaster, raytraceTarget)
-            visible.current = isvisible && !isBehindCamera
-          } else {
-            visible.current = !isBehindCamera
-          }
-
-          if (previouslyVisible !== visible.current) {
-            if (onOcclude) onOcclude(!visible.current)
-            else el.style.display = visible.current ? 'block' : 'none'
-          }
-
-          const halfRange = Math.floor(zIndexRange[0] / 2)
-          const zRange = occlude
-            ? isRayCastOcclusion //
-              ? [zIndexRange[0], halfRange]
-              : [halfRange - 1, 0]
-            : zIndexRange
-
-          el.style.zIndex = `${objectZIndex(group.current, camera, zRange)}`
-
-          if (transform) {
-            const [widthHalf, heightHalf] = [size.width / 2, size.height / 2]
-            const fov = camera.projectionMatrix.elements[5] * heightHalf
-            const { isOrthographicCamera, top, left, bottom, right } = camera as OrthographicCamera
-            const cameraMatrix = getCameraCSSMatrix(camera.matrixWorldInverse)
-            const cameraTransform = isOrthographicCamera
-              ? `scale(${fov})translate(${epsilon(-(right + left) / 2)}px,${epsilon((top + bottom) / 2)}px)`
-              : `translateZ(${fov}px)`
-            let matrix = group.current.matrixWorld
-            if (sprite) {
-              matrix = camera.matrixWorldInverse.clone().transpose().copyPosition(matrix).scale(group.current.scale)
-              matrix.elements[3] = matrix.elements[7] = matrix.elements[11] = 0
-              matrix.elements[15] = 1
-            }
-            el.style.width = size.width + 'px'
-            el.style.height = size.height + 'px'
-            el.style.perspective = isOrthographicCamera ? '' : `${fov}px`
-            if (transformOuterRef.current && transformInnerRef.current) {
-              transformOuterRef.current.style.transform = `${cameraTransform}${cameraMatrix}translate(${widthHalf}px,${heightHalf}px)`
-              transformInnerRef.current.style.transform = getObjectCSSMatrix(matrix, 1 / ((distanceFactor || 10) / 400))
-            }
-          } else {
-            const scale = distanceFactor === undefined ? 1 : objectScale(group.current, camera) * distanceFactor
-            el.style.transform = `translate3d(${vec[0]}px,${vec[1]}px,0) scale(${scale})`
-          }
-          oldPosition.current = vec
-          oldZoom.current = camera.zoom
         }
-      }
 
-      if (!isRayCastOcclusion && occlusionMeshRef.current && !isMeshSizeSet.current) {
-        if (transform) {
-          if (transformOuterRef.current) {
-            const el = transformOuterRef.current.children[0]
+        const previouslyVisible = visible
+        if (raytraceTarget) {
+          const isvisible = isObjectVisible(group, store.camera, store.raycaster, raytraceTarget)
+          visible = isvisible && !isBehindCamera
+        } else {
+          visible = !isBehindCamera
+        }
 
-            if (el?.clientWidth && el?.clientHeight) {
-              const { isOrthographicCamera } = camera as OrthographicCamera
+        if (previouslyVisible !== visible) {
+          if (props.onOcclude) props.onOcclude(!visible)
+          else element().style.display = visible ? 'block' : 'none'
+        }
 
-              if (isOrthographicCamera || geometry) {
-                if (props.scale) {
-                  if (!Array.isArray(props.scale)) {
-                    occlusionMeshRef.current.scale.setScalar(1 / (props.scale as number))
-                  } else if (props.scale instanceof Vector3) {
-                    occlusionMeshRef.current.scale.copy(props.scale.clone().divideScalar(1))
-                  } else {
-                    occlusionMeshRef.current.scale.set(1 / props.scale[0], 1 / props.scale[1], 1 / props.scale[2])
-                  }
-                }
-              } else {
-                const ratio = (distanceFactor || 10) / 400
-                const w = el.clientWidth * ratio
-                const h = el.clientHeight * ratio
+        const halfRange = Math.floor(props.zIndexRange[0] / 2)
+        const zRange = props.occlude
+          ? isRayCastOcclusion() //
+            ? [props.zIndexRange[0], halfRange]
+            : [halfRange - 1, 0]
+          : props.zIndexRange
 
-                occlusionMeshRef.current.scale.set(w, h, 1)
-              }
+        element().style.zIndex = `${objectZIndex(group, store.camera, zRange)}`
 
-              isMeshSizeSet.current = true
-            }
+        if (props.transform) {
+          const [widthHalf, heightHalf] = [store.size.width / 2, store.size.height / 2]
+          const fov = store.camera.projectionMatrix.elements[5] * heightHalf
+          const { isOrthographicCamera, top, left, bottom, right } = store.camera as OrthographicCamera
+          const cameraMatrix = getCameraCSSMatrix(store.camera.matrixWorldInverse)
+          const cameraTransform = isOrthographicCamera
+            ? `scale(${fov})translate(${epsilon(-(right + left) / 2)}px,${epsilon((top + bottom) / 2)}px)`
+            : `translateZ(${fov}px)`
+          let matrix = group.matrixWorld
+          if (props.sprite) {
+            matrix = store.camera.matrixWorldInverse.clone().transpose().copyPosition(matrix).scale(group.scale)
+            matrix.elements[3] = matrix.elements[7] = matrix.elements[11] = 0
+            matrix.elements[15] = 1
+          }
+          element().style.width = store.size.width + 'px'
+          element().style.height = store.size.height + 'px'
+          element().style.perspective = isOrthographicCamera ? '' : `${fov}px`
+          if (transformOuterRef && transformInnerRef) {
+            transformOuterRef.style.transform = `${cameraTransform}${cameraMatrix}translate(${widthHalf}px,${heightHalf}px)`
+            transformInnerRef.style.transform = getObjectCSSMatrix(matrix, 1 / ((props.distanceFactor || 10) / 400))
           }
         } else {
-          const ele = el.children[0]
-
-          if (ele?.clientWidth && ele?.clientHeight) {
-            const ratio = 1 / viewport.factor
-            const w = ele.clientWidth * ratio
-            const h = ele.clientHeight * ratio
-
-            occlusionMeshRef.current.scale.set(w, h, 1)
-
-            isMeshSizeSet.current = true
-          }
-
-          occlusionMeshRef.current.lookAt(gl.camera.position)
+          const scale = props.distanceFactor === undefined ? 1 : objectScale(group, store.camera) * props.distanceFactor
+          element().style.transform = `translate3d(${vec[0]}px,${vec[1]}px,0) scale(${scale})`
         }
+        oldPosition = vec
+        oldZoom = store.camera.zoom
       }
     })
 
-    const shaders = React.useMemo(
-      () => ({
-        vertexShader: !transform
-          ? /* glsl */ `
+    if (!isRayCastOcclusion() && occlusionMeshRef && !isMeshSizeSet) {
+      if (props.transform) {
+        if (transformOuterRef) {
+          const el = transformOuterRef.children[0]
+
+          if (el?.clientWidth && el?.clientHeight) {
+            const { isOrthographicCamera } = store.camera as OrthographicCamera
+
+            if (isOrthographicCamera || props.geometry) {
+              if (rest.scale) {
+                if (!Array.isArray(rest.scale)) {
+                  occlusionMeshRef.scale.setScalar(1 / (rest.scale as number))
+                } else if (rest.scale instanceof Vector3) {
+                  occlusionMeshRef.scale.copy(rest.scale.clone().divideScalar(1))
+                } else {
+                  occlusionMeshRef.scale.set(1 / rest.scale[0], 1 / rest.scale[1], 1 / rest.scale[2])
+                }
+              }
+            } else {
+              const ratio = (props.distanceFactor || 10) / 400
+              const w = el.clientWidth * ratio
+              const h = el.clientHeight * ratio
+
+              occlusionMeshRef.scale.set(w, h, 1)
+            }
+
+            isMeshSizeSet = true
+          }
+        }
+      } else {
+        const ele = element().children[0]
+
+        if (ele?.clientWidth && ele?.clientHeight) {
+          const ratio = 1 / store.viewport.factor
+          const w = ele.clientWidth * ratio
+          const h = ele.clientHeight * ratio
+
+          occlusionMeshRef.scale.set(w, h, 1)
+
+          isMeshSizeSet = true
+        }
+
+        occlusionMeshRef.lookAt(gl.camera.position)
+      }
+    }
+  })
+
+  const shaders = createMemo(() => ({
+    vertexShader: !props.transform
+      ? /* glsl */ `
           /*
             This shader is from the THREE's SpriteMaterial.
             We need to turn the backing plane into a Sprite
@@ -438,31 +456,27 @@ export const Html = React.forwardRef(
             gl_Position = projectionMatrix * mvPosition;
           }
       `
-          : undefined,
-        fragmentShader: /* glsl */ `
+      : undefined,
+    fragmentShader: /* glsl */ `
         void main() {
           gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
         }
       `,
-      }),
-      [transform]
-    )
-
-    return (
-      <group {...props} ref={group}>
-        {occlude && !isRayCastOcclusion && (
-          <mesh castShadow={castShadow} receiveShadow={receiveShadow} ref={occlusionMeshRef}>
-            {geometry || <planeGeometry />}
-            {material || (
-              <shaderMaterial
-                side={DoubleSide}
-                vertexShader={shaders.vertexShader}
-                fragmentShader={shaders.fragmentShader}
-              />
-            )}
-          </mesh>
-        )}
-      </group>
-    )
-  }
-)
+  }))
+  return (
+    <T.Group {...rest} ref={setGroup}>
+      <Show when={props.occlude && !isRayCastOcclusion()}>
+        <T.Mesh castShadow={props.castShadow} receiveShadow={props.receiveShadow} ref={occlusionMeshRef}>
+          {props.geometry || <T.PlaneGeometry />}
+          {props.material || (
+            <T.ShaderMaterial
+              side={DoubleSide}
+              vertexShader={shaders().vertexShader}
+              fragmentShader={shaders().fragmentShader}
+            />
+          )}
+        </T.Mesh>
+      </Show>
+    </T.Group>
+  )
+}

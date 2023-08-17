@@ -1,6 +1,7 @@
+import { Portal, T, useFrame, useThree } from '@solid-three/fiber'
+import { JSX } from 'solid-js'
 import * as THREE from 'three'
-import * as React from 'react'
-import { useFrame, useThree, createPortal } from '@react-three/fiber'
+import { defaultProps } from '../helpers/defaultProps'
 
 type RenderHudProps = {
   defaultScene: THREE.Scene
@@ -10,45 +11,40 @@ type RenderHudProps = {
 
 type HudProps = {
   /** Any React node */
-  children: React.ReactNode
+  children: JSX.Element
   /** Render priority, default: 1 */
   renderPriority?: number
 }
 
-function RenderHud({ defaultScene, defaultCamera, renderPriority = 1 }: RenderHudProps) {
-  const { gl, scene, camera } = useThree()
-  let oldCLear
+function RenderHud(_props: { defaultScene; defaultCamera; renderPriority }) {
+  const props = defaultProps(_props, { renderPriority: 1 })
+  const store = useThree()
+  let oldClear: boolean
   useFrame(() => {
-    oldCLear = gl.autoClear
-    if (renderPriority === 1) {
+    oldClear = store.gl.autoClear
+    if (props.renderPriority === 1) {
       // Clear scene and render the default scene
-      gl.autoClear = true
-      gl.render(defaultScene, defaultCamera)
+      store.gl.autoClear = true
+      store.gl.render(props.defaultScene, props.defaultCamera)
     }
     // Disable cleaning and render the portal with its own camera
-    gl.autoClear = false
-    gl.clearDepth()
-    gl.render(scene, camera)
+    store.gl.autoClear = false
+    store.gl.clearDepth()
+    store.gl.render(store.scene, store.camera)
     // Restore default
-    gl.autoClear = oldCLear
-  }, renderPriority)
+    store.gl.autoClear = oldClear
+  }, props.renderPriority)
   // Without an element that receives pointer events state.pointer will always be 0/0
-  return <group onPointerOver={() => null} />
+  return <T.Group onPointerOver={() => null} />
 }
 
-export function Hud({ children, renderPriority = 1 }: HudProps) {
-  const { scene: defaultScene, camera: defaultCamera } = useThree()
-  const [hudScene] = React.useState(() => new THREE.Scene())
+export function Hud(props: HudProps) {
+  const store = useThree()
+  const hudScene = new THREE.Scene()
   return (
-    <>
-      {createPortal(
-        <>
-          {children}
-          <RenderHud defaultScene={defaultScene} defaultCamera={defaultCamera} renderPriority={renderPriority} />
-        </>,
-        hudScene,
-        { events: { priority: renderPriority + 1 } }
-      )}
-    </>
+    <Portal container={hudScene} state={{ events: { priority: (props.renderPriority || 1) + 1 } }}>
+      {props.children}
+      <RenderHud defaultScene={store.scene} defaultCamera={store.camera} renderPriority={props.renderPriority || 1} />
+    </Portal>
   )
 }

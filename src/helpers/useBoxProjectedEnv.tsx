@@ -1,6 +1,6 @@
+import { createMemo, createRenderEffect, on } from 'solid-js'
 import * as THREE from 'three'
-import * as React from 'react'
-import { applyProps, ReactThreeFiber } from '@react-three/fiber'
+import { resolveAccessor } from './resolveAccessor'
 
 // credits for the box-projecting shader code go to codercat (https://codercat.tk)
 // and @0beqz https://gist.github.com/0beqz/8d51b4ae16d68021a09fb504af708fca
@@ -78,22 +78,24 @@ function boxProjectedEnvMap(shader: THREE.Shader, envMapPosition: THREE.Vector3,
       )}`
 }
 
+// s3f:   changed the signature and the implementation quite a lot.
 export function useBoxProjectedEnv(
-  position: ReactThreeFiber.Vector3 = new THREE.Vector3(),
-  size: ReactThreeFiber.Vector3 = new THREE.Vector3()
+  position: THREE.Vector3 | (() => THREE.Vector3) = () => new THREE.Vector3(),
+  size: THREE.Vector3 | (() => THREE.Vector3) = () => new THREE.Vector3()
 ) {
-  const [config] = React.useState(() => ({ position: new THREE.Vector3(), size: new THREE.Vector3() }))
-  applyProps(config as any, { position, size })
-
-  const ref = React.useRef<THREE.Material>(null!)
-  const spread = React.useMemo(
-    () => ({
-      ref,
-      onBeforeCompile: (shader: THREE.Shader) => boxProjectedEnvMap(shader, config.position, config.size),
-      customProgramCacheKey: () => JSON.stringify(config.position.toArray()) + JSON.stringify(config.size.toArray()),
-    }),
-    [...config.position.toArray(), ...config.size.toArray()]
+  let ref: THREE.Material = null!
+  const spread = createMemo(() => ({
+    ref,
+    onBeforeCompile: (shader: THREE.Shader) =>
+      boxProjectedEnvMap(shader, resolveAccessor(position), resolveAccessor(size)),
+    customProgramCacheKey: () =>
+      JSON.stringify(resolveAccessor(position).toArray()) + JSON.stringify(resolveAccessor(size).toArray()),
+  }))
+  createRenderEffect(
+    on(
+      () => resolveAccessor(position) && resolveAccessor(size),
+      (boolean) => boolean && (ref.needsUpdate = true)
+    )
   )
-  React.useLayoutEffect(() => void (ref.current.needsUpdate = true), [config])
   return spread
 }

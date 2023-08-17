@@ -1,14 +1,16 @@
-import * as React from 'react'
+import { T, useFrame } from '@solid-three/fiber'
 import { Group } from 'three'
-import { useFrame } from '@react-three/fiber'
-import mergeRefs from 'react-merge-refs'
+import { createRef } from '../helpers/createRef'
+import { mergeRefs } from '../helpers/mergeRefs'
+import { processProps } from '../helpers/processProps'
+import { RefComponent } from '../helpers/typeHelpers'
 
 export type BillboardProps = {
   follow?: boolean
   lockX?: boolean
   lockY?: boolean
   lockZ?: boolean
-} & JSX.IntrinsicElements['group']
+} & Parameters<typeof T.Group>[0]
 
 /**
  * Wraps children in a billboarded group. Sample usage:
@@ -19,24 +21,28 @@ export type BillboardProps = {
  * </Billboard>
  * ```
  */
-export const Billboard = React.forwardRef<Group, BillboardProps>(function Billboard(
-  { follow = true, lockX = false, lockY = false, lockZ = false, ...props },
-  ref
-) {
-  const localRef = React.useRef<Group>()
+export const Billboard: RefComponent<Group, BillboardProps> = function Billboard(_props) {
+  const [props, rest] = processProps(_props, { follow: true, lockX: false, lockY: false, lockZ: false }, [
+    'follow',
+    'lockX',
+    'lockY',
+    'lockZ',
+    'ref',
+  ])
+  const localRef = createRef<Group>()
   useFrame(({ camera }) => {
-    if (!follow || !localRef.current) return
+    if (!props.follow || !localRef.ref) return
 
     // save previous rotation in case we're locking an axis
-    const prevRotation = localRef.current.rotation.clone()
+    const prevRotation = localRef.ref.rotation.clone()
 
     // always face the camera
-    camera.getWorldQuaternion(localRef.current.quaternion)
+    camera.getWorldQuaternion(localRef.ref.quaternion)
 
     // readjust any axis that is locked
-    if (lockX) localRef.current.rotation.x = prevRotation.x
-    if (lockY) localRef.current.rotation.y = prevRotation.y
-    if (lockZ) localRef.current.rotation.z = prevRotation.z
+    if (props.lockX) localRef.ref.rotation.x = prevRotation.x
+    if (props.lockY) localRef.ref.rotation.y = prevRotation.y
+    if (props.lockZ) localRef.ref.rotation.z = prevRotation.z
   })
-  return <group ref={mergeRefs([localRef, ref])} {...props} />
-})
+  return <T.Group ref={mergeRefs(localRef, props)} {...rest} />
+}

@@ -1,8 +1,11 @@
+import { extend, SolidThreeFiber, T, ThreeProps, useFrame, useThree } from '@solid-three/fiber'
+import { Accessor, createContext, createMemo, createRenderEffect, onCleanup, onMount, useContext } from 'solid-js'
 import * as THREE from 'three'
-import * as React from 'react'
-import { extend, ReactThreeFiber, useFrame, useThree } from '@react-three/fiber'
-import { shaderMaterial } from './shaderMaterial'
+import { processProps } from '../helpers/processProps'
+import { RefComponent } from '../helpers/typeHelpers'
+import { createImperativeHandle } from '../helpers/useImperativeHandle'
 import { DiscardMaterial } from '../materials/DiscardMaterial'
+import { shaderMaterial } from './shaderMaterial'
 
 function isLight(object: any): object is THREE.Light {
   return object.isLight
@@ -58,20 +61,20 @@ interface AccumulativeLightContext {
 
 type SoftShadowMaterialProps = {
   map: THREE.Texture
-  color?: ReactThreeFiber.Color
+  color?: SolidThreeFiber.Color
   alphaTest?: number
   blend?: number
 }
 
 declare global {
-  namespace JSX {
+  namespace SolidThree {
     interface IntrinsicElements {
-      softShadowMaterial: JSX.IntrinsicElements['shaderMaterial'] & SoftShadowMaterialProps
+      SoftShadowMaterial: ThreeProps<'ShaderMaterial'> & SoftShadowMaterialProps
     }
   }
 }
 
-export const accumulativeContext = React.createContext<AccumulativeContext>(null as unknown as AccumulativeContext)
+export const accumulativeContext = createContext<AccumulativeContext>(null as unknown as AccumulativeContext)
 
 const SoftShadowMaterial = shaderMaterial(
   {
@@ -100,123 +103,131 @@ const SoftShadowMaterial = shaderMaterial(
    }`
 )
 
-export const AccumulativeShadows = React.forwardRef(
-  (
+export const AccumulativeShadows: RefComponent<AccumulativeContext, ThreeProps<'Group'> & AccumulativeShadowsProps> = (
+  _props
+) => {
+  const [props, rest] = processProps(
+    _props,
     {
-      children,
-      temporal,
-      frames = 40,
-      limit = Infinity,
-      blend = 20,
-      scale = 10,
-      opacity = 1,
-      alphaTest = 0.75,
-      color = 'black',
-      colorBlend = 2,
-      resolution = 1024,
-      toneMapped = true,
-      ...props
-    }: JSX.IntrinsicElements['group'] & AccumulativeShadowsProps,
-    forwardRef: React.ForwardedRef<AccumulativeContext>
-  ) => {
-    extend({ SoftShadowMaterial })
+      frames: 40,
+      limit: Infinity,
+      blend: 20,
+      scale: 10,
+      opacity: 1,
+      alphaTest: 0.75,
+      color: 'black',
+      colorBlend: 2,
+      resolution: 1024,
+      toneMapped: true,
+    },
+    [
+      'ref',
+      'children',
+      'temporal',
+      'frames',
+      'limit',
+      'blend',
+      'scale',
+      'opacity',
+      'alphaTest',
+      'color',
+      'colorBlend',
+      'resolution',
+      'toneMapped',
+    ]
+  )
 
-    const gl = useThree((state) => state.gl)
-    const scene = useThree((state) => state.scene)
-    const camera = useThree((state) => state.camera)
-    const invalidate = useThree((state) => state.invalidate)
-    const gPlane = React.useRef<THREE.Mesh<THREE.PlaneGeometry, SoftShadowMaterialProps & THREE.ShaderMaterial>>(null!)
-    const gLights = React.useRef<THREE.Group>(null!)
+  extend({ SoftShadowMaterial })
+  const store = useThree()
+  let gPlane: THREE.Mesh<THREE.PlaneGeometry, SoftShadowMaterialProps & THREE.ShaderMaterial> = null!
+  let gLights: THREE.Group = null!
 
-    const [plm] = React.useState(() => new ProgressiveLightMap(gl, scene, resolution))
-    React.useLayoutEffect(() => {
-      plm.configure(gPlane.current)
-    }, [])
+  const plm = new ProgressiveLightMap(store.gl, store.scene, props.resolution)
+  createRenderEffect(() => {
+    plm.configure(gPlane)
+  }, [])
 
-    const api = React.useMemo<AccumulativeContext>(
-      () => ({
-        lights: new Map(),
-        temporal: !!temporal,
-        frames: Math.max(2, frames),
-        blend: Math.max(2, frames === Infinity ? blend : frames),
-        count: 0,
-        getMesh: () => gPlane.current,
-        reset: () => {
-          // Clear buffers, reset opacities, set frame count to 0
-          plm.clear()
-          const material = gPlane.current.material
-          material.opacity = 0
-          material.alphaTest = 0
-          api.count = 0
-        },
-        update: (frames = 1) => {
-          // Adapt the opacity-blend ratio to the number of frames
-          const material = gPlane.current.material
-          if (!api.temporal) {
-            material.opacity = opacity
-            material.alphaTest = alphaTest
-          } else {
-            material.opacity = Math.min(opacity, material.opacity + opacity / api.blend)
-            material.alphaTest = Math.min(alphaTest, material.alphaTest + alphaTest / api.blend)
-          }
-
-          // Switch accumulative lights on
-          gLights.current.visible = true
-          // Collect scene lights and meshes
-          plm.prepare()
-
-          // Update the lightmap and the accumulative lights
-          for (let i = 0; i < frames; i++) {
-            api.lights.forEach((light) => light.update())
-            plm.update(camera, api.blend)
-          }
-          // Switch lights off
-          gLights.current.visible = false
-          // Restore lights and meshes
-          plm.finish()
-        },
-      }),
-      [plm, camera, scene, temporal, frames, blend, opacity, alphaTest]
-    )
-
-    React.useLayoutEffect(() => {
-      // Reset internals, buffers, ...
-      api.reset()
-      // Update lightmap
-      if (!api.temporal && api.frames !== Infinity) api.update(api.blend)
-    })
-
-    // Expose api, allow children to set itself as the main light source
-    React.useImperativeHandle(forwardRef, () => api, [api])
-
-    useFrame(() => {
-      if ((api.temporal || api.frames === Infinity) && api.count < api.frames && api.count < limit) {
-        invalidate()
-        api.update()
-        api.count++
+  const api = createMemo<AccumulativeContext>(() => ({
+    lights: new Map(),
+    temporal: !!props.temporal,
+    frames: Math.max(2, props.frames),
+    blend: Math.max(2, props.frames === Infinity ? props.blend : props.frames),
+    count: 0,
+    getMesh: () => gPlane,
+    reset: () => {
+      if (!gPlane) return
+      // Clear buffers, reset opacities, set frame count to 0
+      plm.clear()
+      const material = gPlane.material
+      material.opacity = 0
+      material.alphaTest = 0
+      api().count = 0
+    },
+    update: (frames = 1) => {
+      // Adapt the opacity-blend ratio to the number of frames
+      const material = gPlane.material
+      if (!api().temporal) {
+        material.opacity = props.opacity
+        material.alphaTest = props.alphaTest
+      } else {
+        material.opacity = Math.min(props.opacity, material.opacity + props.opacity / api().blend)
+        material.alphaTest = Math.min(props.alphaTest, material.alphaTest + props.alphaTest / api().blend)
       }
-    })
 
-    return (
-      <group {...props}>
-        <group traverse={() => null} ref={gLights}>
-          <accumulativeContext.Provider value={api}>{children}</accumulativeContext.Provider>
-        </group>
-        <mesh receiveShadow ref={gPlane} scale={scale} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry />
-          <softShadowMaterial
-            transparent
-            depthWrite={false}
-            toneMapped={toneMapped}
-            color={color}
-            blend={colorBlend}
-            map={plm.progressiveLightMap2.texture}
-          />
-        </mesh>
-      </group>
-    )
-  }
-)
+      // Switch accumulative lights on
+      gLights.visible = true
+      // Collect scene lights and meshes
+      plm.prepare()
+
+      // Update the lightmap and the accumulative lights
+      for (let i = 0; i < frames; i++) {
+        api().lights.forEach((light) => light.update())
+        plm.update(store.camera, api().blend)
+      }
+      // Switch lights off
+      gLights.visible = false
+      // Restore lights and meshes
+      plm.finish()
+    },
+  }))
+
+  onMount(() => {
+    // Reset internals, buffers, ...
+    api().reset()
+    // Update lightmap
+    if (!api().temporal && api().frames !== Infinity) api().update(api().blend)
+  })
+
+  // Expose api, allow children to set itself as the main light source
+  createImperativeHandle(props, api)
+
+  useFrame(() => {
+    if ((api().temporal || api().frames === Infinity) && api().count < api().frames && api().count < props.limit) {
+      store.invalidate()
+      api().update()
+      api().count++
+    }
+  })
+
+  return (
+    <T.Group {...rest}>
+      <T.Group traverse={() => null} ref={gLights}>
+        <accumulativeContext.Provider value={api()}>{props.children}</accumulativeContext.Provider>
+      </T.Group>
+      <T.Mesh receiveShadow ref={gPlane} scale={props.scale} rotation={[-Math.PI / 2, 0, 0]}>
+        <T.PlaneGeometry />
+        <T.SoftShadowMaterial
+          transparent
+          depthWrite={false}
+          toneMapped={props.toneMapped}
+          color={props.color}
+          blend={props.colorBlend}
+          map={plm.progressiveLightMap2.texture}
+        />
+      </T.Mesh>
+    </T.Group>
+  )
+}
 
 export type RandomizedLightProps = {
   /** How many frames it will jiggle the lights, 1.
@@ -246,78 +257,97 @@ export type RandomizedLightProps = {
   far?: number
 }
 
-export const RandomizedLight = React.forwardRef(
-  (
+export const RandomizedLight: RefComponent<AccumulativeLightContext, ThreeProps<'Group'> & RandomizedLightProps> = (
+  _props
+) => {
+  const [props, rest] = processProps(
+    _props,
     {
-      castShadow = true,
-      bias = 0.001,
-      mapSize = 512,
-      size = 5,
-      near = 0.5,
-      far = 500,
-      frames = 1,
-      position = [0, 0, 0],
-      radius = 1,
-      amount = 8,
-      intensity = 1,
-      ambient = 0.5,
-      ...props
-    }: JSX.IntrinsicElements['group'] & RandomizedLightProps,
-    forwardRef: React.ForwardedRef<AccumulativeLightContext>
-  ) => {
-    const gLights = React.useRef<THREE.Group>(null!)
-    const length = new THREE.Vector3(...position).length()
-    const parent = React.useContext(accumulativeContext)
+      castShadow: true,
+      bias: 0.001,
+      mapSize: 512,
+      size: 5,
+      near: 0.5,
+      far: 500,
+      frames: 1,
+      position: [0, 0, 0],
+      radius: 1,
+      amount: 8,
+      intensity: 1,
+      ambient: 0.5,
+    },
+    [
+      'ref',
+      'castShadow',
+      'bias',
+      'mapSize',
+      'size',
+      'near',
+      'far',
+      'frames',
+      'position',
+      'radius',
+      'amount',
+      'intensity',
+      'ambient',
+    ]
+  )
 
-    const update = React.useCallback(() => {
-      let light: THREE.Object3D | undefined
-      if (gLights.current) {
-        for (let l = 0; l < gLights.current.children.length; l++) {
-          light = gLights.current.children[l]
-          if (Math.random() > ambient) {
-            light.position.set(
-              position[0] + THREE.MathUtils.randFloatSpread(radius),
-              position[1] + THREE.MathUtils.randFloatSpread(radius),
-              position[2] + THREE.MathUtils.randFloatSpread(radius)
-            )
-          } else {
-            let lambda = Math.acos(2 * Math.random() - 1) - Math.PI / 2.0
-            let phi = 2 * Math.PI * Math.random()
-            light.position.set(
-              Math.cos(lambda) * Math.cos(phi) * length,
-              Math.abs(Math.cos(lambda) * Math.sin(phi) * length),
-              Math.sin(lambda) * length
-            )
-          }
+  let gLights: THREE.Group = null!
+  const length = new THREE.Vector3(...props.position).length()
+  // s3f:   should parent be reactive?
+  const parent = useContext(accumulativeContext)
+
+  const update = () => {
+    let light: THREE.Object3D | undefined
+    if (gLights) {
+      for (let l = 0; l < gLights.children.length; l++) {
+        light = gLights.children[l]
+        if (Math.random() > props.ambient) {
+          light.position.set(
+            props.position[0] + THREE.MathUtils.randFloatSpread(props.radius),
+            props.position[1] + THREE.MathUtils.randFloatSpread(props.radius),
+            props.position[2] + THREE.MathUtils.randFloatSpread(props.radius)
+          )
+        } else {
+          let lambda = Math.acos(2 * Math.random() - 1) - Math.PI / 2.0
+          let phi = 2 * Math.PI * Math.random()
+          light.position.set(
+            Math.cos(lambda) * Math.cos(phi) * length,
+            Math.abs(Math.cos(lambda) * Math.sin(phi) * length),
+            Math.sin(lambda) * length
+          )
         }
       }
-    }, [radius, ambient, length, ...position])
-
-    const api: AccumulativeLightContext = React.useMemo(() => ({ update }), [update])
-    React.useImperativeHandle(forwardRef, () => api, [api])
-    React.useLayoutEffect(() => {
-      const group = gLights.current
-      if (parent) parent.lights.set(group.uuid, api)
-      return () => void parent.lights.delete(group.uuid)
-    }, [parent, api])
-
-    return (
-      <group ref={gLights} {...props}>
-        {Array.from({ length: amount }, (_, index) => (
-          <directionalLight
-            key={index}
-            castShadow={castShadow}
-            shadow-bias={bias}
-            shadow-mapSize={[mapSize, mapSize]}
-            intensity={intensity / amount}
-          >
-            <orthographicCamera attach="shadow-camera" args={[-size, size, size, -size, near, far]} />
-          </directionalLight>
-        ))}
-      </group>
-    )
+    }
   }
-)
+
+  const api: Accessor<AccumulativeLightContext> = createMemo(() => ({ update }))
+  createImperativeHandle(props, api)
+  onMount(() => {
+    const group = gLights
+    if (parent) parent.lights.set(group.uuid, api())
+    onCleanup(() => void parent.lights.delete(group.uuid))
+  })
+
+  return (
+    <T.Group ref={gLights} {...rest}>
+      {Array.from({ length: props.amount }, (_, index) => (
+        <T.DirectionalLight
+          castShadow={props.castShadow}
+          shadow-bias={props.bias}
+          shadow-mapSize={[props.mapSize, props.mapSize]}
+          intensity={props.intensity / props.amount}
+        >
+          <T.OrthographicCamera
+            attach="shadow-camera"
+            args={[-props.size, props.size, props.size, -props.size, props.near, props.far]}
+          />
+        </T.DirectionalLight>
+      ))}
+    </T.Group>
+  )
+}
 
 // Based on "Progressive Light Map Accumulator", by [zalo](https://github.com/zalo/)
 class ProgressiveLightMap {

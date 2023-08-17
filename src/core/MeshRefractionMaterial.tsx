@@ -1,19 +1,20 @@
+import { SolidThreeFiber, T, ThreeProps, extend, useFrame, useThree } from '@solid-three/fiber'
+
+import { createMemo, onMount } from 'solid-js'
 import * as THREE from 'three'
-import * as React from 'react'
-import { useLayoutEffect, useMemo, useRef } from 'react'
-import { extend, ReactThreeFiber, useThree, useFrame } from '@react-three/fiber'
-import { MeshBVHUniformStruct, MeshBVH, SAH } from 'three-mesh-bvh'
+import { MeshBVH, MeshBVHUniformStruct, SAH } from 'three-mesh-bvh'
+import { processProps } from '../helpers/processProps'
 import { MeshRefractionMaterial as MeshRefractionMaterial_ } from '../materials/MeshRefractionMaterial'
 
 declare global {
-  namespace JSX {
+  namespace SolidThree {
     interface IntrinsicElements {
-      meshRefractionMaterial: typeof MeshRefractionMaterial_
+      MeshRefractionMaterial: typeof MeshRefractionMaterial_
     }
   }
 }
 
-type MeshRefractionMaterialProps = JSX.IntrinsicElements['shaderMaterial'] & {
+type MeshRefractionMaterialProps = ThreeProps<'ShaderMaterial'> & {
   /** Environment map */
   envMap: THREE.CubeTexture | THREE.Texture
   /** Number of ray-cast bounces, it can be expensive to have too many, 2 */
@@ -25,7 +26,7 @@ type MeshRefractionMaterialProps = JSX.IntrinsicElements['shaderMaterial'] & {
   /** RGB shift intensity, can be expensive, 0 */
   aberrationStrength?: number
   /** Color, white */
-  color?: ReactThreeFiber.Color
+  color?: SolidThreeFiber.Color
   /** If this is on it uses fewer ray casts for the RGB shift sacrificing physical accuracy, true */
   fastChroma?: boolean
 }
@@ -33,22 +34,26 @@ type MeshRefractionMaterialProps = JSX.IntrinsicElements['shaderMaterial'] & {
 const isCubeTexture = (def: THREE.CubeTexture | THREE.Texture): def is THREE.CubeTexture =>
   def && (def as THREE.CubeTexture).isCubeTexture
 
-export function MeshRefractionMaterial({
-  aberrationStrength = 0,
-  fastChroma = true,
-  envMap,
-  ...props
-}: MeshRefractionMaterialProps) {
+export function MeshRefractionMaterial(_props: MeshRefractionMaterialProps) {
+  const [props, rest] = processProps(
+    _props,
+    {
+      aberrationStrength: 0,
+      fastChroma: true,
+    },
+    ['aberrationStrength', 'fastChroma', 'envMap']
+  )
+
   extend({ MeshRefractionMaterial: MeshRefractionMaterial_ })
 
-  const material = useRef()
-  const { size } = useThree()
+  let material
+  const store = useThree()
 
-  const defines = useMemo(() => {
+  const defines = createMemo(() => {
     const temp = {} as { [key: string]: string }
     // Sampler2D and SamplerCube need different defines
-    const isCubeMap = isCubeTexture(envMap)
-    const w = (isCubeMap ? envMap.image[0]?.width : envMap.image.width) ?? 1024
+    const isCubeMap = isCubeTexture(props.envMap)
+    const w = (isCubeMap ? props.envMap.image[0]?.width : props.envMap.image.width) ?? 1024
     const cubeSize = w / 4
     const _lodMax = Math.floor(Math.log2(cubeSize))
     const _cubeSize = Math.pow(2, _lodMax)
@@ -59,39 +64,37 @@ export function MeshRefractionMaterial({
     temp.CUBEUV_TEXEL_HEIGHT = `${1.0 / height}`
     temp.CUBEUV_MAX_MIP = `${_lodMax}.0`
     // Add defines from chromatic aberration
-    if (aberrationStrength > 0) temp.CHROMATIC_ABERRATIONS = ''
-    if (fastChroma) temp.FAST_CHROMA = ''
+    if (props.aberrationStrength > 0) temp.CHROMATIC_ABERRATIONS = ''
+    if (props.fastChroma) temp.FAST_CHROMA = ''
     return temp
-  }, [aberrationStrength, fastChroma])
+  }, [props.aberrationStrength, props.fastChroma])
 
-  useLayoutEffect(() => {
+  onMount(() => {
     // Get the geometry of this materials parent
-    const geometry = (material.current as any)?.__r3f?.parent?.geometry
+    const geometry = material?.__r3f?.parent?.geometry
     // Update the BVH
     if (geometry) {
-      ;(material.current as any).bvh = new MeshBVHUniformStruct()
-      ;(material.current as any).bvh.updateFrom(
-        new MeshBVH(geometry.clone().toNonIndexed(), { lazyGeneration: false, strategy: SAH })
-      )
+      material.bvh = new MeshBVHUniformStruct()
+      material.bvh.updateFrom(new MeshBVH(geometry.clone().toNonIndexed(), { lazyGeneration: false, strategy: SAH }))
     }
-  }, [])
+  })
 
   useFrame(({ camera }) => {
-    ;(material.current as any)!.viewMatrixInverse = camera.matrixWorld
-    ;(material.current as any)!.projectionMatrixInverse = camera.projectionMatrixInverse
+    material!.viewMatrixInverse = camera.matrixWorld
+    material!.projectionMatrixInverse = camera.projectionMatrixInverse
   })
 
   return (
-    <meshRefractionMaterial
+    <T.MeshRefractionMaterial
       // @ts-ignore
       key={JSON.stringify(defines)}
       // @ts-ignore
       defines={defines}
       ref={material}
-      resolution={[size.width, size.height]}
-      aberrationStrength={aberrationStrength}
-      envMap={envMap}
-      {...props}
+      resolution={[store.size.width, store.size.height]}
+      aberrationStrength={props.aberrationStrength}
+      envMap={props.envMap}
+      {...rest}
     />
   )
 }

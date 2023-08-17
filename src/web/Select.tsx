@@ -1,12 +1,13 @@
-import * as React from 'react'
+import { T, useThree } from '@solid-three/fiber'
+import { Accessor, createContext, createEffect, createSignal, onCleanup, untrack, useContext } from 'solid-js'
 import * as THREE from 'three'
 import { SelectionBox } from 'three-stdlib'
-import { useThree } from '@react-three/fiber'
 import shallow from 'zustand/shallow'
+import { processProps } from '../helpers/processProps'
 
-const context = React.createContext<THREE.Object3D[]>([])
+const context = createContext<Accessor<THREE.Object3D[]>>(() => [])
 
-type Props = JSX.IntrinsicElements['group'] & {
+type Props = Parameters<typeof T.Group>[0] & {
   /** Allow multi select, default: false */
   multiple?: boolean
   /** Allow box select, default: false */
@@ -23,72 +24,71 @@ type Props = JSX.IntrinsicElements['group'] & {
   filter?: (selected: THREE.Object3D[]) => THREE.Object3D[]
 }
 
-export function Select({
-  box,
-  multiple,
-  children,
-  onChange,
-  onChangePointerUp,
-  border = '1px solid #55aaff',
-  backgroundColor = 'rgba(75, 160, 255, 0.1)',
-  filter: customFilter = (item) => item,
-  ...props
-}: Props) {
-  const [downed, down] = React.useState(false)
-  const { setEvents, camera, raycaster, gl, controls, size, get } = useThree()
-  const [hovered, hover] = React.useState(false)
-  const [active, dispatch] = React.useReducer(
-    (state, { object, shift }: { object?: THREE.Object3D | THREE.Object3D[]; shift?: boolean }): THREE.Object3D[] => {
-      if (object === undefined) return []
-      else if (Array.isArray(object)) return object
-      else if (!shift) return state[0] === object ? [] : [object]
-      else if (state.includes(object)) return state.filter((o) => o !== object)
-      else return [object, ...state]
+export function Select(_props: Props) {
+  const [props, rest] = processProps(
+    _props,
+    {
+      border: '1px solid #55aaff',
+      backgroundColor: 'rgba(75, 160, 255, 0.1)',
+      filter: (item) => item,
     },
-    []
+    ['box', 'multiple', 'children', 'onChange', 'onChangePointerUp', 'border', 'backgroundColor', 'filter']
   )
-  React.useEffect(() => {
-    if (downed) onChange?.(active)
-    else onChangePointerUp?.(active)
-  }, [active, downed])
-  const onClick = React.useCallback((e) => {
+
+  const [downed, down] = createSignal(false)
+  const store = useThree()
+  const [hovered, hover] = createSignal(false)
+
+  const [active, setActive] = createSignal<THREE.Object3D[]>([])
+
+  const dispatch = ({ object, shift }: { object?: THREE.Object3D | THREE.Object3D[]; shift?: boolean }) => {
+    if (object === undefined) setActive([])
+    else if (Array.isArray(object)) setActive(object)
+    else if (!shift) setActive(active()[0] === object ? [] : [object])
+    else if (active().includes(object)) setActive(active().filter((o) => o !== object))
+    else setActive([object, ...active()])
+  }
+
+  createEffect(() => {
+    if (downed()) props.onChange?.(active())
+    else props.onChangePointerUp?.(active())
+  })
+  const onClick = (e) => {
     e.stopPropagation()
-    dispatch({ object: customFilter([e.object])[0], shift: multiple && e.shiftKey })
-  }, [])
-  const onPointerMissed = React.useCallback((e) => !hovered && dispatch({}), [hovered])
+    dispatch({ object: props.filter([e.object])[0], shift: props.multiple && e.shiftKey })
+  }
+  const onPointerMissed = (e) => !hovered() && dispatch({})
 
-  const ref = React.useRef<THREE.Group>(null!)
-  React.useEffect(() => {
-    if (!box || !multiple) return
+  let ref: THREE.Group = null!
+  createEffect(() => {
+    if (!props.box || !props.multiple) return
 
-    const selBox = new SelectionBox(camera, ref.current as unknown as THREE.Scene)
+    const selBox = new SelectionBox(store.camera, ref as unknown as THREE.Scene)
 
     const element = document.createElement('div')
     element.style.pointerEvents = 'none'
-    element.style.border = border
-    element.style.backgroundColor = backgroundColor
+    element.style.border = props.border
+    element.style.backgroundColor = props.backgroundColor
     element.style.position = 'fixed'
 
     const startPoint = new THREE.Vector2()
     const pointTopLeft = new THREE.Vector2()
     const pointBottomRight = new THREE.Vector2()
 
-    const oldRaycasterEnabled = get().events.enabled
-    const oldControlsEnabled = (controls as any)?.enabled
-
-    let isDown = false
+    // s3f: was using get(). before, hence the untrack
+    const oldRaycasterEnabled = untrack(() => store.events.enabled)
+    const oldControlsEnabled = (store.controls as any)?.enabled
 
     function prepareRay(event, vec) {
       const { offsetX, offsetY } = event
-      const { width, height } = size
+      const { width, height } = store.size
       vec.set((offsetX / width) * 2 - 1, -(offsetY / height) * 2 + 1)
     }
 
     function onSelectStart(event) {
-      if (controls) (controls as any).enabled = false
-      setEvents({ enabled: false })
-      down((isDown = true))
-      gl.domElement.parentElement?.appendChild(element)
+      if (store.controls) (store.controls as any).enabled = false
+      store.setEvents({ enabled: false })
+      store.gl.domElement.parentElement?.appendChild(element)
       element.style.left = `${event.clientX}px`
       element.style.top = `${event.clientY}px`
       element.style.width = '0px'
@@ -109,10 +109,9 @@ export function Select({
     }
 
     function onSelectOver() {
-      if (isDown) {
-        if (controls) (controls as any).enabled = oldControlsEnabled
-        setEvents({ enabled: oldRaycasterEnabled })
-        down((isDown = false))
+      if (downed()) {
+        if (store.controls) (store.controls as any).enabled = oldControlsEnabled
+        store.setEvents({ enabled: oldRaycasterEnabled })
         element.parentElement?.removeChild(element)
       }
     }
@@ -126,7 +125,7 @@ export function Select({
 
     let previous: THREE.Mesh<THREE.BufferGeometry, THREE.Material | THREE.Material[]>[] = []
     function pointerMove(event) {
-      if (isDown) {
+      if (downed()) {
         onSelectMove(event)
         prepareRay(event, selBox.endPoint)
         const allSelected = selBox
@@ -135,40 +134,43 @@ export function Select({
           .filter((o) => o.isMesh)
         if (!shallow(allSelected, previous)) {
           previous = allSelected
-          dispatch({ object: customFilter(allSelected) })
+          dispatch({ object: props.filter(allSelected) })
         }
       }
     }
 
     function pointerUp(event) {
-      if (isDown) onSelectOver()
+      if (downed()) onSelectOver()
     }
 
     document.addEventListener('pointerdown', pointerDown, { passive: true })
     document.addEventListener('pointermove', pointerMove, { passive: true, capture: true })
     document.addEventListener('pointerup', pointerUp, { passive: true })
 
-    return () => {
+    onCleanup(() => {
       document.removeEventListener('pointerdown', pointerDown)
       document.removeEventListener('pointermove', pointerMove)
       document.removeEventListener('pointerup', pointerUp)
-    }
-  }, [size.width, size.height, raycaster, camera, controls, gl])
+    })
+  })
 
   return (
-    <group
+    <T.Group
       ref={ref}
       onClick={onClick}
       onPointerOver={() => hover(true)}
       onPointerOut={() => hover(false)}
+      // s3f:   r3f does not set downed if(!props.multiple || !props.box) I wonder if this is a bug w r3f
+      onPointerDown={() => down(true)}
+      onPointerUp={() => down(false)}
       onPointerMissed={onPointerMissed}
-      {...props}
+      {...rest}
     >
-      <context.Provider value={active}>{children}</context.Provider>
-    </group>
+      <context.Provider value={active}>{props.children}</context.Provider>
+    </T.Group>
   )
 }
 
 export function useSelect() {
-  return React.useContext(context)
+  return useContext(context)
 }

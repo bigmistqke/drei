@@ -1,14 +1,17 @@
-import * as React from 'react'
-import { Vector2, Vector3, Color, ColorRepresentation } from 'three'
-import { ReactThreeFiber, useThree } from '@react-three/fiber'
+import { Primitive, SolidThreeFiber, useThree } from '@solid-three/fiber'
+import { createMemo, createRenderEffect, on, onCleanup } from 'solid-js'
+import { Color, ColorRepresentation, Vector2, Vector3 } from 'three'
 import {
+  Line2,
   LineGeometry,
-  LineSegmentsGeometry,
   LineMaterial,
   LineMaterialParameters,
-  Line2,
   LineSegments2,
+  LineSegmentsGeometry,
 } from 'three-stdlib'
+import { processProps } from '../helpers/processProps'
+import { RefComponent } from '../helpers/typeHelpers'
+import { all } from '../helpers/when'
 
 export type LineProps = {
   points: Array<Vector3 | Vector2 | [number, number, number] | [number, number] | number>
@@ -16,21 +19,29 @@ export type LineProps = {
   lineWidth?: number
   segments?: boolean
 } & Omit<LineMaterialParameters, 'vertexColors' | 'color'> &
-  Omit<ReactThreeFiber.Object3DNode<Line2, typeof Line2>, 'args'> &
-  Omit<ReactThreeFiber.Object3DNode<LineMaterial, [LineMaterialParameters]>, 'color' | 'vertexColors' | 'args'> & {
+  Omit<SolidThreeFiber.Object3DNode<Line2>, 'args'> &
+  Omit<SolidThreeFiber.Object3DNode<LineMaterial>, 'color' | 'vertexColors' | 'args'> & {
     color?: ColorRepresentation
   }
 
-export const Line = React.forwardRef<Line2 | LineSegments2, LineProps>(function Line(
-  { points, color = 'black', vertexColors, linewidth, lineWidth, segments, dashed, ...rest },
-  ref
-) {
-  const size = useThree((state) => state.size)
-  const line2 = React.useMemo(() => (segments ? new LineSegments2() : new Line2()), [segments])
-  const [lineMaterial] = React.useState(() => new LineMaterial())
-  const lineGeom = React.useMemo(() => {
-    const geom = segments ? new LineSegmentsGeometry() : new LineGeometry()
-    const pValues = points.map((p) => {
+export const Line: RefComponent<Line2 | LineSegments2, LineProps> = function Line(_props) {
+  const [props, rest] = processProps(_props, { color: 'black' }, [
+    'ref',
+    'points',
+    'color',
+    'vertexColors',
+    'linewidth',
+    'lineWidth',
+    'segments',
+    'dashed',
+  ])
+
+  const store = useThree()
+  const line2 = createMemo(() => (props.segments ? new LineSegments2() : new Line2()))
+  const lineMaterial = new LineMaterial()
+  const lineGeom = createMemo(() => {
+    const geom = props.segments ? new LineSegmentsGeometry() : new LineGeometry()
+    const pValues = props.points.map((p) => {
       const isArray = Array.isArray(p)
       return p instanceof Vector3
         ? [p.x, p.y, p.z]
@@ -45,45 +56,53 @@ export const Line = React.forwardRef<Line2 | LineSegments2, LineProps>(function 
 
     geom.setPositions(pValues.flat())
 
-    if (vertexColors) {
-      const cValues = vertexColors.map((c) => (c instanceof Color ? c.toArray() : c))
+    if (props.vertexColors) {
+      const cValues = props.vertexColors.map((c) => (c instanceof Color ? c.toArray() : c))
       geom.setColors(cValues.flat())
     }
 
     return geom
-  }, [points, segments, vertexColors])
+  })
 
-  React.useLayoutEffect(() => {
-    line2.computeLineDistances()
-  }, [points, line2])
+  createRenderEffect(
+    on(
+      () => all(props.points, line2),
+      (props) => {
+        if (!props) return
+        const [points, line] = props
 
-  React.useLayoutEffect(() => {
-    if (dashed) {
+        // line2().computeLineDistances()
+      }
+    )
+  )
+
+  createRenderEffect(() => {
+    if (props.dashed) {
       lineMaterial.defines.USE_DASH = ''
     } else {
       // Setting lineMaterial.defines.USE_DASH to undefined is apparently not sufficient.
       delete lineMaterial.defines.USE_DASH
     }
     lineMaterial.needsUpdate = true
-  }, [dashed, lineMaterial])
+  })
 
-  React.useEffect(() => {
-    return () => lineGeom.dispose()
-  }, [lineGeom])
+  onCleanup(() => lineGeom().dispose())
 
   return (
-    <primitive object={line2} ref={ref} {...rest}>
-      <primitive object={lineGeom} attach="geometry" />
-      <primitive
-        object={lineMaterial}
-        attach="material"
-        color={color}
-        vertexColors={Boolean(vertexColors)}
-        resolution={[size.width, size.height]}
-        linewidth={linewidth ?? lineWidth}
-        dashed={dashed}
-        {...rest}
-      />
-    </primitive>
+    <>
+      <Primitive object={line2()} ref={props.ref} {...rest}>
+        <Primitive object={lineGeom()} attach="geometry" />
+        <Primitive
+          object={lineMaterial}
+          attach="material"
+          color={props.color}
+          vertexColors={Boolean(props.vertexColors)}
+          resolution={[store.size.width, store.size.height]}
+          linewidth={props.linewidth ?? props.lineWidth}
+          dashed={props.dashed}
+          {...rest}
+        />
+      </Primitive>
+    </>
   )
-})
+}

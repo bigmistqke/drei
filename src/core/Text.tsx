@@ -1,13 +1,16 @@
-import * as React from 'react'
+import { createMemo, createRenderEffect, createResource, JSX, onCleanup } from 'solid-js'
 // @ts-ignore
-import { Text as TextMeshImpl, preloadFont } from 'troika-three-text'
-import { ReactThreeFiber, useThree } from '@react-three/fiber'
-import { suspend } from 'suspend-react'
+import { Primitive, SolidThreeFiber, ThreeProps, useThree } from '@solid-three/fiber'
+// import { suspend } from 'suspend-react'
+import { preloadFont, Text as TextMeshImpl } from 'troika-three-text'
+import { processProps } from '../helpers/processProps'
+import { resolveAccessor } from '../helpers/resolveAccessor'
+import { RefComponent } from '../helpers/typeHelpers'
 
-type Props = JSX.IntrinsicElements['mesh'] & {
-  children: React.ReactNode
+type Props = ThreeProps<'Mesh'> & {
+  children: JSX.Element | JSX.Element[]
   characters?: string
-  color?: ReactThreeFiber.Color
+  color?: SolidThreeFiber.Color
   /** Font size, default: 1 */
   fontSize?: number
   maxWidth?: number
@@ -26,10 +29,10 @@ type Props = JSX.IntrinsicElements['mesh'] & {
   outlineOffsetX?: number | string
   outlineOffsetY?: number | string
   outlineBlur?: number | string
-  outlineColor?: ReactThreeFiber.Color
+  outlineColor?: SolidThreeFiber.Color
   outlineOpacity?: number
   strokeWidth?: number | string
-  strokeColor?: ReactThreeFiber.Color
+  strokeColor?: SolidThreeFiber.Color
   strokeOpacity?: number
   fillOpacity?: number
   sdfGlyphSize?: number
@@ -38,65 +41,66 @@ type Props = JSX.IntrinsicElements['mesh'] & {
 }
 
 // eslint-disable-next-line prettier/prettier
-export const Text = React.forwardRef(
-  (
+export const Text: RefComponent<any, Props> = (_props) => {
+  const [props, rest] = processProps(
+    _props,
     {
-      sdfGlyphSize = 64,
-      anchorX = 'center',
-      anchorY = 'middle',
-      font,
-      fontSize = 1,
-      children,
-      characters,
-      onSync,
-      ...props
-    }: Props,
-    ref: React.ForwardedRef<any>
-  ) => {
-    const invalidate = useThree(({ invalidate }) => invalidate)
-    const [troikaMesh] = React.useState(() => new TextMeshImpl())
+      sdfGlyphSize: 64,
+      anchorX: 'center',
+      anchorY: 'middle',
+    },
+    ['sdfGlyphSize', 'anchorX', 'anchorY', 'font', 'fontSize', 'children', 'characters', 'onSync']
+  )
 
-    const [nodes, text] = React.useMemo(() => {
-      const n: React.ReactNode[] = []
-      let t = ''
-      React.Children.forEach(children, (child) => {
+  const store = useThree()
+  const troikaMesh = new TextMeshImpl()
+
+  const memo = createMemo(() => {
+    const nodes: JSX.Element[] = []
+    let text = ''
+
+    const children = Array.isArray(props.children) ? props.children : [props.children]
+
+    children
+      .map((child) => resolveAccessor(child))
+      .forEach((child) => {
         if (typeof child === 'string' || typeof child === 'number') {
-          t += child
+          text += child
         } else {
-          n.push(child)
+          nodes.push(child)
         }
       })
-      return [n, t]
-    }, [children])
 
-    suspend(() => new Promise((res) => preloadFont({ font, characters }, res)), ['troika-text', font, characters])
+    return { nodes, text }
+  })
 
-    React.useLayoutEffect(
-      () =>
-        void troikaMesh.sync(() => {
-          invalidate()
-          if (onSync) onSync(troikaMesh)
-        })
-    )
+  // s3f    does resource cache?
+  const [resource] = createResource(
+    ['troika-text', props.font, props.characters],
+    () => new Promise((res) => preloadFont({ font: props.font, characters: props.characters }, res))
+  )
 
-    React.useEffect(() => {
-      return () => troikaMesh.dispose()
-    }, [troikaMesh])
+  createRenderEffect(() =>
+    troikaMesh.sync(() => {
+      store.invalidate()
+      if (props.onSync) props.onSync(troikaMesh)
+    })
+  )
 
-    return (
-      <primitive
-        object={troikaMesh}
-        ref={ref}
-        font={font}
-        text={text}
-        anchorX={anchorX}
-        anchorY={anchorY}
-        fontSize={fontSize}
-        sdfGlyphSize={sdfGlyphSize}
-        {...props}
-      >
-        {nodes}
-      </primitive>
-    )
-  }
-)
+  onCleanup(() => troikaMesh.dispose())
+
+  return (
+    <Primitive
+      object={troikaMesh}
+      font={props.font}
+      text={memo().text}
+      anchorX={props.anchorX}
+      anchorY={props.anchorY}
+      fontSize={props.fontSize}
+      sdfGlyphSize={props.sdfGlyphSize}
+      {...rest}
+    >
+      {memo().nodes}
+    </Primitive>
+  )
+}

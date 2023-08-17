@@ -1,30 +1,33 @@
-import * as React from 'react'
-import { addEffect, addAfterEffect } from '@react-three/fiber'
+import { addAfterEffect, addEffect } from '@solid-three/fiber'
+import { createEffect, onCleanup } from 'solid-js'
 import StatsImpl from 'stats.js'
-import { useEffectfulState } from '../helpers/useEffectfulState'
+import { defaultProps } from '../helpers/defaultProps'
 
 type Props = {
   showPanel?: number
   className?: string
-  parent?: React.RefObject<HTMLElement>
+  parent?: HTMLElement
 }
 
-export function Stats({ showPanel = 0, className, parent }: Props): null {
-  const stats = useEffectfulState(() => new StatsImpl(), [])
-  React.useEffect(() => {
-    if (stats) {
-      const node = (parent && parent.current) || document.body
-      stats.showPanel(showPanel)
-      node?.appendChild(stats.dom)
-      if (className) stats.dom.classList.add(...className.split(' ').filter((cls) => cls))
-      const begin = addEffect(() => stats.begin())
-      const end = addAfterEffect(() => stats.end())
-      return () => {
-        node?.removeChild(stats.dom)
-        begin()
-        end()
-      }
-    }
-  }, [parent, stats, className, showPanel])
+export function Stats(_props: Props): null {
+  const props = defaultProps(_props, {
+    showPanel: 0,
+  })
+
+  // sf3:   original was const stats = useEffectfulState(() => new StatsImpl(), [])
+  const stats = new StatsImpl()
+  createEffect(() => {
+    const node = props.parent || document.body
+    stats.showPanel(props.showPanel)
+    node?.appendChild(stats.dom)
+    if (props.className) stats.dom.classList.add(...props.className.split(' ').filter((cls) => cls))
+    const cleanupBegin = addEffect(() => stats.begin())
+    const cleanupEnd = addAfterEffect(() => stats.end())
+    onCleanup(() => {
+      node?.removeChild(stats.dom)
+      cleanupBegin()
+      cleanupEnd()
+    })
+  })
   return null
 }

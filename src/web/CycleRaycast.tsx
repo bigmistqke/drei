@@ -1,38 +1,37 @@
-import * as React from 'react'
+import { useThree } from '@solid-three/fiber'
+import { createEffect, onCleanup } from 'solid-js'
 import * as THREE from 'three'
-import { useThree } from '@react-three/fiber'
+import { defaultProps } from '../helpers/defaultProps'
 
 export type CycleRaycastProps = {
   onChanged?: (hits: THREE.Intersection[], cycle: number) => null
   preventDefault?: boolean
   scroll?: boolean
   keyCode?: number
-  portal?: React.MutableRefObject<HTMLElement>
+  portal?: HTMLElement
 }
 
-export function CycleRaycast({
-  onChanged,
-  portal,
-  preventDefault = true,
-  scroll = true,
-  keyCode = 9,
-}: CycleRaycastProps) {
-  const cycle = React.useRef(0)
-  const setEvents = useThree((state) => state.setEvents)
-  const get = useThree((state) => state.get)
-  const gl = useThree((state) => state.gl)
+export function CycleRaycast(_props: CycleRaycastProps) {
+  const props = defaultProps(_props, {
+    preventDefault: true,
+    scroll: true,
+    keyCode: 9,
+  })
 
-  React.useEffect(() => {
+  let cycle = 0
+  const store = useThree()
+
+  createEffect(() => {
     let hits: THREE.Intersection[] = []
     let lastEvent: PointerEvent = undefined!
-    const prev = get().events.filter
-    const target = portal?.current ?? gl.domElement.parentNode
+    const prev = store.events.filter
+    const target = props.portal ?? store.gl.domElement.parentNode
 
     // Render custom status
-    const renderStatus = () => target && onChanged && onChanged(hits, Math.round(cycle.current) % hits.length)
+    const renderStatus = () => target && props.onChanged && props.onChanged(hits, Math.round(cycle) % hits.length)
 
     // Overwrite the raycasters custom filter (this only exists in r3f)
-    setEvents({
+    store.setEvents({
       filter: (intersections, state) => {
         // Reset cycle when the intersections change
         let clone = [...intersections]
@@ -40,14 +39,14 @@ export function CycleRaycast({
           clone.length !== hits.length ||
           !hits.every((hit) => clone.map((e) => e.object.uuid).includes(hit.object.uuid))
         ) {
-          cycle.current = 0
+          cycle = 0
           hits = clone
           renderStatus()
         }
         // Run custom filter if there is one
         if (prev) clone = prev(clone, state)
         // Cycle through the actual raycast intersects
-        for (let i = 0; i < Math.round(cycle.current) % clone.length; i++) {
+        for (let i = 0; i < Math.round(cycle) % clone.length; i++) {
           const first = clone.shift() as THREE.Intersection
           clone = [...clone, first]
         }
@@ -57,24 +56,24 @@ export function CycleRaycast({
 
     // Cycle, refresh events and render status
     const refresh = (fn) => {
-      cycle.current = fn(cycle.current)
+      cycle = fn(cycle)
       // Cancel hovered elements and fake a pointer-move
-      get().events.handlers?.onPointerCancel(undefined as any)
-      get().events.handlers?.onPointerMove(lastEvent)
+      store.events.handlers?.onPointerCancel(undefined as any)
+      store.events.handlers?.onPointerMove(lastEvent)
       renderStatus()
     }
 
     // Key events
     const tabEvent = (event: KeyboardEvent) => {
-      if (event.keyCode || event.which === keyCode) {
-        if (preventDefault) event.preventDefault()
+      if (event.keyCode || event.which === props.keyCode) {
+        if (props.preventDefault) event.preventDefault()
         if (hits.length > 1) refresh((current) => current + 1)
       }
     }
 
     // Wheel events
     const wheelEvent = (event: WheelEvent) => {
-      if (preventDefault) event.preventDefault()
+      if (props.preventDefault) event.preventDefault()
       let delta = 0
       if (!event) event = window.event as WheelEvent
       if ((event as any).wheelDelta) delta = (event as any).wheelDelta / 120
@@ -86,16 +85,16 @@ export function CycleRaycast({
     const moveEvent = (event: PointerEvent) => (lastEvent = event)
 
     document.addEventListener('pointermove', moveEvent, { passive: true })
-    if (scroll) document.addEventListener('wheel', wheelEvent)
-    if (keyCode !== undefined) document.addEventListener('keydown', tabEvent)
+    if (props.scroll) document.addEventListener('wheel', wheelEvent)
+    if (props.keyCode !== undefined) document.addEventListener('keydown', tabEvent)
 
-    return () => {
+    onCleanup(() => {
       // Clean up
-      setEvents({ filter: prev })
-      if (keyCode !== undefined) document.removeEventListener('keydown', tabEvent)
-      if (scroll) document.removeEventListener('wheel', wheelEvent)
+      store.setEvents({ filter: prev })
+      if (props.keyCode !== undefined) document.removeEventListener('keydown', tabEvent)
+      if (props.scroll) document.removeEventListener('wheel', wheelEvent)
       document.removeEventListener('pointermove', moveEvent)
-    }
-  }, [gl, get, setEvents, preventDefault, scroll, keyCode])
+    })
+  })
   return null
 }

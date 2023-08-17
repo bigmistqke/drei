@@ -1,42 +1,48 @@
-import * as React from 'react'
-import { AudioLoader, AudioListener, PositionalAudio as PositionalAudioImpl } from 'three'
-import { useThree, useLoader } from '@react-three/fiber'
-import mergeRefs from 'react-merge-refs'
+import { T, useLoader, useThree } from '@solid-three/fiber'
+import { createEffect, onCleanup, onMount } from 'solid-js'
+import { AudioListener, AudioLoader, PositionalAudio as PositionalAudioImpl } from 'three'
+import { createRef } from '../helpers/createRef'
+import { processProps } from '../helpers/processProps'
+import { RefComponent } from '../helpers/typeHelpers'
+import { when } from '../helpers/when'
 
-type Props = JSX.IntrinsicElements['positionalAudio'] & {
+type Props = Parameters<typeof T.PositionalAudio>[0] & {
   url: string
   distance?: number
   loop?: boolean
 }
 
-export const PositionalAudio = React.forwardRef(
-  ({ url, distance = 1, loop = true, autoplay, ...props }: Props, ref) => {
-    const sound = React.useRef<PositionalAudioImpl>()
-    const camera = useThree(({ camera }) => camera)
-    const [listener] = React.useState(() => new AudioListener())
-    const buffer = useLoader(AudioLoader, url)
+export const PositionalAudio: RefComponent<any, Props> = (_props) => {
+  const [props, rest] = processProps(
+    _props,
+    {
+      distance: 1,
+      loop: true,
+    },
+    ['ref', 'url', 'distance', 'loop', 'autoplay']
+  )
+  const sound = createRef<PositionalAudioImpl>(null!)
+  const store = useThree()
+  const listener = new AudioListener()
+  const buffer = useLoader(AudioLoader, props.url)
 
-    React.useEffect(() => {
-      const _sound = sound.current
-      if (_sound) {
-        _sound.setBuffer(buffer)
-        _sound.setRefDistance(distance)
-        _sound.setLoop(loop)
-        if (autoplay && !_sound.isPlaying) _sound.play()
-      }
-    }, [buffer, camera, distance, loop])
+  createEffect(() => {
+    when(buffer)((buffer) => {
+      sound.ref.setBuffer(buffer)
+      sound.ref.setRefDistance(props.distance)
+      sound.ref.setLoop(props.loop)
+      if (props.autoplay && !sound.ref.isPlaying) sound.ref.play()
+    })
+  })
 
-    React.useEffect(() => {
-      const _sound = sound.current
-      camera.add(listener)
-      return () => {
-        camera.remove(listener)
-        if (_sound) {
-          if (_sound.isPlaying) _sound.stop()
-          if (_sound.source && (_sound.source as any)._connected) _sound.disconnect()
-        }
-      }
-    }, [])
-    return <positionalAudio ref={mergeRefs([sound, ref])} args={[listener]} {...props} />
-  }
-)
+  onMount(() => store.camera.add(listener))
+
+  onCleanup(() => {
+    store.camera.remove(listener)
+    if (sound.ref) {
+      if (sound.ref.isPlaying) sound.ref.stop()
+      if (sound.ref.source && (sound.ref.source as any)._connected) sound.ref.disconnect()
+    }
+  })
+  return <T.PositionalAudio ref={sound.ref} args={[listener]} {...rest} />
+}

@@ -14,15 +14,15 @@ import {
   Vector4,
 } from 'three'
 
-import * as React from 'react'
-import { forwardRef, useMemo, useEffect } from 'react'
-import { extend, useFrame, useThree, ReactThreeFiber, EventManager } from '@react-three/fiber'
+import { Primitive, SolidThreeFiber, extend, useFrame, useThree } from '@solid-three/fiber'
 
 import CameraControlsImpl from 'camera-controls'
+import { createEffect, createMemo, onCleanup, splitProps } from 'solid-js'
+import { RefComponent } from '../helpers/typeHelpers'
 
 export type CameraControlsProps = Omit<
-  ReactThreeFiber.Overwrite<
-    ReactThreeFiber.Node<CameraControlsImpl, typeof CameraControlsImpl>,
+  SolidThreeFiber.Overwrite<
+    SolidThreeFiber.Node<CameraControlsImpl>,
     {
       camera?: PerspectiveCamera | OrthographicCamera
       domElement?: HTMLElement
@@ -37,9 +37,8 @@ export type CameraControlsProps = Omit<
   'ref'
 >
 
-export const CameraControls = forwardRef<CameraControlsImpl, CameraControlsProps>((props, ref) => {
-  // useMemo is used here instead of useEffect, otherwise the useMemo below runs first and throws
-  useMemo(() => {
+export const CameraControls: RefComponent<CameraControlsImpl, CameraControlsProps> = (_props) => {
+  ;(() => {
     // to allow for tree shaking, we only import the subset of THREE that is used by camera-controls
     // see https://github.com/yomotsu/camera-controls#important
     const subsetOfTHREE = {
@@ -59,74 +58,72 @@ export const CameraControls = forwardRef<CameraControlsImpl, CameraControlsProps
 
     CameraControlsImpl.install({ THREE: subsetOfTHREE })
     extend({ CameraControlsImpl })
-  }, [])
+  })()
+  const [props, rest] = splitProps(_props, [
+    'ref',
+    'camera',
+    'domElement',
+    'makeDefault',
+    'onStart',
+    'onEnd',
+    'onChange',
+    'regress',
+  ])
+  const store = useThree()
+  const explCamera = () => props.camera || store.camera
+  const explDomElement = () => (props.domElement || store.events.connected || store.gl.domElement) as HTMLElement
 
-  const { camera, domElement, makeDefault, onStart, onEnd, onChange, regress, ...restProps } = props
+  const controls = createMemo(() => new CameraControlsImpl(explCamera()))
 
-  const defaultCamera = useThree((state) => state.camera)
-  const gl = useThree((state) => state.gl)
-  const invalidate = useThree((state) => state.invalidate)
-  const events = useThree((state) => state.events) as EventManager<HTMLElement>
-  const setEvents = useThree((state) => state.setEvents)
-  const set = useThree((state) => state.set)
-  const get = useThree((state) => state.get)
-  const performance = useThree((state) => state.performance)
-
-  const explCamera = camera || defaultCamera
-  const explDomElement = (domElement || events.connected || gl.domElement) as HTMLElement
-
-  const controls = useMemo(() => new CameraControlsImpl(explCamera), [explCamera])
-
-  useFrame((state, delta) => {
-    if (controls.enabled) controls.update(delta)
+  useFrame((_, delta) => {
+    if (controls().enabled) controls().update(delta)
   }, -1)
 
-  useEffect(() => {
-    controls.connect(explDomElement)
-    return () => void controls.disconnect()
-  }, [explDomElement, controls])
+  createEffect(() => {
+    controls().connect(explDomElement())
+    onCleanup(() => controls().disconnect())
+  })
 
-  useEffect(() => {
+  createEffect(() => {
     const callback = (e) => {
-      invalidate()
-      if (regress) performance.regress()
-      if (onChange) onChange(e)
+      store.invalidate()
+      if (props.regress) store.performance.regress()
+      if (props.onChange) props.onChange(e)
     }
 
     const onStartCb: CameraControlsProps['onStart'] = (e) => {
-      if (onStart) onStart(e)
+      if (props.onStart) props.onStart(e)
     }
 
     const onEndCb: CameraControlsProps['onEnd'] = (e) => {
-      if (onEnd) onEnd(e)
+      if (props.onEnd) props.onEnd(e)
     }
 
-    controls.addEventListener('update', callback)
-    controls.addEventListener('controlstart', onStartCb)
-    controls.addEventListener('controlend', onEndCb)
-    controls.addEventListener('control', callback)
-    controls.addEventListener('transitionstart', callback)
-    controls.addEventListener('wake', callback)
+    controls().addEventListener('update', callback)
+    controls().addEventListener('controlstart', onStartCb)
+    controls().addEventListener('controlend', onEndCb)
+    controls().addEventListener('control', callback)
+    controls().addEventListener('transitionstart', callback)
+    controls().addEventListener('wake', callback)
+    onCleanup(() => {
+      controls().removeEventListener('update', callback)
+      controls().removeEventListener('controlstart', onStartCb)
+      controls().removeEventListener('controlend', onEndCb)
+      controls().removeEventListener('control', callback)
+      controls().removeEventListener('transitionstart', callback)
+      controls().removeEventListener('wake', callback)
+    })
+  })
 
-    return () => {
-      controls.removeEventListener('update', callback)
-      controls.removeEventListener('controlstart', onStartCb)
-      controls.removeEventListener('controlend', onEndCb)
-      controls.removeEventListener('control', callback)
-      controls.removeEventListener('transitionstart', callback)
-      controls.removeEventListener('wake', callback)
+  createEffect(() => {
+    if (props.makeDefault) {
+      const old = store.controls
+      store.set({ controls: controls() as unknown as EventDispatcher })
+      onCleanup(() => store.set({ controls: old }))
     }
-  }, [controls, onStart, onEnd, invalidate, setEvents, regress, onChange])
+  })
 
-  useEffect(() => {
-    if (makeDefault) {
-      const old = get().controls
-      set({ controls: controls as unknown as EventDispatcher })
-      return () => set({ controls: old })
-    }
-  }, [makeDefault, controls])
-
-  return <primitive ref={ref} object={controls} {...restProps} />
-})
+  return <Primitive ref={props.ref} object={controls()} {...rest} />
+}
 
 export type CameraControls = CameraControlsImpl

@@ -1,14 +1,17 @@
-import * as React from 'react'
+import { ThreeProps } from '@solid-three/fiber'
+import { splitProps } from 'solid-js'
 import * as THREE from 'three'
-import { useGLTF } from './useGLTF'
+import { RefComponent } from '../helpers/typeHelpers'
 import { Clone, CloneProps } from './Clone'
+import { useGLTF } from './useGLTF'
 
-type GltfProps = Omit<JSX.IntrinsicElements['group'], 'children'> &
+type GltfProps = Omit<ThreeProps<'Group'>, 'children'> &
   Omit<CloneProps, 'object'> & {
     src: string
   }
 
-export const Gltf = React.forwardRef(({ src, ...props }: GltfProps, ref: React.Ref<THREE.Object3D>) => {
-  const { scene } = useGLTF(src)
-  return <Clone ref={ref as any} {...props} object={scene} />
-})
+export const Gltf: RefComponent<THREE.Object3D, GltfProps> = (_props) => {
+  const [props, rest] = splitProps(_props, ['ref', 'src'])
+  const resource = useGLTF(_props.src)
+  return resource.state === 'ready' ? <Clone ref={props.ref as any} {...rest} object={resource().scene} /> : undefined
+}

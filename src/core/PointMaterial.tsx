@@ -1,13 +1,13 @@
+import { Primitive, T, ThreeProps } from '@solid-three/fiber'
 import * as THREE from 'three'
-import * as React from 'react'
-import { PrimitiveProps } from '@react-three/fiber'
+import { RefComponent } from '../helpers/typeHelpers'
 
-type PointMaterialType = JSX.IntrinsicElements['pointsMaterial']
+type PointMaterialType = Parameters<typeof T.PointsMaterial>[0]
 
 declare global {
-  namespace JSX {
+  namespace SolidThree {
     interface IntrinsicElements {
-      pointMaterialImpl: PointMaterialType
+      PointMaterialImpl: PointMaterialType
     }
   }
 }
@@ -38,9 +38,11 @@ export class PointMaterialImpl extends THREE.PointsMaterial {
   }
 }
 
-export const PointMaterial = React.forwardRef<PointMaterialImpl, Omit<PrimitiveProps, 'object' | 'attach'>>(
-  (props, ref) => {
-    const [material] = React.useState(() => new PointMaterialImpl(null))
-    return <primitive {...props} object={material} ref={ref} attach="material" />
-  }
-)
+export const PointMaterial: RefComponent<PointMaterialImpl, Omit<ThreeProps<'PointMaterialImpl'>, 'attach'>> = (
+  props
+) => {
+  const material = new PointMaterialImpl(null)
+  // s3f:   how should we type attach in Primitive?
+  //        make it available when it's instanceof Geometry Material Attribute?
+  return <Primitive {...props} object={material} ref={props.ref} attach="material" />
+}

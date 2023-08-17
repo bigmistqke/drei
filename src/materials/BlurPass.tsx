@@ -1,14 +1,14 @@
 import {
-  Mesh,
-  BufferGeometry,
   BufferAttribute,
+  BufferGeometry,
+  Camera,
+  HalfFloatType,
   LinearFilter,
+  Mesh,
   Scene,
+  Vector2,
   WebGLRenderTarget,
   WebGLRenderer,
-  Camera,
-  Vector2,
-  HalfFloatType,
 } from 'three'
 
 import { ConvolutionMaterial } from './ConvolutionMaterial'

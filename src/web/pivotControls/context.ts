@@ -1,5 +1,5 @@
+import { createContext } from 'solid-js'
 import * as THREE from 'three'
-import * as React from 'react'
 
 export type OnDragStartProps = {
   component: 'Arrow' | 'Slider' | 'Rotator'
@@ -12,7 +12,7 @@ export type PivotContext = {
   onDragStart: (props: OnDragStartProps) => void
   onDrag: (mdW: THREE.Matrix4) => void
   onDragEnd: () => void
-  translation: { current: [number, number, number] }
+  translation: [number, number, number]
   translationLimits?: [[number, number] | undefined, [number, number] | undefined, [number, number] | undefined]
   rotationLimits?: [[number, number] | undefined, [number, number] | undefined, [number, number] | undefined]
   axisColors: [string | number, string | number, string | number]
@@ -27,4 +27,4 @@ export type PivotContext = {
   annotationsClass?: string
 }
 
-export const context = React.createContext<PivotContext>(null!)
+export const context = createContext<PivotContext>(null!)

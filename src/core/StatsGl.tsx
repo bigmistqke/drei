@@ -1,37 +1,40 @@
-import * as React from 'react'
-import { addEffect, addAfterEffect, useThree } from '@react-three/fiber'
+import { addAfterEffect, addEffect, useThree } from '@solid-three/fiber'
+import { createEffect, createMemo, onCleanup, splitProps } from 'solid-js'
 import Stats from 'stats-gl'
 
 type Props = Partial<Stats> & {
   showPanel?: number
   className?: string
-  parent?: React.RefObject<HTMLElement>
+  parent?: HTMLElement
 }
 
-export function StatsGl({ className, parent, ...props }: Props) {
-  const gl = useThree((state) => state.gl)
+export function StatsGl(_props: Props) {
+  const [props, rest] = splitProps(_props, ['className', 'parent'])
 
-  const stats = React.useMemo(() => {
+  const store = useThree()
+
+  const stats = createMemo(() => {
     const stats = new Stats({
-      ...props,
+      ...rest,
     })
-    stats.init(gl.domElement)
+    stats.init(store.gl.domElement)
     return stats
-  }, [gl])
+  })
 
-  React.useEffect(() => {
+  createEffect(() => {
     if (stats) {
-      const node = (parent && parent.current) || document.body
-      node?.appendChild(stats.container)
-      if (className) stats.container.classList.add(...className.split(' ').filter((cls) => cls))
-      const begin = addEffect(() => stats.begin())
-      const end = addAfterEffect(() => stats.end())
-      return () => {
-        node?.removeChild(stats.container)
+      const node = props.parent || document.body
+      node?.appendChild(stats().container)
+      if (props.className) stats().container.classList.add(...props.className.split(' ').filter((cls) => cls))
+      const begin = addEffect(() => stats().begin())
+      const end = addAfterEffect(() => stats().end())
+
+      onCleanup(() => {
+        node?.removeChild(stats().container)
         begin()
         end()
-      }
+      })
     }
-  }, [parent, stats, className])
+  })
   return null
 }

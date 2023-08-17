@@ -1,22 +1,36 @@
-import * as React from 'react'
+import { T, ThreeProps } from '@solid-three/fiber'
+import { createRenderEffect, createSignal, splitProps, type JSX } from 'solid-js'
 import * as THREE from 'three'
+import { capitalize } from '../helpers/capitalize'
+import { mergeRefs } from '../helpers/mergeRefs'
+import { createImperativeHandle } from '../helpers/useImperativeHandle'
+import { when } from '../helpers/when'
 
 export type Args<T> = T extends new (...args: any) => any ? ConstructorParameters<T> : T
-export type ShapeProps<T> = Omit<JSX.IntrinsicElements['mesh'], 'args'> & { args?: Args<T> }
+export type ShapeProps<T> = Omit<ThreeProps<'Mesh'>, 'children' | 'args'> & {
+  args?: Args<T>
+  children?: JSX.Element | JSX.Element[]
+}
 
 function create<T>(type: string, effect?: (mesh: THREE.Mesh) => void) {
-  const El: any = type + 'Geometry'
-  return React.forwardRef(({ args, children, ...props }: ShapeProps<T>, fref: React.ForwardedRef<THREE.Mesh>) => {
-    const ref = React.useRef<THREE.Mesh>(null!)
-    React.useImperativeHandle(fref, () => ref.current)
-    React.useLayoutEffect(() => void effect?.(ref.current))
+  const El: string = capitalize(type) + 'Geometry'
+
+  return (_props: ShapeProps<T>) => {
+    const [props, rest] = splitProps(_props, ['args', 'children', 'ref'])
+    const [ref, setRef] = createSignal<THREE.Mesh>()
+
+    createImperativeHandle(props, ref)
+    createRenderEffect(() => when(ref)((ref) => effect?.(ref)))
+
+    const Component = T[El]
+
     return (
-      <mesh ref={ref} {...props}>
-        <El attach="geometry" args={args} />
-        {children}
-      </mesh>
+      <T.Mesh ref={mergeRefs(setRef, props)} {...rest}>
+        <Component attach="geometry" args={props.args} />
+        {props.children}
+      </T.Mesh>
     )
-  })
+  }
 }
 
 export const Box = create<typeof THREE.BoxGeometry>('box')

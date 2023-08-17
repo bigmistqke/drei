@@ -1,17 +1,18 @@
-import { Primitive, ReactThreeFiber, useFrame, useThree } from '@solid-three/fiber'
-// import * as React from 'react'
-import { createEffect, createMemo, splitProps } from 'solid-js'
+import { Primitive, SolidThreeFiber, useFrame, useThree } from '@solid-three/fiber'
+// import { createEffect, createRenderEffect, createSignal , createMemo} from 'solid-js'
+import { createEffect, createMemo, onCleanup, untrack } from 'solid-js'
 import type { Camera, Event } from 'three'
 import { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
-import { forwardRef } from '../helpers/forwardRef'
+import { processProps } from '../helpers/processProps'
+import { RefComponent } from '../helpers/typeHelpers'
 
 export type OrbitControlsChangeEvent = Event & {
   target: EventTarget & { object: Camera }
 }
 
 export type OrbitControlsProps = Omit<
-  ReactThreeFiber.Overwrite<
-    ReactThreeFiber.Object3DNode<OrbitControlsImpl>,
+  SolidThreeFiber.Overwrite<
+    SolidThreeFiber.Object3DNode<OrbitControlsImpl>,
     {
       camera?: Camera
       domElement?: HTMLElement
@@ -21,25 +22,22 @@ export type OrbitControlsProps = Omit<
       onEnd?: (e?: Event) => void
       onStart?: (e?: Event) => void
       regress?: boolean
-      target?: ReactThreeFiber.Vector3
+      target?: SolidThreeFiber.Vector3
       keyEvents?: boolean | HTMLElement
     }
   >,
   'ref'
 >
 
-export const OrbitControls = forwardRef<OrbitControlsImpl, OrbitControlsProps>((props, ref) => {
-  const [_, restProps] = splitProps(props, [
-    'makeDefault',
-    'camera',
-    'regress',
-    'domElement',
-    'enableDamping',
-    'keyEvents',
-    'onChange',
-    'onStart',
-    'onEnd',
-  ])
+export const OrbitControls: RefComponent<OrbitControlsImpl, OrbitControlsProps> = (props) => {
+  const [, rest] = processProps(
+    props,
+    {
+      enableDamping: true,
+      keyEvents: false,
+    },
+    ['makeDefault', 'camera', 'regress', 'domElement', 'keyEvents', 'onChange', 'onStart', 'onEnd', 'object', 'dispose']
+  )
   const store = useThree()
   const explDomElement = () => (props.domElement || store.events.connected || store.gl.domElement) as HTMLElement
   const camera = () => (props.camera || store.camera) as THREE.OrthographicCamera | THREE.PerspectiveCamera
@@ -53,10 +51,9 @@ export const OrbitControls = forwardRef<OrbitControlsImpl, OrbitControlsProps>((
     if (props.keyEvents) {
       controls().connect(props.keyEvents === true ? explDomElement() : props.keyEvents)
     }
-
     controls().connect(explDomElement())
-    return () => void controls().dispose()
-  }, [props.keyEvents, explDomElement(), props.regress, controls(), store.invalidate])
+    onCleanup(() => void controls().dispose())
+  })
 
   createEffect(() => {
     const callback = (e: OrbitControlsChangeEvent) => {
@@ -77,20 +74,20 @@ export const OrbitControls = forwardRef<OrbitControlsImpl, OrbitControlsProps>((
     controls().addEventListener('start', onStartCb)
     controls().addEventListener('end', onEndCb)
 
-    return () => {
+    onCleanup(() => {
       controls().removeEventListener('start', onStartCb)
       controls().removeEventListener('end', onEndCb)
       controls().removeEventListener('change', callback)
-    }
-  }, [props.onChange, props.onStart, props.onEnd, controls(), store.invalidate, store.setEvents])
+    })
+  })
 
   createEffect(() => {
     if (props.makeDefault) {
-      const old = store.controls
+      const old = untrack(() => store.controls)
       store.set({ controls: controls() })
-      return () => store.set({ controls: old })
+      onCleanup(() => store.set({ controls: old }))
     }
-  }, [props.makeDefault, controls()])
+  })
 
-  return <Primitive ref={ref} object={controls()} enableDamping={props.enableDamping} {...restProps} />
-})
+  return <Primitive ref={props.ref} object={controls()} {...rest} />
+}

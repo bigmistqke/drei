@@ -1,41 +1,46 @@
-import * as React from 'react'
+import { createPortal, Primitive } from '@solid-three/fiber'
+import { createEffect, createSignal, JSX, on } from 'solid-js'
 import * as THREE from 'three'
-import { createPortal } from '@react-three/fiber'
 import { Flow } from 'three-stdlib'
+import { RefComponent } from '../helpers/typeHelpers'
+import { createImperativeHandle } from '../helpers/useImperativeHandle'
 
 export interface CurveModifierProps {
-  children: React.ReactElement<JSX.IntrinsicElements['mesh']>
+  children: JSX.Element
   curve?: THREE.Curve<THREE.Vector3>
 }
 
 export type CurveModifierRef = Pick<Flow, 'moveAlongCurve'>
 
-export const CurveModifier = React.forwardRef(({ children, curve }: CurveModifierProps, ref) => {
-  const [scene] = React.useState(() => new THREE.Scene())
-  const [obj, set] = React.useState<THREE.Object3D>()
-  const modifier = React.useRef<Flow>()
+export const CurveModifier: RefComponent<any, CurveModifierProps, true> = (props) => {
+  const scene = new THREE.Scene()
+  const [obj, set] = createSignal<THREE.Object3D>()
+  let modifier: Flow
 
-  React.useEffect(() => {
-    modifier.current = new Flow(
-      scene.children[0] as THREE.Mesh<THREE.BufferGeometry, THREE.Material | THREE.Material[]>
+  createEffect(
+    on(
+      () => scene.children,
+      () => {
+        modifier = new Flow(scene.children[0] as THREE.Mesh<THREE.BufferGeometry, THREE.Material | THREE.Material[]>)
+        set(modifier.object3D)
+      }
     )
-    set(modifier.current.object3D)
-  }, [children])
+  )
 
-  React.useEffect(() => {
-    if (curve) modifier.current?.updateCurve(0, curve)
-  }, [curve])
+  createEffect(() => {
+    if (props.curve) modifier?.updateCurve(0, props.curve)
+  })
 
-  React.useImperativeHandle(ref, () => ({
+  createImperativeHandle(props, () => ({
     moveAlongCurve: (val: number) => {
-      modifier.current?.moveAlongCurve(val)
+      modifier?.moveAlongCurve(val)
     },
   }))
 
   return (
     <>
-      {createPortal(children, scene)}
-      {obj && <primitive object={obj} />}
+      {createPortal(props.children, scene)}
+      {obj() && <Primitive object={obj()!} />}
     </>
   )
-})
+}

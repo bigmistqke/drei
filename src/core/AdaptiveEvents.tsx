@@ -1,14 +1,12 @@
-import * as React from 'react'
-import { useThree } from '@react-three/fiber'
+import { useThree } from '@solid-three/fiber'
+import { createEffect, onCleanup } from 'solid-js'
 
 export function AdaptiveEvents() {
-  const get = useThree((state) => state.get)
-  const setEvents = useThree((state) => state.setEvents)
-  const current = useThree((state) => state.performance.current)
-  React.useEffect(() => {
-    const enabled = get().events.enabled
-    return () => setEvents({ enabled })
+  const store = useThree()
+  createEffect(() => {
+    const enabled = store.events.enabled
+    onCleanup(() => store.setEvents({ enabled }))
   }, [])
-  React.useEffect(() => setEvents({ enabled: current === 1 }), [current])
+  createEffect(() => store.setEvents({ enabled: store.performance.current === 1 }))
   return null
 }

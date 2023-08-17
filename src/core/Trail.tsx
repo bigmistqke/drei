@@ -1,7 +1,21 @@
-import { createPortal, useFrame, useThree } from '@react-three/fiber'
-import * as React from 'react'
-import { ColorRepresentation, Group, Object3D, Vector2, Vector3 } from 'three'
+import { Portal, T, useFrame, useThree } from '@solid-three/fiber'
 import { MeshLineGeometry as MeshLineGeometryImpl, MeshLineMaterial } from 'meshline'
+import {
+  Accessor,
+  children,
+  createEffect,
+  createMemo,
+  createRenderEffect,
+  createSignal,
+  mergeProps,
+  on,
+  type JSX,
+} from 'solid-js'
+import { ColorRepresentation, Group, Object3D, Vector2, Vector3 } from 'three'
+import { defaultProps } from '../helpers/defaultProps'
+import { resolveAccessor } from '../helpers/resolveAccessor'
+import { RefComponent } from '../helpers/typeHelpers'
+import { when } from '../helpers/when'
 
 type Settings = {
   width: number
@@ -20,10 +34,10 @@ type Settings = {
 type TrailProps = {
   color?: ColorRepresentation
   attenuation?: (width: number) => number
-  target?: React.MutableRefObject<Object3D>
+  target?: Object3D
 } & Partial<Settings>
 
-const defaults: Partial<Settings> = {
+const defaults = {
   width: 0.2,
   length: 1,
   decay: 1,
@@ -38,48 +52,54 @@ const shiftLeft = (collection: Float32Array, steps = 1): Float32Array => {
   return collection
 }
 
-export function useTrail(target: Object3D, settings: Partial<Settings>) {
-  const { length, local, decay, interval, stride } = {
-    ...defaults,
-    ...settings,
-  } as Settings
+export function useTrail(target: Object3D | Accessor<Object3D>, settings: Partial<Settings>) {
+  const completeSettings = mergeProps(defaults, settings)
 
-  const points = React.useRef<Float32Array>()
-  const [worldPosition] = React.useState(() => new Vector3())
+  // let points: Float32Array
+  const [points, setPoints] = createSignal<Float32Array>(null!, { equals: false })
+  const worldPosition = new Vector3()
 
-  React.useLayoutEffect(() => {
-    if (target) {
-      points.current = Float32Array.from({ length: length * 10 * 3 }, (_, i) => target.position.getComponent(i % 3))
-    }
-  }, [length, target])
+  createRenderEffect(() =>
+    when(resolveAccessor(target))((target) =>
+      setPoints(
+        Float32Array.from({ length: completeSettings.length * 10 * 3 }, (_, i) => target.position.getComponent(i % 3))
+      )
+    )
+  )
 
-  const prevPosition = React.useRef(new Vector3())
-  const frameCount = React.useRef(0)
+  const prevPosition = new Vector3()
+  let frameCount = 0
 
   useFrame(() => {
-    if (!target) return
-    if (!points.current) return
-    if (frameCount.current === 0) {
-      let newPosition: Vector3
-      if (local) {
-        newPosition = target.position
-      } else {
-        target.getWorldPosition(worldPosition)
-        newPosition = worldPosition
+    when(
+      points,
+      resolveAccessor(target)
+    )((points, target) => {
+      if (frameCount === 0) {
+        let newPosition: Vector3
+        if (completeSettings.local) {
+          newPosition = target.position
+        } else {
+          target.getWorldPosition(worldPosition)
+          newPosition = worldPosition
+        }
+
+        const steps = 1 * completeSettings.decay
+        for (let i = 0; i < steps; i++) {
+          if (newPosition.distanceTo(prevPosition) < completeSettings.stride) continue
+
+          shiftLeft(points, 3)
+
+          setPoints((points) => {
+            points!.set(newPosition.toArray(), points!.length - 3)
+            return points
+          })
+        }
+        prevPosition.copy(newPosition)
       }
-
-      const steps = 1 * decay
-      for (let i = 0; i < steps; i++) {
-        if (newPosition.distanceTo(prevPosition.current) < stride) continue
-
-        shiftLeft(points.current, 3)
-        points.current.set(newPosition.toArray(), points.current.length - 3)
-      }
-      prevPosition.current.copy(newPosition)
-    }
-
-    frameCount.current++
-    frameCount.current = frameCount.current % interval
+      frameCount++
+      frameCount = frameCount % completeSettings.interval
+    })
   })
 
   return points
@@ -87,80 +107,97 @@ export function useTrail(target: Object3D, settings: Partial<Settings>) {
 
 export type MeshLineGeometry = THREE.Mesh & MeshLineGeometryImpl
 
-export const Trail = React.forwardRef<MeshLineGeometry, React.PropsWithChildren<TrailProps>>((props, forwardRef) => {
-  const { children } = props
-  const { width, length, decay, local, stride, interval } = {
-    ...defaults,
-    ...props,
-  } as Settings
+export const Trail: RefComponent<MeshLineGeometry, TrailProps & { children?: JSX.Element }> = (_props) => {
+  const props = defaultProps(_props, { ...defaults, color: 'hotpink' })
 
-  const { color = 'hotpink', attenuation, target } = props
+  const store = useThree()
 
-  const size = useThree((s) => s.size)
-  const scene = useThree((s) => s.scene)
+  let ref: Group = null!
+  const [anchor, setAnchor] = createSignal<Object3D>(null!)
 
-  const ref = React.useRef<Group>(null!)
-  const [anchor, setAnchor] = React.useState<Object3D>(null!)
+  const points = useTrail(anchor, {
+    length: props.length,
+    decay: props.decay,
+    local: props.local,
+    stride: props.stride,
+    interval: props.interval,
+  })
 
-  const points = useTrail(anchor, { length, decay, local, stride, interval })
+  createEffect(
+    on(
+      () => props.target,
+      () => {
+        const t =
+          props.target ||
+          ref.children.find((o) => {
+            return o instanceof Object3D
+          })
 
-  React.useEffect(() => {
-    const t =
-      target?.current ||
-      ref.current.children.find((o) => {
-        return o instanceof Object3D
-      })
-
-    if (t) {
-      setAnchor(t)
-    }
-  }, [points, target])
-
-  const geo = React.useMemo(() => new MeshLineGeometryImpl(), [])
-  const mat = React.useMemo(() => {
-    const m = new MeshLineMaterial({
-      lineWidth: 0.1 * width,
-      color: color,
-      sizeAttenuation: 1,
-      resolution: new Vector2(size.width, size.height),
-    })
-
-    // Get and apply first <meshLineMaterial /> from children
-    let matOverride: React.ReactElement | undefined
-    if (children) {
-      if (Array.isArray(children)) {
-        matOverride = children.find((child: React.ReactNode) => {
-          const c = child as React.ReactElement
-          return typeof c.type === 'string' && c.type === 'meshLineMaterial'
-        }) as React.ReactElement | undefined
-      } else {
-        const c = children as React.ReactElement
-        if (typeof c.type === 'string' && c.type === 'meshLineMaterial') {
-          matOverride = c
+        if (t) {
+          setAnchor(t)
         }
       }
-    }
+    )
+  )
+
+  const resolvedChildren = children(() => props.children)
+
+  const geo = new MeshLineGeometryImpl()
+  const mat = createMemo(() => {
+    if (store.size.width === 0 || store.size.height === 0) return undefined
+    const m = new MeshLineMaterial({
+      lineWidth: 0.1 * props.width,
+      color: props.color,
+      sizeAttenuation: 1,
+      resolution: new Vector2(store.size.width, store.size.height),
+    })
+
+    // Get and apply first <T.MeshLineMaterial /> from children
+    let matOverride
+    when(resolvedChildren)((children) => {
+      if (children) {
+        if (Array.isArray(children)) {
+          matOverride = children.find((child: any) => {
+            if (typeof child === 'function') {
+              const c = child()
+              return typeof c.type === 'string' && c.type === 'meshLineMaterial'
+            }
+          })
+        } else {
+          if (typeof children === 'function') {
+            const c = (children as any)()
+            if (typeof c.type === 'string' && c.type === 'meshLineMaterial') {
+              matOverride = c
+            }
+          }
+        }
+      }
+    })
 
     if (typeof matOverride?.props === 'object') {
       m.setValues(matOverride.props)
     }
 
     return m
-  }, [width, color, size, children])
+  })
 
-  React.useEffect(() => {
-    mat.uniforms.resolution.value.set(size.width, size.height)
-  }, [size])
+  createRenderEffect(() => {
+    mat()?.uniforms.resolution.value.set(store.size.width, store.size.height)
+  })
 
   useFrame(() => {
-    if (!points.current) return
-    geo.setPoints(points.current, attenuation)
+    when(points)((points) => {
+      geo.setPoints(points, props.attenuation)
+    })
   })
 
   return (
-    <group>
-      {createPortal(<mesh ref={forwardRef} geometry={geo} material={mat} />, scene)}
-      <group ref={ref}>{children}</group>
-    </group>
+    <T.Group>
+      <Portal container={store.scene}>
+        <T.Mesh ref={props.ref} geometry={geo} material={mat()} />
+      </Portal>
+
+      <T.Group ref={ref}>{resolvedChildren()}</T.Group>
+    </T.Group>
   )
-})
+}

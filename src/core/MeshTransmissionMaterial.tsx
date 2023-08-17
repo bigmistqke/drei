@@ -4,14 +4,16 @@
  *    https://github.com/junni-inc/next.junni.co.jp/blob/master/src/ts/MainScene/World/Sections/Section2/Transparents/Transparent/shaders/transparent.fs
  */
 
+import { T, ThreeProps, extend, useFrame } from '@solid-three/fiber'
 import * as THREE from 'three'
-import * as React from 'react'
-import { applyProps, extend, useFrame } from '@react-three/fiber'
-import { useFBO } from './useFBO'
+import { processProps } from '../helpers/processProps'
+import { RefComponent } from '../helpers/typeHelpers'
+import { createImperativeHandle } from '../helpers/useImperativeHandle'
 import { DiscardMaterial } from '../materials/DiscardMaterial'
+import { useFBO } from './useFBO'
 
 type MeshTransmissionMaterialType = Omit<
-  JSX.IntrinsicElements['meshPhysicalMaterial'],
+  ThreeProps<'MeshPhysicalMaterial'>,
   'args' | 'roughness' | 'thickness' | 'transmission'
 > & {
   /* Transmission, default: 1 */
@@ -65,9 +67,9 @@ interface Uniform<T> {
 }
 
 declare global {
-  namespace JSX {
+  namespace SolidThree {
     interface IntrinsicElements {
-      meshTransmissionMaterial: MeshTransmissionMaterialType
+      MeshTransmissionMaterial: MeshTransmissionMaterialType
     }
   }
 }
@@ -368,101 +370,112 @@ class MeshTransmissionMaterialImpl extends THREE.MeshPhysicalMaterial {
   }
 }
 
-export const MeshTransmissionMaterial = React.forwardRef(
-  (
+export const MeshTransmissionMaterial: RefComponent<any, MeshTransmissionMaterialProps> = (
+  _props: MeshTransmissionMaterialProps
+) => {
+  const [props, rest] = processProps(
+    _props,
     {
-      buffer,
-      transmissionSampler = false,
-      backside = false,
-      side = THREE.FrontSide,
-      transmission = 1,
-      thickness = 0,
-      backsideThickness = 0,
-      samples = 10,
-      resolution,
-      backsideResolution,
-      background,
-      anisotropy,
-      anisotropicBlur,
-      ...props
-    }: MeshTransmissionMaterialProps,
-    fref
-  ) => {
-    extend({ MeshTransmissionMaterial: MeshTransmissionMaterialImpl })
+      transmissionSampler: false,
+      backside: false,
+      side: THREE.FrontSide,
+      transmission: 1,
+      thickness: 0,
+      backsideThickness: 0,
+      samples: 10,
+    },
+    [
+      'ref',
+      'buffer',
+      'transmissionSampler',
+      'backside',
+      'side',
+      'transmission',
+      'thickness',
+      'backsideThickness',
+      'samples',
+      'resolution',
+      'backsideResolution',
+      'background',
+      'anisotropy',
+      'anisotropicBlur',
+    ]
+  )
 
-    const ref = React.useRef<JSX.IntrinsicElements['meshTransmissionMaterial']>(null!)
-    const [discardMaterial] = React.useState(() => new DiscardMaterial())
-    const fboBack = useFBO(backsideResolution || resolution)
-    const fboMain = useFBO(resolution)
+  extend({ MeshTransmissionMaterial: MeshTransmissionMaterialImpl })
 
-    let oldBg
-    let oldTone
-    let parent
-    useFrame((state) => {
-      ref.current.time = state.clock.getElapsedTime()
-      // Render only if the buffer matches the built-in and no transmission sampler is set
-      if (ref.current.buffer === fboMain.texture && !transmissionSampler) {
-        parent = (ref.current as any).__r3f.parent as THREE.Object3D
-        if (parent) {
-          // Save defaults
-          oldTone = state.gl.toneMapping
-          oldBg = state.scene.background
+  let ref: ThreeProps<'MeshTransmissionMaterial'> = null!
+  const discardMaterial = new DiscardMaterial()
+  const fboBack = useFBO(props.backsideResolution || props.resolution)
+  const fboMain = useFBO(props.resolution)
 
-          // Switch off tonemapping lest it double tone maps
-          // Save the current background and set the HDR as the new BG
-          // Use discardmaterial, the parent will be invisible, but it's shadows will still be cast
-          state.gl.toneMapping = THREE.NoToneMapping
-          if (background) state.scene.background = background
-          parent.material = discardMaterial
+  let oldBg
+  let oldTone
+  let parent
+  useFrame((state) => {
+    ref.time = state.clock.getElapsedTime()
+    // Render only if the buffer matches the built-in and no transmission sampler is set
+    if (ref.buffer === fboMain.texture && !props.transmissionSampler) {
+      parent = ref.__r3f.parent as THREE.Object3D
+      if (parent) {
+        // Save defaults
+        oldTone = state.gl.toneMapping
+        oldBg = state.scene.background
 
-          if (backside) {
-            // Render into the backside buffer
-            state.gl.setRenderTarget(fboBack)
-            state.gl.render(state.scene, state.camera)
-            // And now prepare the material for the main render using the backside buffer
-            parent.material = ref.current
-            parent.material.buffer = fboBack.texture
-            parent.material.thickness = backsideThickness
-            parent.material.side = THREE.BackSide
-          }
+        // Switch off tonemapping lest it double tone maps
+        // Save the current background and set the HDR as the new BG
+        // Use discardmaterial, the parent will be invisible, but it's shadows will still be cast
+        state.gl.toneMapping = THREE.NoToneMapping
+        if (props.background) state.scene.background = props.background
+        parent.material = discardMaterial
 
-          // Render into the main buffer
-          state.gl.setRenderTarget(fboMain)
+        if (props.backside) {
+          // Render into the backside buffer
+          state.gl.setRenderTarget(fboBack)
           state.gl.render(state.scene, state.camera)
-
-          parent.material.thickness = thickness
-          parent.material.side = side
-          parent.material.buffer = fboMain.texture
-
-          // Set old state back
-          state.scene.background = oldBg
-          state.gl.setRenderTarget(null)
-          parent.material = ref.current
-          state.gl.toneMapping = oldTone
+          // And now prepare the material for the main render using the backside buffer
+          parent.material = ref
+          parent.material.buffer = fboBack.texture
+          parent.material.thickness = props.backsideThickness
+          parent.material.side = THREE.BackSide
         }
+
+        // Render into the main buffer
+        state.gl.setRenderTarget(fboMain)
+        state.gl.render(state.scene, state.camera)
+
+        parent.material.thickness = props.thickness
+        parent.material.side = props.side
+        parent.material.buffer = fboMain.texture
+
+        // Set old state back
+        state.scene.background = oldBg
+        state.gl.setRenderTarget(null)
+        parent.material = ref
+        state.gl.toneMapping = oldTone
       }
-    })
+    }
+  })
 
-    // Forward ref
-    React.useImperativeHandle(fref, () => ref.current, [])
+  // Forward ref
+  createImperativeHandle(props, () => ref)
 
-    return (
-      <meshTransmissionMaterial
-        // Samples must re-compile the shader so we memoize it
-        args={[samples, transmissionSampler]}
-        ref={ref}
-        {...props}
-        buffer={buffer || fboMain.texture}
-        // @ts-ignore
-        _transmission={transmission}
-        // In order for this to not incur extra cost "transmission" must be set to 0 and treated as a reserved prop.
-        // This is because THREE.WebGLRenderer will check for transmission > 0 and execute extra renders.
-        // The exception is when transmissionSampler is set, in which case we are using three's built in sampler.
-        anisotropicBlur={anisotropicBlur ?? anisotropy}
-        transmission={transmissionSampler ? transmission : 0}
-        thickness={thickness}
-        side={side}
-      />
-    )
-  }
-)
+  return (
+    <T.MeshTransmissionMaterial
+      // Samples must re-compile the shader so we memoize it
+      args={[props.samples, props.transmissionSampler]}
+      {...rest}
+      ref={ref!}
+      buffer={props.buffer || fboMain.texture}
+      // @ts-ignore
+      _transmission={props.transmission}
+      // In order for this to not incur extra cost "transmission" must be set to 0 and treated as a reserved prop.
+      // This is because THREE.WebGLRenderer will check for transmission > 0 and execute extra renders.
+      // The exception is when transmissionSampler is set, in which case we are using three's built in sampler.
+      anisotropicBlur={props.anisotropicBlur ?? props.anisotropy}
+      transmission={props.transmissionSampler ? props.transmission : 0}
+      thickness={props.thickness}
+      side={props.side}
+    />
+  )
+}

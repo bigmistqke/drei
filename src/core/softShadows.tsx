@@ -13,9 +13,10 @@
      https://www.shadertoy.com/view/tt3fDH [spawner64]
 */
 
-import * as React from 'react'
+import { useThree } from '@solid-three/fiber'
+import { createEffect, onCleanup } from 'solid-js'
 import * as THREE from 'three'
-import { useThree } from '@react-three/fiber'
+import { defaultProps } from '../helpers/defaultProps'
 
 type SoftShadowsProps = {
   /** Size of the light source (the larger the softer the light), default: 25 */
@@ -139,23 +140,27 @@ function reset(gl, scene, camera) {
   gl.compile(scene, camera)
 }
 
-export function SoftShadows({ focus = 0, samples = 10, size = 25 }: SoftShadowsProps) {
-  const gl = useThree((state) => state.gl)
-  const scene = useThree((state) => state.scene)
-  const camera = useThree((state) => state.camera)
-  React.useEffect(() => {
+export function SoftShadows(_props: SoftShadowsProps) {
+  const props = defaultProps(_props, {
+    focus: 0,
+    samples: 10,
+    size: 25,
+  })
+
+  const store = useThree()
+  createEffect(() => {
     const original = THREE.ShaderChunk.shadowmap_pars_fragment
     THREE.ShaderChunk.shadowmap_pars_fragment = THREE.ShaderChunk.shadowmap_pars_fragment
-      .replace('#ifdef USE_SHADOWMAP', '#ifdef USE_SHADOWMAP\n' + pcss({ size, samples, focus }))
+      .replace('#ifdef USE_SHADOWMAP', '#ifdef USE_SHADOWMAP\n' + pcss(props))
       .replace(
         '#if defined( SHADOWMAP_TYPE_PCF )',
         '\nreturn PCSS(shadowMap, shadowCoord);\n#if defined( SHADOWMAP_TYPE_PCF )'
       )
-    reset(gl, scene, camera)
-    return () => {
+    reset(store.gl, store.scene, store.camera)
+    onCleanup(() => {
       THREE.ShaderChunk.shadowmap_pars_fragment = original
-      reset(gl, scene, camera)
-    }
-  }, [focus, size, samples])
+      reset(store.gl, store.scene, store.camera)
+    })
+  })
   return null
 }

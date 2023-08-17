@@ -1,7 +1,8 @@
-import * as React from 'react'
-import { useThree, ThreeEvent } from '@react-three/fiber'
-import { useGizmoContext } from './GizmoHelper'
+import { T, ThreeEvent, useThree } from '@solid-three/fiber'
+import { For, Index, createMemo, createSignal, onMount, type JSX } from 'solid-js'
 import { CanvasTexture, Vector3 } from 'three'
+import { defaultProps } from '../helpers/defaultProps'
+import { useGizmoContext } from './GizmoHelper'
 
 type XYZ = [number, number, number]
 type GenericProps = {
@@ -53,48 +54,50 @@ const edgeDimensions = edges.map(
   (edge) => edge.toArray().map((axis: number): number => (axis == 0 ? 0.5 : 0.25)) as XYZ
 )
 
-const FaceMaterial = ({
-  hover,
-  index,
-  font = '20px Inter var, Arial, sans-serif',
-  faces = defaultFaces,
-  color = colors.bg,
-  hoverColor = colors.hover,
-  textColor = colors.text,
-  strokeColor = colors.stroke,
-  opacity = 1,
-}: FaceTypeProps) => {
-  const gl = useThree((state) => state.gl)
-  const texture = React.useMemo(() => {
+const FaceMaterial = (_props: FaceTypeProps) => {
+  const props = defaultProps(_props, {
+    font: '20px Inter var, Arial, sans-serif',
+    faces: defaultFaces,
+    color: colors.bg,
+    hoverColor: colors.hover,
+    textColor: colors.text,
+    strokeColor: colors.stroke,
+    opacity: 1,
+  })
+
+  const store = useThree()
+  const texture = createMemo(() => {
     const canvas = document.createElement('canvas')
     canvas.width = 128
     canvas.height = 128
     const context = canvas.getContext('2d')!
-    context.fillStyle = color
+    context.fillStyle = props.color
     context.fillRect(0, 0, canvas.width, canvas.height)
-    context.strokeStyle = strokeColor
+    context.strokeStyle = props.strokeColor
     context.strokeRect(0, 0, canvas.width, canvas.height)
-    context.font = font
+    context.font = props.font
     context.textAlign = 'center'
-    context.fillStyle = textColor
-    context.fillText(faces[index].toUpperCase(), 64, 76)
+    context.fillStyle = props.textColor
+    context.fillText(props.faces[props.index].toUpperCase(), 64, 76)
     return new CanvasTexture(canvas)
-  }, [index, faces, font, color, textColor, strokeColor])
+  })
+
   return (
-    <meshBasicMaterial
-      map={texture}
-      map-anisotropy={gl.capabilities.getMaxAnisotropy() || 1}
-      attach={`material-${index}`}
-      color={hover ? hoverColor : 'white'}
+    <T.MeshBasicMaterial
+      map={texture()}
+      map-anisotropy={store.gl.capabilities.getMaxAnisotropy() || 1}
+      attach={`material-${props.index}`}
+      color={props.hover ? props.hoverColor : 'white'}
       transparent
-      opacity={opacity}
+      opacity={props.opacity}
     />
   )
 }
 
 const FaceCube = (props: GenericProps) => {
   const { tweenCamera } = useGizmoContext()
-  const [hover, setHover] = React.useState<number | null>(null)
+
+  const [hover, setHover] = createSignal<number | null>(null)
   const handlePointerOut = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation()
     setHover(null)
@@ -108,18 +111,18 @@ const FaceCube = (props: GenericProps) => {
     setHover(Math.floor(e.faceIndex! / 2))
   }
   return (
-    <mesh onPointerOut={handlePointerOut} onPointerMove={handlePointerMove} onClick={props.onClick || handleClick}>
-      {[...Array(6)].map((_, index) => (
-        <FaceMaterial key={index} index={index} hover={hover === index} {...props} />
-      ))}
-      <boxGeometry />
-    </mesh>
+    <T.Mesh onPointerOut={handlePointerOut} onPointerMove={handlePointerMove} onClick={props.onClick || handleClick}>
+      <Index each={[...Array(6)]}>
+        {(_, index) => <FaceMaterial index={index} hover={hover() === index} {...props} />}
+      </Index>
+      <T.BoxGeometry />
+    </T.Mesh>
   )
 }
 
 const EdgeCube = ({ onClick, dimensions, position, hoverColor = colors.hover }: EdgeCubeProps): JSX.Element => {
   const { tweenCamera } = useGizmoContext()
-  const [hover, setHover] = React.useState<boolean>(false)
+  const [hover, setHover] = createSignal<boolean>(false)
   const handlePointerOut = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation()
     setHover(false)
@@ -133,29 +136,28 @@ const EdgeCube = ({ onClick, dimensions, position, hoverColor = colors.hover }: 
     tweenCamera(position)
   }
   return (
-    <mesh
+    <T.Mesh
       scale={1.01}
       position={position}
       onPointerOver={handlePointerOver}
       onPointerOut={handlePointerOut}
       onClick={onClick || handleClick}
     >
-      <meshBasicMaterial color={hover ? hoverColor : 'white'} transparent opacity={0.6} visible={hover} />
-      <boxGeometry args={dimensions} />
-    </mesh>
+      <T.MeshBasicMaterial color={hover() ? hoverColor : 'white'} transparent opacity={0.6} visible={hover()} />
+      <T.BoxGeometry args={dimensions} />
+    </T.Mesh>
   )
 }
 
 export const GizmoViewcube = (props: GenericProps) => {
+  onMount(() => console.log('mount this doogie'))
   return (
-    <group scale={[60, 60, 60]}>
+    <T.Group scale={[60, 60, 60]}>
       <FaceCube {...props} />
-      {edges.map((edge, index) => (
-        <EdgeCube key={index} position={edge} dimensions={edgeDimensions[index]} {...props} />
-      ))}
-      {corners.map((corner, index) => (
-        <EdgeCube key={index} position={corner} dimensions={cornerDimensions} {...props} />
-      ))}
-    </group>
+      <For each={edges}>
+        {(edge, index) => <EdgeCube position={edge} dimensions={edgeDimensions[index()]} {...props} />}
+      </For>
+      <For each={corners}>{(corner) => <EdgeCube position={corner} dimensions={cornerDimensions} {...props} />}</For>
+    </T.Group>
   )
 }

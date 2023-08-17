@@ -3,14 +3,17 @@
 //   drcmda, https://twitter.com/0xca0a
 // https://github.com/N8python/maskBlur
 
+import { SolidThreeFiber, T, ThreeProps, extend, useFrame, useThree } from '@solid-three/fiber'
+import { createEffect, createMemo, createRenderEffect, createSignal } from 'solid-js'
 import * as THREE from 'three'
-import * as React from 'react'
-import { ReactThreeFiber, extend, useFrame, useThree } from '@react-three/fiber'
-import { useIntersect } from './useIntersect'
-import { useFBO } from './useFBO'
+import { FullScreenQuad } from 'three-stdlib'
+import { processProps } from '../helpers/processProps'
+import { RefComponent } from '../helpers/typeHelpers'
+import { createImperativeHandle } from '../helpers/useImperativeHandle'
 import { RenderTexture } from './RenderTexture'
 import { shaderMaterial } from './shaderMaterial'
-import { FullScreenQuad } from 'three-stdlib'
+import { useFBO } from './useFBO'
+import { useIntersect } from './useIntersect'
 
 const PortalMaterialImpl = shaderMaterial(
   {
@@ -47,23 +50,23 @@ const PortalMaterialImpl = shaderMaterial(
 )
 
 export type PortalMaterialType = {
-  resolution: ReactThreeFiber.Vector2
+  resolution: SolidThreeFiber.Vector2
   blur: number
   blend: number
   size?: number
   sdf?: THREE.Texture
   map?: THREE.Texture
-} & JSX.IntrinsicElements['shaderMaterial']
+} & Parameters<typeof T.ShaderMaterial>[0]
 
 declare global {
-  namespace JSX {
+  namespace SolidThree {
     interface IntrinsicElements {
       portalMaterialImpl: PortalMaterialType
     }
   }
 }
 
-export type PortalProps = JSX.IntrinsicElements['shaderMaterial'] & {
+export type PortalProps = ThreeProps<'ShaderMaterial'> & {
   /** Mix the portals own scene with the world scene, 0 = world scene render,
    *  0.5 = both scenes render, 1 = portal scene renders, defaults to 0 */
   blend?: number
@@ -81,161 +84,152 @@ export type PortalProps = JSX.IntrinsicElements['shaderMaterial'] & {
   events?: boolean
 }
 
-export const MeshPortalMaterial = React.forwardRef(
-  (
+export const MeshPortalMaterial: RefComponent<PortalMaterialType, PortalProps, true> = (_props) => {
+  const [props, rest] = processProps(
+    _props,
     {
-      children,
-      events = undefined,
-      blur = 0,
-      eventPriority = 0,
-      renderPriority = 0,
-      worldUnits = false,
-      resolution = 512,
-      ...props
-    }: PortalProps,
-    fref: React.ForwardedRef<PortalMaterialType>
-  ) => {
-    extend({ PortalMaterialImpl })
+      blur: 0,
+      eventPriority: 0,
+      renderPriority: 0,
+      worldUnits: false,
+      resolution: 512,
+    },
+    ['ref', 'children', 'events', 'blur', 'eventPriority', 'renderPriority', 'worldUnits', 'resolution']
+  )
 
-    const ref = React.useRef<PortalMaterialType>(null!)
-    const { scene, gl, size, viewport, setEvents } = useThree()
-    const maskRenderTarget = useFBO(resolution, resolution)
+  extend({ PortalMaterialImpl })
 
-    const [priority, setPriority] = React.useState(0)
-    useFrame(() => {
-      // If blend is > 0 then the portal is being entered, the render-priority must change
-      const p = ref.current.blend > 0 ? Math.max(1, renderPriority) : 0
-      if (priority !== p) setPriority(p)
-    })
+  let ref: PortalMaterialType = null!
+  const { scene, gl, size, viewport, setEvents } = useThree()
+  const maskRenderTarget = useFBO(props.resolution, props.resolution)
 
-    React.useEffect(() => {
-      if (events !== undefined) setEvents({ enabled: !events })
-    }, [events])
+  const [priority, setPriority] = createSignal(0)
+  useFrame(() => {
+    // If blend is > 0 then the portal is being entered, the render-priority must change
+    const p = ref.blend > 0 ? Math.max(1, props.renderPriority) : 0
+    if (priority() !== p) setPriority(p)
+  })
 
-    const [visible, setVisible] = React.useState(true)
-    // See if the parent mesh is in the camera frustum
-    const parent = useIntersect(setVisible) as React.MutableRefObject<THREE.Mesh<THREE.BufferGeometry>>
-    React.useLayoutEffect(() => {
-      // Since the ref above is not tied to a mesh directly (we're inside a material),
-      // it has to be tied to the parent mesh here
-      parent.current = (ref.current as any)?.__r3f.parent
-    }, [])
+  createEffect(() => {
+    if (props.events !== undefined) setEvents({ enabled: !props.events })
+  }, [props.events])
 
-    React.useLayoutEffect(() => {
-      if (!parent.current) return
+  const [visible, setVisible] = createSignal(true)
+  // See if the parent mesh is in the camera frustum
+  let parent = useIntersect(setVisible) as THREE.Mesh<THREE.BufferGeometry>
+  createRenderEffect(() => {
+    // Since the ref above is not tied to a mesh directly (we're inside a material),
+    // it has to be tied to the parent mesh here
+    parent = (ref as any)?.__r3f.parent
+  }, [])
 
-      // Apply the SDF mask only once
-      if (blur && ref.current.sdf === null) {
-        const tempMesh = new THREE.Mesh(parent.current.geometry, new THREE.MeshBasicMaterial())
-        const boundingBox = new THREE.Box3().setFromBufferAttribute(
-          tempMesh.geometry.attributes.position as THREE.BufferAttribute
-        )
-        const orthoCam = new THREE.OrthographicCamera(
-          boundingBox.min.x * (1 + 2 / resolution),
-          boundingBox.max.x * (1 + 2 / resolution),
-          boundingBox.max.y * (1 + 2 / resolution),
-          boundingBox.min.y * (1 + 2 / resolution),
-          0.1,
-          1000
-        )
-        orthoCam.position.set(0, 0, 1)
-        orthoCam.lookAt(0, 0, 0)
+  createRenderEffect(() => {
+    if (!parent) return
 
-        gl.setRenderTarget(maskRenderTarget)
-        gl.render(tempMesh, orthoCam)
-        const sg = makeSDFGenerator(resolution, resolution, gl)
-        const sdf = sg(maskRenderTarget.texture)
-        const readSdf = new Float32Array(resolution * resolution)
-        gl.readRenderTargetPixels(sdf, 0, 0, resolution, resolution, readSdf)
-        // Get smallest value in sdf
-        let min = Infinity
-        for (let i = 0; i < readSdf.length; i++) {
-          if (readSdf[i] < min) min = readSdf[i]
-        }
-        min = -min
-        ref.current.size = min
-        ref.current.sdf = sdf.texture
+    // Apply the SDF mask only once
+    if (props.blur && ref.sdf === null) {
+      const tempMesh = new THREE.Mesh(parent.geometry, new THREE.MeshBasicMaterial())
+      const boundingBox = new THREE.Box3().setFromBufferAttribute(
+        tempMesh.geometry.attributes.position as THREE.BufferAttribute
+      )
+      const orthoCam = new THREE.OrthographicCamera(
+        boundingBox.min.x * (1 + 2 / props.resolution),
+        boundingBox.max.x * (1 + 2 / props.resolution),
+        boundingBox.max.y * (1 + 2 / props.resolution),
+        boundingBox.min.y * (1 + 2 / props.resolution),
+        0.1,
+        1000
+      )
+      orthoCam.position.set(0, 0, 1)
+      orthoCam.lookAt(0, 0, 0)
 
-        gl.setRenderTarget(null)
+      gl.setRenderTarget(maskRenderTarget)
+      gl.render(tempMesh, orthoCam)
+      const sg = makeSDFGenerator(props.resolution, props.resolution, gl)
+      const sdf = sg(maskRenderTarget.texture)
+      const readSdf = new Float32Array(props.resolution * props.resolution)
+      gl.readRenderTargetPixels(sdf, 0, 0, props.resolution, props.resolution, readSdf)
+      // Get smallest value in sdf
+      let min = Infinity
+      for (let i = 0; i < readSdf.length; i++) {
+        if (readSdf[i] < min) min = readSdf[i]
       }
-    }, [resolution, blur])
+      min = -min
+      ref.size = min
+      ref.sdf = sdf.texture
 
-    React.useImperativeHandle(fref, () => ref.current)
+      gl.setRenderTarget(null)
+    }
+  }, [props.resolution, props.blur])
 
-    const compute = React.useCallback((event, state, previous) => {
-      if (!parent.current) return false
-      state.pointer.set((event.offsetX / state.size.width) * 2 - 1, -(event.offsetY / state.size.height) * 2 + 1)
-      state.raycaster.setFromCamera(state.pointer, state.camera)
+  createImperativeHandle(props, () => ref)
 
-      if (ref.current?.blend === 0) {
-        // We run a quick check against the parent, if it isn't hit there's no need to raycast at all
-        const [intersection] = state.raycaster.intersectObject(parent.current)
-        if (!intersection) {
-          // Cancel out the raycast camera if the parent mesh isn't hit
-          state.raycaster.camera = undefined
-          return false
-        }
+  const compute = (event, state, previous) => {
+    if (!parent) return false
+    state.pointer.set((event.offsetX / state.size.width) * 2 - 1, -(event.offsetY / state.size.height) * 2 + 1)
+    state.raycaster.setFromCamera(state.pointer, state.camera)
+
+    if (ref?.blend === 0) {
+      // We run a quick check against the parent, if it isn't hit there's no need to raycast at all
+      const [intersection] = state.raycaster.intersectObject(parent)
+      if (!intersection) {
+        // Cancel out the raycast camera if the parent mesh isn't hit
+        state.raycaster.camera = undefined
+        return false
       }
-    }, [])
-
-    return (
-      <portalMaterialImpl
-        ref={ref}
-        blur={blur}
-        blend={0}
-        resolution={[size.width * viewport.dpr, size.height * viewport.dpr]}
-        toneMapped={false}
-        attach="material"
-        {...props}
-      >
-        <RenderTexture
-          attach="map"
-          frames={visible ? Infinity : 0}
-          eventPriority={eventPriority}
-          renderPriority={renderPriority}
-          compute={compute}
-        >
-          {children}
-          <ManagePortalScene
-            events={events}
-            rootScene={scene}
-            priority={priority}
-            material={ref}
-            worldUnits={worldUnits}
-          />
-        </RenderTexture>
-      </portalMaterialImpl>
-    )
+    }
   }
-)
 
-function ManagePortalScene({
-  events = undefined,
-  rootScene,
-  material,
-  priority,
-  worldUnits,
-}: {
+  return (
+    <T.PortalMaterialImpl
+      ref={ref}
+      blur={props.blur}
+      blend={0}
+      resolution={[size.width * viewport.dpr, size.height * viewport.dpr]}
+      toneMapped={false}
+      attach="material"
+      {...rest}
+    >
+      <RenderTexture
+        attach="map"
+        frames={visible() ? Infinity : 0}
+        eventPriority={props.eventPriority}
+        renderPriority={props.renderPriority}
+        compute={compute}
+      >
+        {props.children}
+        <ManagePortalScene
+          events={props.events}
+          rootScene={scene}
+          priority={priority()}
+          material={ref}
+          worldUnits={props.worldUnits}
+        />
+      </RenderTexture>
+    </T.PortalMaterialImpl>
+  )
+}
+
+function ManagePortalScene(props: {
   events?: boolean
   rootScene: THREE.Scene
-  material: React.MutableRefObject<PortalMaterialType>
+  material: PortalMaterialType
   priority: number
   worldUnits: boolean
 }) {
-  const scene = useThree((state) => state.scene)
-  const setEvents = useThree((state) => state.setEvents)
+  const store = useThree()
   const buffer1 = useFBO()
   const buffer2 = useFBO()
 
-  React.useLayoutEffect(() => {
-    scene.matrixAutoUpdate = false
-  }, [])
+  createRenderEffect(() => {
+    store.scene.matrixAutoUpdate = false
+  })
 
-  React.useEffect(() => {
-    if (events !== undefined) setEvents({ enabled: events })
-  }, [events])
+  createEffect(() => {
+    if (props.events !== undefined) store.setEvents({ enabled: props.events })
+  })
 
-  const [quad, blend] = React.useMemo(() => {
+  const memo = createMemo(() => {
     // This fullscreen-quad is used to blend the two textures
     const blend = { value: 0 }
     const quad = new FullScreenQuad(
@@ -265,39 +259,39 @@ function ManagePortalScene({
           }`,
       })
     )
-    return [quad, blend]
+    return { quad, blend }
   }, [])
 
   useFrame((state) => {
-    let parent = (material?.current as any)?.__r3f.parent
+    let parent = (props.material as any)?.__r3f.parent
     if (parent) {
       // Move portal contents along with the parent if worldUnits is true
-      if (!worldUnits) {
+      if (!props.worldUnits) {
         // If the portal renders exclusively the original scene needs to be updated
-        if (priority && material.current?.blend === 1) parent.updateWorldMatrix(true, false)
-        scene.matrixWorld.copy(parent.matrixWorld)
-      } else scene.matrixWorld.identity()
+        if (props.priority && props.material?.blend === 1) parent.updateWorldMatrix(true, false)
+        store.scene.matrixWorld.copy(parent.matrixWorld)
+      } else store.scene.matrixWorld.identity()
 
       // This bit is only necessary if the portal is blended, now it has a render-priority
       // and will take over the render loop
-      if (priority) {
-        if (material.current?.blend > 0 && material.current?.blend < 1) {
+      if (props.priority) {
+        if (props.material?.blend > 0 && props.material?.blend < 1) {
           // If blend is ongoing (> 0 and < 1) then we need to render both the root scene
           // and the portal scene, both will then be mixed in the quad from above
-          blend.value = material.current.blend
+          memo().blend.value = props.material.blend
           state.gl.setRenderTarget(buffer1)
-          state.gl.render(scene, state.camera)
+          state.gl.render(store.scene, state.camera)
           state.gl.setRenderTarget(buffer2)
-          state.gl.render(rootScene, state.camera)
+          state.gl.render(props.rootScene, state.camera)
           state.gl.setRenderTarget(null)
-          quad.render(state.gl)
-        } else if (material.current?.blend === 1) {
+          memo().quad.render(state.gl)
+        } else if (props.material?.blend === 1) {
           // However if blend is 1 we only need to render the portal scene
-          state.gl.render(scene, state.camera)
+          state.gl.render(store.scene, state.camera)
         }
       }
     }
-  }, priority)
+  }, props.priority)
   return <></>
 }
 

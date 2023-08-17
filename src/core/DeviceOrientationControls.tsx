@@ -1,52 +1,52 @@
-import { ReactThreeFiber, useFrame, useThree } from '@react-three/fiber'
-import * as React from 'react'
+import { Primitive, SolidThreeFiber, useFrame, useThree } from '@solid-three/fiber'
+import { createEffect, onCleanup, splitProps } from 'solid-js'
 import * as THREE from 'three'
 import { DeviceOrientationControls as DeviceOrientationControlsImp } from 'three-stdlib'
+import { RefComponent } from '../helpers/typeHelpers'
 
-export type DeviceOrientationControlsProps = ReactThreeFiber.Object3DNode<
-  DeviceOrientationControlsImp,
-  typeof DeviceOrientationControlsImp
+export type DeviceOrientationControlsProps = Omit<
+  SolidThreeFiber.Object3DNode<DeviceOrientationControlsImp>,
+  'object'
 > & {
   camera?: THREE.Camera
   onChange?: (e?: THREE.Event) => void
   makeDefault?: boolean
 }
 
-export const DeviceOrientationControls = React.forwardRef<DeviceOrientationControlsImp, DeviceOrientationControlsProps>(
-  (props: DeviceOrientationControlsProps, ref) => {
-    const { camera, onChange, makeDefault, ...rest } = props
-    const defaultCamera = useThree((state) => state.camera)
-    const invalidate = useThree((state) => state.invalidate)
-    const get = useThree((state) => state.get)
-    const set = useThree((state) => state.set)
-    const explCamera = camera || defaultCamera
-    const [controls] = React.useState(() => new DeviceOrientationControlsImp(explCamera))
+export const DeviceOrientationControls: RefComponent<DeviceOrientationControlsImp, DeviceOrientationControlsProps> = (
+  _props: DeviceOrientationControlsProps
+) => {
+  const [props, rest] = splitProps(_props, ['ref', 'camera', 'onChange', 'makeDefault'])
+  const store = useThree()
 
-    React.useEffect(() => {
-      const callback = (e: THREE.Event) => {
-        invalidate()
-        if (onChange) onChange(e)
-      }
-      controls?.addEventListener?.('change', callback)
-      return () => controls?.removeEventListener?.('change', callback)
-    }, [onChange, controls, invalidate])
+  const explCamera = props.camera || store.camera
+  const controls = new DeviceOrientationControlsImp(explCamera)
 
-    useFrame(() => controls?.update(), -1)
+  createEffect(() => {
+    const callback = (e: THREE.Event) => {
+      store.invalidate()
+      if (props.onChange) props.onChange(e)
+    }
+    controls.addEventListener?.('change', callback)
+    onCleanup(() => controls.removeEventListener?.('change', callback))
+  })
 
-    React.useEffect(() => {
-      const current = controls
-      current?.connect()
-      return () => current?.dispose()
-    }, [controls])
+  useFrame(() => controls.update(), -1)
 
-    React.useEffect(() => {
-      if (makeDefault) {
-        const old = get().controls
-        set({ controls })
-        return () => set({ controls: old })
-      }
-    }, [makeDefault, controls])
+  createEffect(() => {
+    const current = controls
+    current.connect()
+    onCleanup(() => current.dispose())
+  })
 
-    return controls ? <primitive ref={ref} object={controls} {...rest} /> : null
-  }
-)
+  createEffect(() => {
+    if (props.makeDefault) {
+      const old = store.controls
+      store.set({ controls })
+      onCleanup(() => store.set({ controls: old }))
+    }
+  })
+
+  // s3f:   unclean why dispose is getting a type-error
+  return controls ? <Primitive ref={props.ref} object={controls} {...rest} /> : null
+}

@@ -1,10 +1,13 @@
 // The author of the original code is @mrdoob https://twitter.com/mrdoob
 // https://threejs.org/examples/?q=con#webgl_shadow_contact
 
-import * as React from 'react'
+import { T, ThreeProps, useFrame, useThree } from '@solid-three/fiber'
+import { createMemo } from 'solid-js'
 import * as THREE from 'three'
-import { useFrame, useThree } from '@react-three/fiber'
 import { HorizontalBlurShader, VerticalBlurShader } from 'three-stdlib'
+import { processProps } from '../helpers/processProps'
+import { RefComponent } from '../helpers/typeHelpers'
+import { createImperativeHandle } from '../helpers/useImperativeHandle'
 
 export type ContactShadowsProps = {
   opacity?: number
@@ -21,35 +24,80 @@ export type ContactShadowsProps = {
   depthWrite?: boolean
 }
 
-export const ContactShadows = React.forwardRef(
-  (
+export const ContactShadows: RefComponent<any, Omit<ThreeProps<'Group'>, 'scale'> & ContactShadowsProps> = (
+  _props: Omit<ThreeProps<'Group'>, 'scale'> & ContactShadowsProps
+) => {
+  const [props, rest] = processProps(
+    _props,
     {
-      scale = 10,
-      frames = Infinity,
-      opacity = 1,
-      width = 1,
-      height = 1,
-      blur = 1,
-      near = 0,
-      far = 10,
-      resolution = 512,
-      smooth = true,
-      color = '#000000',
-      depthWrite = false,
-      renderOrder,
-      ...props
-    }: Omit<JSX.IntrinsicElements['group'], 'scale'> & ContactShadowsProps,
-    fref
-  ) => {
-    const ref = React.useRef<THREE.Group>(null!)
-    const scene = useThree((state) => state.scene)
-    const gl = useThree((state) => state.gl)
-    const shadowCamera = React.useRef<THREE.OrthographicCamera>(null!)
+      scale: 10,
+      frames: Infinity,
+      opacity: 1,
+      width: 1,
+      height: 1,
+      blur: 1,
+      near: 0,
+      far: 10,
+      resolution: 512,
+      smooth: true,
+      color: '#000000',
+      depthWrite: false,
+    },
+    [
+      'ref',
+      'scale',
+      'frames',
+      'opacity',
+      'width',
+      'height',
+      'blur',
+      'near',
+      'far',
+      'resolution',
+      'smooth',
+      'color',
+      'depthWrite',
+      'renderOrder',
+    ]
+  )
 
-    width = width * (Array.isArray(scale) ? scale[0] : scale || 1)
-    height = height * (Array.isArray(scale) ? scale[1] : scale || 1)
+  let ref: THREE.Group = null!
+  const store = useThree()
+  const shadowCamera: THREE.OrthographicCamera = null!
 
-    const [
+  props.width = props.width * (Array.isArray(props.scale) ? props.scale[0] : props.scale || 1)
+  props.height = props.height * (Array.isArray(props.scale) ? props.scale[1] : props.scale || 1)
+
+  const memo = createMemo(() => {
+    const renderTarget = new THREE.WebGLRenderTarget(props.resolution, props.resolution)
+    const renderTargetBlur = new THREE.WebGLRenderTarget(props.resolution, props.resolution)
+    renderTargetBlur.texture.generateMipmaps = renderTarget.texture.generateMipmaps = false
+    const planeGeometry = new THREE.PlaneGeometry(props.width, props.height).rotateX(Math.PI / 2)
+    const blurPlane = new THREE.Mesh(planeGeometry)
+    const depthMaterial = new THREE.MeshDepthMaterial()
+    depthMaterial.depthTest = depthMaterial.depthWrite = false
+    depthMaterial.onBeforeCompile = (shader) => {
+      shader.uniforms = {
+        ...shader.uniforms,
+        ucolor: { value: new THREE.Color(props.color) },
+      }
+      shader.fragmentShader = shader.fragmentShader.replace(
+        `void main() {`, //
+        `uniform vec3 ucolor;
+           void main() {
+          `
+      )
+      shader.fragmentShader = shader.fragmentShader.replace(
+        'vec4( vec3( 1.0 - fragCoordZ ), opacity );',
+        // Colorize the shadow, multiply by the falloff so that the center can remain darker
+        'vec4( ucolor * fragCoordZ * 2.0, ( 1.0 - fragCoordZ ) * 1.0 );'
+      )
+    }
+
+    const horizontalBlurMaterial = new THREE.ShaderMaterial(HorizontalBlurShader)
+    const verticalBlurMaterial = new THREE.ShaderMaterial(VerticalBlurShader)
+    verticalBlurMaterial.depthTest = horizontalBlurMaterial.depthTest = false
+    return {
       renderTarget,
       planeGeometry,
       depthMaterial,
@@ -57,102 +105,77 @@ export const ContactShadows = React.forwardRef(
       horizontalBlurMaterial,
       verticalBlurMaterial,
       renderTargetBlur,
-    ] = React.useMemo(() => {
-      const renderTarget = new THREE.WebGLRenderTarget(resolution, resolution)
-      const renderTargetBlur = new THREE.WebGLRenderTarget(resolution, resolution)
-      renderTargetBlur.texture.generateMipmaps = renderTarget.texture.generateMipmaps = false
-      const planeGeometry = new THREE.PlaneGeometry(width, height).rotateX(Math.PI / 2)
-      const blurPlane = new THREE.Mesh(planeGeometry)
-      const depthMaterial = new THREE.MeshDepthMaterial()
-      depthMaterial.depthTest = depthMaterial.depthWrite = false
-      depthMaterial.onBeforeCompile = (shader) => {
-        shader.uniforms = {
-          ...shader.uniforms,
-          ucolor: { value: new THREE.Color(color) },
-        }
-        shader.fragmentShader = shader.fragmentShader.replace(
-          `void main() {`, //
-          `uniform vec3 ucolor;
-           void main() {
-          `
-        )
-        shader.fragmentShader = shader.fragmentShader.replace(
-          'vec4( vec3( 1.0 - fragCoordZ ), opacity );',
-          // Colorize the shadow, multiply by the falloff so that the center can remain darker
-          'vec4( ucolor * fragCoordZ * 2.0, ( 1.0 - fragCoordZ ) * 1.0 );'
-        )
-      }
-
-      const horizontalBlurMaterial = new THREE.ShaderMaterial(HorizontalBlurShader)
-      const verticalBlurMaterial = new THREE.ShaderMaterial(VerticalBlurShader)
-      verticalBlurMaterial.depthTest = horizontalBlurMaterial.depthTest = false
-      return [
-        renderTarget,
-        planeGeometry,
-        depthMaterial,
-        blurPlane,
-        horizontalBlurMaterial,
-        verticalBlurMaterial,
-        renderTargetBlur,
-      ]
-    }, [resolution, width, height, scale, color])
-
-    const blurShadows = (blur) => {
-      blurPlane.visible = true
-
-      blurPlane.material = horizontalBlurMaterial
-      horizontalBlurMaterial.uniforms.tDiffuse.value = renderTarget.texture
-      horizontalBlurMaterial.uniforms.h.value = (blur * 1) / 256
-
-      gl.setRenderTarget(renderTargetBlur)
-      gl.render(blurPlane, shadowCamera.current)
-
-      blurPlane.material = verticalBlurMaterial
-      verticalBlurMaterial.uniforms.tDiffuse.value = renderTargetBlur.texture
-      verticalBlurMaterial.uniforms.v.value = (blur * 1) / 256
-
-      gl.setRenderTarget(renderTarget)
-      gl.render(blurPlane, shadowCamera.current)
-
-      blurPlane.visible = false
     }
+  }, [props.resolution, props.width, props.height, props.scale, props.color])
 
-    let count = 0
-    let initialBackground: THREE.Color | THREE.Texture | null
-    let initialOverrideMaterial: THREE.Material | null
-    useFrame(() => {
-      if (shadowCamera.current && (frames === Infinity || count < frames)) {
-        count++
+  const blurShadows = (blur) => {
+    memo().blurPlane.visible = true
 
-        initialBackground = scene.background
-        initialOverrideMaterial = scene.overrideMaterial
+    memo().blurPlane.material = memo().horizontalBlurMaterial
+    memo().horizontalBlurMaterial.uniforms.tDiffuse.value = memo().renderTarget.texture
+    memo().horizontalBlurMaterial.uniforms.h.value = (blur * 1) / 256
 
-        ref.current.visible = false
-        scene.background = null
-        scene.overrideMaterial = depthMaterial
+    store.gl.setRenderTarget(memo().renderTargetBlur)
+    store.gl.render(memo().blurPlane, shadowCamera)
 
-        gl.setRenderTarget(renderTarget)
-        gl.render(scene, shadowCamera.current)
+    memo().blurPlane.material = memo().verticalBlurMaterial
+    memo().verticalBlurMaterial.uniforms.tDiffuse.value = memo().renderTargetBlur.texture
+    memo().verticalBlurMaterial.uniforms.v.value = (blur * 1) / 256
 
-        blurShadows(blur)
-        if (smooth) blurShadows(blur * 0.4)
-        gl.setRenderTarget(null)
+    store.gl.setRenderTarget(memo().renderTarget)
+    store.gl.render(memo().blurPlane, shadowCamera)
 
-        ref.current.visible = true
-        scene.overrideMaterial = initialOverrideMaterial
-        scene.background = initialBackground
-      }
-    })
-
-    React.useImperativeHandle(fref, () => ref.current, [])
-
-    return (
-      <group rotation-x={Math.PI / 2} {...props} ref={ref}>
-        <mesh renderOrder={renderOrder} geometry={planeGeometry} scale={[1, -1, 1]} rotation={[-Math.PI / 2, 0, 0]}>
-          <meshBasicMaterial transparent map={renderTarget.texture} opacity={opacity} depthWrite={depthWrite} />
-        </mesh>
-        <orthographicCamera ref={shadowCamera} args={[-width / 2, width / 2, height / 2, -height / 2, near, far]} />
-      </group>
-    )
+    memo().blurPlane.visible = false
   }
-)
+
+  let count = 0
+  let initialBackground: THREE.Color | THREE.Texture | null
+  let initialOverrideMaterial: THREE.Material | null
+  useFrame(() => {
+    if (shadowCamera && (props.frames === Infinity || count < props.frames)) {
+      count++
+
+      initialBackground = store.scene.background
+      initialOverrideMaterial = store.scene.overrideMaterial
+
+      ref.visible = false
+      store.scene.background = null
+      store.scene.overrideMaterial = memo().depthMaterial
+
+      store.gl.setRenderTarget(memo().renderTarget)
+      store.gl.render(store.scene, shadowCamera)
+
+      blurShadows(props.blur)
+      if (props.smooth) blurShadows(props.blur * 0.4)
+      store.gl.setRenderTarget(null)
+
+      ref.visible = true
+      store.scene.overrideMaterial = initialOverrideMaterial
+      store.scene.background = initialBackground
+    }
+  })
+
+  createImperativeHandle(props, () => ref)
+
+  return (
+    <T.Group rotation-x={Math.PI / 2} {...rest} ref={ref}>
+      <T.Mesh
+        renderOrder={props.renderOrder}
+        geometry={memo().planeGeometry}
+        scale={[1, -1, 1]}
+        rotation={[-Math.PI / 2, 0, 0]}
+      >
+        <T.MeshBasicMaterial
+          transparent
+          map={memo().renderTarget.texture}
+          opacity={props.opacity}
+          depthWrite={props.depthWrite}
+        />
+      </T.Mesh>
+      <T.OrthographicCamera
+        ref={shadowCamera}
+        args={[-props.width / 2, props.width / 2, props.height / 2, -props.height / 2, props.near, props.far]}
+      />
+    </T.Group>
+  )
+}

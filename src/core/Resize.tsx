@@ -1,7 +1,11 @@
+import { T, ThreeProps } from '@solid-three/fiber'
+import { createEffect } from 'solid-js'
 import * as THREE from 'three'
-import * as React from 'react'
+import { processProps } from '../helpers/processProps'
+import { RefComponent } from '../helpers/typeHelpers'
+import { createImperativeHandle } from '../helpers/useImperativeHandle'
 
-export type ResizeProps = JSX.IntrinsicElements['group'] & {
+export type ResizeProps = ThreeProps<'Group'> & {
   /** Whether to fit into width (x axis), undefined */
   width?: boolean
   /** Whether to fit into height (y axis), undefined */
@@ -14,35 +18,41 @@ export type ResizeProps = JSX.IntrinsicElements['group'] & {
   precise?: boolean
 }
 
-export const Resize = React.forwardRef<THREE.Group, ResizeProps>(
-  ({ children, width, height, depth, box3, precise = true, ...props }, fRef) => {
-    const ref = React.useRef<THREE.Group>(null!)
-    const outer = React.useRef<THREE.Group>(null!)
-    const inner = React.useRef<THREE.Group>(null!)
+export const Resize: RefComponent<THREE.Group, ResizeProps> = (_props) => {
+  const [props, rest] = processProps(
+    _props,
+    {
+      precise: true,
+    },
+    ['ref', 'children', 'width', 'height', 'depth', 'box3', 'precise']
+  )
 
-    React.useLayoutEffect(() => {
-      outer.current.matrixWorld.identity()
-      let box = box3 || new THREE.Box3().setFromObject(inner.current, precise)
-      const w = box.max.x - box.min.x
-      const h = box.max.y - box.min.y
-      const d = box.max.z - box.min.z
+  let ref: THREE.Group = null!
+  let outer: THREE.Group = null!
+  let inner: THREE.Group = null!
 
-      let dimension = Math.max(w, h, d)
-      if (width) dimension = w
-      if (height) dimension = h
-      if (depth) dimension = d
+  createEffect(() => {
+    outer.matrixWorld.identity()
+    let box = props.box3 || new THREE.Box3().setFromObject(inner, props.precise)
+    const w = box.max.x - box.min.x
+    const h = box.max.y - box.min.y
+    const d = box.max.z - box.min.z
 
-      outer.current.scale.setScalar(1 / dimension)
-    }, [width, height, depth, box3, precise])
+    let dimension = Math.max(w, h, d)
+    if (props.width) dimension = w
+    if (props.height) dimension = h
+    if (props.depth) dimension = d
 
-    React.useImperativeHandle(fRef, () => ref.current, [])
+    outer.scale.setScalar(1 / dimension)
+  }, [props.width, props.height, props.depth, props.box3, props.precise])
 
-    return (
-      <group ref={ref} {...props}>
-        <group ref={outer}>
-          <group ref={inner}>{children}</group>
-        </group>
-      </group>
-    )
-  }
-)
+  createImperativeHandle(props, () => ref)
+
+  return (
+    <T.Group {...rest} ref={ref}>
+      <T.Group ref={outer}>
+        <T.Group ref={inner}>{props.children}</T.Group>
+      </T.Group>
+    </T.Group>
+  )
+}

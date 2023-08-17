@@ -1,24 +1,22 @@
-import * as React from 'react'
-import { useThree } from '@react-three/fiber'
+import { useThree } from '@solid-three/fiber'
+import { createEffect, onCleanup } from 'solid-js'
 
 export function AdaptiveDpr({ pixelated }: { pixelated?: boolean }) {
-  const gl = useThree((state) => state.gl)
-  const active = useThree((state) => state.internal.active)
-  const current = useThree((state) => state.performance.current)
-  const initialDpr = useThree((state) => state.viewport.initialDpr)
-  const setDpr = useThree((state) => state.setDpr)
+  const store = useThree()
+
   // Restore initial pixelratio on unmount
-  React.useEffect(() => {
-    const domElement = gl.domElement
-    return () => {
-      if (active) setDpr(initialDpr)
+  createEffect(() => {
+    const domElement = store.gl.domElement
+    onCleanup(() => {
+      if (store.internal.active) store.setDpr(store.viewport.initialDpr)
       if (pixelated && domElement) domElement.style.imageRendering = 'auto'
-    }
+    })
   }, [])
   // Set adaptive pixelratio
-  React.useEffect(() => {
-    setDpr(current * initialDpr)
-    if (pixelated && gl.domElement) gl.domElement.style.imageRendering = current === 1 ? 'auto' : 'pixelated'
-  }, [current])
+  createEffect(() => {
+    store.setDpr(store.performance.current * store.viewport.initialDpr)
+    if (pixelated && store.gl.domElement)
+      store.gl.domElement.style.imageRendering = store.performance.current === 1 ? 'auto' : 'pixelated'
+  }, [store.performance.current])
   return null
 }

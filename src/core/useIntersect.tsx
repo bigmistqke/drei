@@ -1,34 +1,34 @@
-import * as React from 'react'
-import { addEffect, addAfterEffect } from '@react-three/fiber'
+import { addAfterEffect, addEffect } from '@solid-three/fiber'
+import { createEffect, createSignal, onCleanup } from 'solid-js'
+import { when } from '../helpers/when'
 
 export function useIntersect<T extends THREE.Object3D>(onChange: (visible: boolean) => void) {
-  const ref = React.useRef<T>(null!)
-  const check = React.useRef(false)
-  const temp = React.useRef(false)
-  const callback = React.useRef(onChange)
-  React.useLayoutEffect(() => void (callback.current = onChange), [onChange])
-  React.useEffect(() => {
-    const obj = ref.current
-    if (obj) {
+  // let ref: T = null!
+  const [ref, setRef] = createSignal<T>()
+  let check = false
+  let temp = false
+
+  createEffect(() => {
+    when(ref)((ref) => {
       // Stamp out frustum check pre-emptively
       const unsub1 = addEffect(() => {
-        check.current = false
+        check = false
         return true
       })
       // If the object is inside the frustum three will call onRender
-      const oldOnRender = obj.onBeforeRender
-      obj.onBeforeRender = () => (check.current = true)
+      const oldOnRender = ref.onBeforeRender
+      ref.onBeforeRender = () => (check = true)
       // Compare the check value against the temp value, if it differs set state
       const unsub2 = addAfterEffect(() => {
-        if (check.current !== temp.current) callback.current?.((temp.current = check.current))
+        if (check !== temp) onChange((temp = check))
         return true
       })
-      return () => {
-        obj.onBeforeRender = oldOnRender
+      onCleanup(() => {
+        ref.onBeforeRender = oldOnRender
         unsub1()
         unsub2()
-      }
-    }
-  }, [])
-  return ref
+      })
+    })
+  })
+  return [ref, setRef] as const
 }

@@ -1,11 +1,14 @@
+import { Size, T, useFrame, useThree } from '@solid-three/fiber'
+import { createMemo, createRenderEffect, type JSX } from 'solid-js'
 import * as THREE from 'three'
-import * as React from 'react'
-import { Size, extend, useFrame, useThree } from '@react-three/fiber'
 
+import { processProps } from '../../helpers/processProps'
+import { RefComponent } from '../../helpers/typeHelpers'
+import { createImperativeHandle } from '../../helpers/useImperativeHandle'
 import { AxisArrow } from './AxisArrow'
-import { PlaneSlider } from './PlaneSlider'
 import { AxisRotator } from './AxisRotator'
-import { context, OnDragStartProps } from './context'
+import { PlaneSlider } from './PlaneSlider'
+import { OnDragStartProps, context } from './context'
 
 const tV0 = new THREE.Vector3()
 const tV1 = new THREE.Vector3()
@@ -106,177 +109,182 @@ type PivotControlsProps = {
   opacity?: number
   visible?: boolean
   userData?: { [key: string]: any }
-  children?: React.ReactNode
+  children?: JSX.Element
 }
 
-export const PivotControls = React.forwardRef<THREE.Group, PivotControlsProps>(
-  (
+export const PivotControls: RefComponent<THREE.Group, PivotControlsProps> = (_props) => {
+  const [props, rest] = processProps(
+    _props,
     {
-      matrix,
-      onDragStart,
-      onDrag,
-      onDragEnd,
-      autoTransform = true,
-      anchor,
-      disableAxes = false,
-      disableSliders = false,
-      disableRotations = false,
-      activeAxes = [true, true, true],
-      offset = [0, 0, 0],
-      rotation = [0, 0, 0],
-      scale = 1,
-      lineWidth = 4,
-      fixed = false,
-      translationLimits,
-      rotationLimits,
-      depthTest = true,
-      axisColors = ['#ff2060', '#20df80', '#2080ff'],
-      hoveredColor = '#ffff40',
-      annotations = false,
-      annotationsClass,
-      opacity = 1,
-      visible = true,
-      userData,
-      children,
-      ...props
+      autoTransform: true,
+      disableAxes: false,
+      disableSliders: false,
+      disableRotations: false,
+      activeAxes: [true, true, true],
+      offset: [0, 0, 0],
+      rotation: [0, 0, 0],
+      scale: 1,
+      lineWidth: 4,
+      fixed: false,
+      depthTest: true,
+      axisColors: ['#ff2060', '#20df80', '#2080ff'],
+      hoveredColor: '#ffff40',
+      annotations: false,
+      opacity: 1,
+      visible: true,
     },
-    fRef
-  ) => {
-    const invalidate = useThree((state) => state.invalidate)
-    const parentRef = React.useRef<THREE.Group>(null!)
-    const ref = React.useRef<THREE.Group>(null!)
-    const gizmoRef = React.useRef<THREE.Group>(null!)
-    const childrenRef = React.useRef<THREE.Group>(null!)
-    const translation = React.useRef<[number, number, number]>([0, 0, 0])
+    [
+      'ref',
+      'matrix',
+      'onDragStart',
+      'onDrag',
+      'onDragEnd',
+      'autoTransform',
+      'anchor',
+      'disableAxes',
+      'disableSliders',
+      'disableRotations',
+      'activeAxes',
+      'offset',
+      'rotation',
+      'scale',
+      'lineWidth',
+      'fixed',
+      'translationLimits',
+      'rotationLimits',
+      'depthTest',
+      'axisColors',
+      'hoveredColor',
+      'annotations',
+      'annotationsClass',
+      'opacity',
+      'visible',
+      'userData',
+      'children',
+    ]
+  )
 
-    React.useLayoutEffect(() => {
-      if (!anchor) return
-      childrenRef.current.updateWorldMatrix(true, true)
+  const store = useThree()
+  let parentRef: THREE.Group = null!
+  let ref: THREE.Group = null!
+  let gizmoRef: THREE.Group = null!
+  let childrenRef: THREE.Group = null!
+  let translation: [number, number, number] = [0, 0, 0]
 
-      mPInv.copy(childrenRef.current.matrixWorld).invert()
-      bb.makeEmpty()
-      childrenRef.current.traverse((obj: any) => {
-        if (!obj.geometry) return
-        if (!obj.geometry.boundingBox) obj.geometry.computeBoundingBox()
-        mL.copy(obj.matrixWorld).premultiply(mPInv)
-        bbObj.copy(obj.geometry.boundingBox)
-        bbObj.applyMatrix4(mL)
-        bb.union(bbObj)
-      })
-      vCenter.copy(bb.max).add(bb.min).multiplyScalar(0.5)
-      vSize.copy(bb.max).sub(bb.min).multiplyScalar(0.5)
-      vAnchorOffset
-        .copy(vSize)
-        .multiply(new THREE.Vector3(...anchor))
-        .add(vCenter)
-      vPosition.set(...offset).add(vAnchorOffset)
-      gizmoRef.current.position.copy(vPosition)
-      invalidate()
+  createRenderEffect(() => {
+    if (!props.anchor) return
+    childrenRef.updateWorldMatrix(true, true)
+
+    mPInv.copy(childrenRef.matrixWorld).invert()
+    bb.makeEmpty()
+    childrenRef.traverse((obj: any) => {
+      if (!obj.geometry) return
+      if (!obj.geometry.boundingBox) obj.geometry.computeBoundingBox()
+      mL.copy(obj.matrixWorld).premultiply(mPInv)
+      bbObj.copy(obj.geometry.boundingBox)
+      bbObj.applyMatrix4(mL)
+      bb.union(bbObj)
     })
+    vCenter.copy(bb.max).add(bb.min).multiplyScalar(0.5)
+    vSize.copy(bb.max).sub(bb.min).multiplyScalar(0.5)
+    vAnchorOffset
+      .copy(vSize)
+      .multiply(new THREE.Vector3(...props.anchor))
+      .add(vCenter)
+    vPosition.set(...props.offset).add(vAnchorOffset)
+    gizmoRef.position.copy(vPosition)
+    store.invalidate()
+  })
 
-    const config = React.useMemo(
-      () => ({
-        onDragStart: (props: OnDragStartProps) => {
-          mL0.copy(ref.current.matrix)
-          mW0.copy(ref.current.matrixWorld)
-          onDragStart && onDragStart(props)
-          invalidate()
-        },
-        onDrag: (mdW: THREE.Matrix4) => {
-          mP.copy(parentRef.current.matrixWorld)
-          mPInv.copy(mP).invert()
-          // After applying the delta
-          mW.copy(mW0).premultiply(mdW)
-          mL.copy(mW).premultiply(mPInv)
-          mL0Inv.copy(mL0).invert()
-          mdL.copy(mL).multiply(mL0Inv)
-          if (autoTransform) ref.current.matrix.copy(mL)
-          onDrag && onDrag(mL, mdL, mW, mdW)
-          invalidate()
-        },
-        onDragEnd: () => {
-          if (onDragEnd) onDragEnd()
-          invalidate()
-        },
-        translation,
-        translationLimits,
-        rotationLimits,
-        axisColors,
-        hoveredColor,
-        opacity,
-        scale,
-        lineWidth,
-        fixed,
-        depthTest,
-        userData,
-        annotations,
-        annotationsClass,
-      }),
-      [
-        onDragStart,
-        onDrag,
-        onDragEnd,
-        translation,
-        translationLimits,
-        rotationLimits,
-        depthTest,
-        scale,
-        lineWidth,
-        fixed,
-        ...axisColors,
-        hoveredColor,
-        opacity,
-        userData,
-        autoTransform,
-        annotations,
-        annotationsClass,
-      ]
-    )
+  // s3f: we could prevent a createMemo with some getters
+  const config = createMemo(() => ({
+    onDragStart: (_props: OnDragStartProps) => {
+      mL0.copy(ref.matrix)
+      mW0.copy(ref.matrixWorld)
+      props.onDragStart && props.onDragStart(_props)
+      store.invalidate()
+    },
+    onDrag: (mdW: THREE.Matrix4) => {
+      mP.copy(parentRef.matrixWorld)
+      mPInv.copy(mP).invert()
+      // After applying the delta
+      mW.copy(mW0).premultiply(mdW)
+      mL.copy(mW).premultiply(mPInv)
+      mL0Inv.copy(mL0).invert()
+      mdL.copy(mL).multiply(mL0Inv)
+      if (props.autoTransform) ref.matrix.copy(mL)
+      props.onDrag && props.onDrag(mL, mdL, mW, mdW)
+      store.invalidate()
+    },
+    onDragEnd: () => {
+      if (props.onDragEnd) props.onDragEnd()
+      store.invalidate()
+    },
+    translation,
+    translationLimits: props.translationLimits,
+    rotationLimits: props.rotationLimits,
+    axisColors: props.axisColors,
+    hoveredColor: props.hoveredColor,
+    opacity: props.opacity,
+    scale: props.scale,
+    lineWidth: props.lineWidth,
+    fixed: props.fixed,
+    depthTest: props.depthTest,
+    userData: props.userData,
+    annotations: props.annotations,
+    annotationsClass: props.annotationsClass,
+  }))
 
-    const vec = new THREE.Vector3()
-    useFrame((state) => {
-      if (fixed) {
-        const sf = calculateScaleFactor(gizmoRef.current.getWorldPosition(vec), scale, state.camera, state.size)
-        if (gizmoRef.current) {
-          if (
-            gizmoRef.current?.scale.x !== sf ||
-            gizmoRef.current?.scale.y !== sf ||
-            gizmoRef.current?.scale.z !== sf
-          ) {
-            gizmoRef.current.scale.setScalar(sf)
-            state.invalidate()
-          }
+  const vec = new THREE.Vector3()
+  useFrame((state) => {
+    if (props.fixed) {
+      const sf = calculateScaleFactor(gizmoRef.getWorldPosition(vec), props.scale, state.camera, state.size)
+      if (gizmoRef) {
+        if (gizmoRef?.scale.x !== sf || gizmoRef?.scale.y !== sf || gizmoRef?.scale.z !== sf) {
+          gizmoRef.scale.setScalar(sf)
+          state.invalidate()
         }
       }
-    })
+    }
+  })
+  createImperativeHandle(props, () => ref)
 
-    React.useImperativeHandle(fRef, () => ref.current, [])
+  createRenderEffect(() => {
+    // If the matrix is a real matrix4 it means that the user wants to control the gizmo
+    // In that case it should just be set, as a bare prop update would merely copy it
+    if (props.matrix && props.matrix instanceof THREE.Matrix4) ref.matrix = props.matrix
+  })
 
-    React.useLayoutEffect(() => {
-      // If the matrix is a real matrix4 it means that the user wants to control the gizmo
-      // In that case it should just be set, as a bare prop update would merely copy it
-      if (matrix && matrix instanceof THREE.Matrix4) ref.current.matrix = matrix
-    }, [matrix])
-
-    return (
-      <context.Provider value={config}>
-        <group ref={parentRef}>
-          <group ref={ref} matrix={matrix} matrixAutoUpdate={false} {...props}>
-            <group visible={visible} ref={gizmoRef} position={offset} rotation={rotation}>
-              {!disableAxes && activeAxes[0] && <AxisArrow axis={0} direction={xDir} />}
-              {!disableAxes && activeAxes[1] && <AxisArrow axis={1} direction={yDir} />}
-              {!disableAxes && activeAxes[2] && <AxisArrow axis={2} direction={zDir} />}
-              {!disableSliders && activeAxes[0] && activeAxes[1] && <PlaneSlider axis={2} dir1={xDir} dir2={yDir} />}
-              {!disableSliders && activeAxes[0] && activeAxes[2] && <PlaneSlider axis={1} dir1={zDir} dir2={xDir} />}
-              {!disableSliders && activeAxes[2] && activeAxes[1] && <PlaneSlider axis={0} dir1={yDir} dir2={zDir} />}
-              {!disableRotations && activeAxes[0] && activeAxes[1] && <AxisRotator axis={2} dir1={xDir} dir2={yDir} />}
-              {!disableRotations && activeAxes[0] && activeAxes[2] && <AxisRotator axis={1} dir1={zDir} dir2={xDir} />}
-              {!disableRotations && activeAxes[2] && activeAxes[1] && <AxisRotator axis={0} dir1={yDir} dir2={zDir} />}
-            </group>
-            <group ref={childrenRef}>{children}</group>
-          </group>
-        </group>
-      </context.Provider>
-    )
-  }
-)
+  return (
+    <context.Provider value={config()}>
+      <T.Group ref={parentRef}>
+        <T.Group ref={ref} matrix={props.matrix} matrixAutoUpdate={false} {...rest}>
+          <T.Group visible={props.visible} ref={gizmoRef} position={props.offset} rotation={props.rotation}>
+            {!props.disableAxes && props.activeAxes[0] && <AxisArrow axis={0} direction={xDir} />}
+            {!props.disableAxes && props.activeAxes[1] && <AxisArrow axis={1} direction={yDir} />}
+            {!props.disableAxes && props.activeAxes[2] && <AxisArrow axis={2} direction={zDir} />}
+            {!props.disableSliders && props.activeAxes[0] && props.activeAxes[1] && (
+              <PlaneSlider axis={2} dir1={xDir} dir2={yDir} />
+            )}
+            {!props.disableSliders && props.activeAxes[0] && props.activeAxes[2] && (
+              <PlaneSlider axis={1} dir1={zDir} dir2={xDir} />
+            )}
+            {!props.disableSliders && props.activeAxes[2] && props.activeAxes[1] && (
+              <PlaneSlider axis={0} dir1={yDir} dir2={zDir} />
+            )}
+            {!props.disableRotations && props.activeAxes[0] && props.activeAxes[1] && (
+              <AxisRotator axis={2} dir1={xDir} dir2={yDir} />
+            )}
+            {!props.disableRotations && props.activeAxes[0] && props.activeAxes[2] && (
+              <AxisRotator axis={1} dir1={zDir} dir2={xDir} />
+            )}
+            {!props.disableRotations && props.activeAxes[2] && props.activeAxes[1] && (
+              <AxisRotator axis={0} dir1={yDir} dir2={zDir} />
+            )}
+          </T.Group>
+          <T.Group ref={childrenRef}>{props.children}</T.Group>
+        </T.Group>
+      </T.Group>
+    </context.Provider>
+  )
+}

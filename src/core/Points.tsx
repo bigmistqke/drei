@@ -1,22 +1,26 @@
+import { SolidThreeFiber, T, ThreeProps, extend, useFrame } from '@solid-three/fiber'
+import { Show, createContext, createEffect, createSignal, splitProps, useContext } from 'solid-js'
 import * as THREE from 'three'
-import * as React from 'react'
-import { ReactThreeFiber, extend, useFrame } from '@react-three/fiber'
-import mergeRefs from 'react-merge-refs'
+import { createRef } from '../helpers/createRef'
+import { mergeRefs } from '../helpers/mergeRefs'
+import { processProps } from '../helpers/processProps'
+import { RefComponent } from '../helpers/typeHelpers'
+import { when } from '../helpers/when'
 
 declare global {
-  namespace JSX {
+  namespace SolidThree {
     interface IntrinsicElements {
-      positionPoint: ReactThreeFiber.Object3DNode<PositionPoint, typeof PositionPoint>
+      PositionPoint: SolidThreeFiber.Object3DNode<PositionPoint>
     }
   }
 }
 
 type Api = {
-  getParent: () => React.MutableRefObject<THREE.Points>
+  getParent: () => THREE.Points
   subscribe: (ref) => void
 }
 
-type PointsInstancesProps = JSX.IntrinsicElements['points'] & {
+type PointsInstancesProps = ThreeProps<'Points'> & {
   range?: number
   limit?: number
 }
@@ -29,23 +33,23 @@ const _position = /*@__PURE__*/ new THREE.Vector3()
 export class PositionPoint extends THREE.Group {
   size: number
   color: THREE.Color
-  instance: React.MutableRefObject<THREE.Points | undefined>
-  instanceKey: React.MutableRefObject<JSX.IntrinsicElements['positionPoint'] | undefined>
+  instance: THREE.Points | undefined
+  instanceKey: Parameters<typeof T.PositionPoint> | undefined
   constructor() {
     super()
     this.size = 0
     this.color = new THREE.Color('white')
-    this.instance = { current: undefined }
-    this.instanceKey = { current: undefined }
+    this.instance = undefined
+    this.instanceKey = undefined
   }
 
   // This will allow the virtual instance have bounds
   get geometry() {
-    return this.instance.current?.geometry
+    return this.instance?.geometry
   }
 
   raycast(raycaster: THREE.Raycaster, intersects: THREE.Intersection[]) {
-    const parent = this.instance.current
+    const parent = this.instance
     if (!parent || !parent.geometry) return
     const instanceId = parent.userData.instances.indexOf(this.instanceKey)
     // If the instance wasn't found or exceeds the parents draw range, bail out
@@ -81,112 +85,124 @@ export class PositionPoint extends THREE.Group {
 }
 
 let i, positionRef
-const context = /*@__PURE__*/ React.createContext<Api>(null!)
+const context = /*@__PURE__*/ createContext<Api>(null!)
 const parentMatrix = /*@__PURE__*/ new THREE.Matrix4()
 const position = /*@__PURE__*/ new THREE.Vector3()
 
 /**
  * Instance implementation, relies on react + context to update the attributes based on the children of this component
  */
-const PointsInstances = React.forwardRef<THREE.Points, PointsInstancesProps>(
-  ({ children, range, limit = 1000, ...props }, ref) => {
-    const parentRef = React.useRef<THREE.Points>(null!)
-    const [refs, setRefs] = React.useState<React.MutableRefObject<PositionPoint>[]>([])
-    const [[positions, colors, sizes]] = React.useState(() => [
-      new Float32Array(limit * 3),
-      Float32Array.from({ length: limit * 3 }, () => 1),
-      Float32Array.from({ length: limit }, () => 1),
-    ])
+const PointsInstances: RefComponent<THREE.Points, PointsInstancesProps> = (_props) => {
+  const [props, rest] = processProps(_props, { limit: 1000 }, ['ref', 'children', 'range', 'limit'])
 
-    React.useEffect(() => {
-      // We might be a frame too late? 🤷‍♂️
-      parentRef.current.geometry.attributes.position.needsUpdate = true
-    })
+  let [parent, setParent] = createSignal<THREE.Points>(null as unknown as THREE.Points)
+  const [refs, setRefs] = createSignal<PositionPoint[]>([])
+  const [positions, colors, sizes] = [
+    new Float32Array(props.limit * 3),
+    Float32Array.from({ length: props.limit * 3 }, () => 1),
+    Float32Array.from({ length: props.limit }, () => 1),
+  ]
 
-    useFrame(() => {
-      parentRef.current.updateMatrix()
-      parentRef.current.updateMatrixWorld()
-      parentMatrix.copy(parentRef.current.matrixWorld).invert()
+  createEffect(() => {
+    // We might be a frame too late? 🤷‍♂️
+    parent()!.geometry.attributes.position.needsUpdate = true
+  })
 
-      parentRef.current.geometry.drawRange.count = Math.min(limit, range !== undefined ? range : limit, refs.length)
+  useFrame(() => {
+    when(parent)((parent) => {
+      parent.updateMatrix()
+      parent.updateMatrixWorld()
+      parentMatrix.copy(parent.matrixWorld).invert()
 
-      for (i = 0; i < refs.length; i++) {
-        positionRef = refs[i].current
+      parent.geometry.drawRange.count = Math.min(
+        props.limit,
+        props.range !== undefined ? props.range : props.limit,
+        refs().length
+      )
+
+      for (i = 0; i < refs().length; i++) {
+        positionRef = refs()[i]
         positionRef.getWorldPosition(position).applyMatrix4(parentMatrix)
         position.toArray(positions, i * 3)
-        parentRef.current.geometry.attributes.position.needsUpdate = true
+        parent.geometry.attributes.position.needsUpdate = true
         positionRef.matrixWorldNeedsUpdate = true
         positionRef.color.toArray(colors, i * 3)
-        parentRef.current.geometry.attributes.color.needsUpdate = true
+        parent.geometry.attributes.color.needsUpdate = true
         sizes.set([positionRef.size], i)
-        parentRef.current.geometry.attributes.size.needsUpdate = true
+        parent.geometry.attributes.size.needsUpdate = true
       }
     })
+  })
 
-    const api: Api = React.useMemo(
-      () => ({
-        getParent: () => parentRef,
-        subscribe: (ref) => {
-          setRefs((refs) => [...refs, ref])
-          return () => setRefs((refs) => refs.filter((item) => item.current !== ref.current))
-        },
-      }),
-      []
-    )
-
-    return (
-      <points
-        userData={{ instances: refs }}
-        matrixAutoUpdate={false}
-        ref={mergeRefs([ref, parentRef])}
-        raycast={() => null}
-        {...props}
-      >
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            count={positions.length / 3}
-            array={positions}
-            itemSize={3}
-            usage={THREE.DynamicDrawUsage}
-          />
-          <bufferAttribute
-            attach="attributes-color"
-            count={colors.length / 3}
-            array={colors}
-            itemSize={3}
-            usage={THREE.DynamicDrawUsage}
-          />
-          <bufferAttribute
-            attach="attributes-size"
-            count={sizes.length}
-            array={sizes}
-            itemSize={1}
-            usage={THREE.DynamicDrawUsage}
-          />
-        </bufferGeometry>
-        <context.Provider value={api}>{children}</context.Provider>
-      </points>
-    )
+  const api: Api = {
+    getParent: parent,
+    subscribe: (ref) => {
+      setRefs((refs) => [...refs, ref])
+      return () => setRefs((refs) => refs.filter((item) => item !== ref))
+    },
   }
-)
 
-export const Point = React.forwardRef(({ children, ...props }: JSX.IntrinsicElements['positionPoint'], ref) => {
-  React.useMemo(() => extend({ PositionPoint }), [])
-  const group = React.useRef()
-  const { subscribe, getParent } = React.useContext(context)
-  React.useLayoutEffect(() => subscribe(group), [])
   return (
-    <positionPoint instance={getParent()} instanceKey={group} ref={mergeRefs([ref, group])} {...props}>
-      {children}
-    </positionPoint>
+    <T.Points
+      ref={props.ref}
+      userData={{
+        get instances() {
+          return refs()
+        },
+      }}
+      matrixAutoUpdate={false}
+      raycast={() => null}
+      {...rest}
+    >
+      <T.BufferGeometry>
+        <T.BufferAttribute
+          attach="attributes-position"
+          count={positions.length / 3}
+          array={positions}
+          itemSize={3}
+          usage={THREE.DynamicDrawUsage}
+        />
+        <T.BufferAttribute
+          attach="attributes-color"
+          count={colors.length / 3}
+          array={colors}
+          itemSize={3}
+          usage={THREE.DynamicDrawUsage}
+        />
+        <T.BufferAttribute
+          attach="attributes-size"
+          count={sizes.length}
+          array={sizes}
+          itemSize={1}
+          usage={THREE.DynamicDrawUsage}
+        />
+      </T.BufferGeometry>
+      <context.Provider value={api}>{props.children}</context.Provider>
+    </T.Points>
   )
-})
+}
+
+export const Point: RefComponent<unknown, ThreeProps<'PositionPoint'>> = (_props) => {
+  const [props, rest] = splitProps(_props, ['ref', 'children'])
+  extend({ PositionPoint })
+  const group = createRef<unknown>()
+  const api = useContext(context)
+  createEffect(() => api?.subscribe(group.ref))
+  return (
+    <Show when={api?.getParent()}>
+      {(parent) => (
+        <T.PositionPoint instance={parent()} ref={mergeRefs(props, group)} instanceKey={group.ref} {...rest}>
+          {props.children}
+        </T.PositionPoint>
+      )}
+    </Show>
+  )
+}
 
 /**
  * Buffer implementation, relies on complete buffers of the correct number, leaves it to the user to update them
  */
-type PointsBuffersProps = JSX.IntrinsicElements['points'] & {
+type PointsBuffersProps = ThreeProps<'Points'> & {
   // a buffer containing all points position
   positions: Float32Array
   colors?: Float32Array
@@ -195,56 +211,65 @@ type PointsBuffersProps = JSX.IntrinsicElements['points'] & {
   stride?: 2 | 3
 }
 
-export const PointsBuffer = React.forwardRef<THREE.Points, PointsBuffersProps>(
-  ({ children, positions, colors, sizes, stride = 3, ...props }, forwardedRef) => {
-    const pointsRef = React.useRef<THREE.Points>(null!)
+export const PointsBuffer: RefComponent<THREE.Points, PointsBuffersProps> = (_props) => {
+  const [props, rest] = processProps(_props, { stride: 3 }, [
+    'ref',
+    'children',
+    'positions',
+    'colors',
+    'sizes',
+    'stride',
+  ])
 
-    useFrame(() => {
-      const attr = pointsRef.current.geometry.attributes
-      attr.position.needsUpdate = true
-      if (colors) attr.color.needsUpdate = true
-      if (sizes) attr.size.needsUpdate = true
-    })
+  const pointsRef = createRef<THREE.Points>()
 
-    return (
-      <points ref={mergeRefs([forwardedRef, pointsRef])} {...props}>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            count={positions.length / stride}
-            array={positions}
-            itemSize={stride}
+  useFrame(() => {
+    if (!pointsRef.ref) return
+    const attr = pointsRef.ref.geometry.attributes
+    if (!attr || !attr.position) {
+      return
+    }
+    attr.position.needsUpdate = true
+    if (props.colors) attr.color.needsUpdate = true
+    if (props.sizes) attr.size.needsUpdate = true
+  })
+
+  return (
+    <T.Points ref={mergeRefs(props, pointsRef!)} {...rest}>
+      <T.BufferGeometry>
+        <T.BufferAttribute
+          attach="attributes-position"
+          count={props.positions.length / props.stride}
+          array={props.positions}
+          itemSize={props.stride}
+          usage={THREE.DynamicDrawUsage}
+        />
+        <Show when={props.colors}>
+          <T.BufferAttribute
+            attach="attributes-color"
+            count={props.colors!.length / props.stride}
+            array={props.colors}
+            itemSize={3}
             usage={THREE.DynamicDrawUsage}
           />
-          {colors && (
-            <bufferAttribute
-              attach="attributes-color"
-              count={colors.length / stride}
-              array={colors}
-              itemSize={3}
-              usage={THREE.DynamicDrawUsage}
-            />
-          )}
-          {sizes && (
-            <bufferAttribute
-              attach="attributes-size"
-              count={sizes.length / stride}
-              array={sizes}
-              itemSize={1}
-              usage={THREE.DynamicDrawUsage}
-            />
-          )}
-        </bufferGeometry>
-        {children}
-      </points>
-    )
-  }
-)
+        </Show>
+        <Show when={props.sizes}>
+          <T.BufferAttribute
+            attach="attributes-size"
+            count={props.sizes!.length / props.stride}
+            array={props.sizes}
+            itemSize={1}
+            usage={THREE.DynamicDrawUsage}
+          />
+        </Show>
+      </T.BufferGeometry>
+      {props.children}
+    </T.Points>
+  )
+}
 
-export const Points = React.forwardRef<THREE.Points, PointsBuffersProps | PointsInstancesProps>(
-  (props, forwardedRef) => {
-    if ((props as PointsBuffersProps).positions instanceof Float32Array) {
-      return <PointsBuffer {...(props as PointsBuffersProps)} ref={forwardedRef} />
-    } else return <PointsInstances {...(props as PointsInstancesProps)} ref={forwardedRef} />
-  }
-)
+export const Points: RefComponent<THREE.Points, PointsBuffersProps | PointsInstancesProps> = (props) => {
+  if ((props as PointsBuffersProps).positions instanceof Float32Array) {
+    return <PointsBuffer {...(props as PointsBuffersProps)} />
+  } else return <PointsInstances {...(props as PointsInstancesProps)} />
+}

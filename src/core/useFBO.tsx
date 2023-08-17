@@ -1,6 +1,6 @@
-import * as React from 'react'
+import { useThree } from '@solid-three/fiber'
+import { Accessor, createRenderEffect, onCleanup } from 'solid-js'
 import * as THREE from 'three'
-import { useThree } from '@react-three/fiber'
 
 type FBOSettings = {
   /** Defines the count of MSAA samples. Can only be used with WebGL 2. Default: 0 */
@@ -13,43 +13,48 @@ type FBOSettings = {
 // export function useFBO(settings?: FBOSettings)
 export function useFBO(
   /** Width in pixels, or settings (will render fullscreen by default) */
-  width?: number | FBOSettings,
+  width?: Accessor<number> | number | FBOSettings,
   /** Height in pixels */
-  height?: number,
+  height?: Accessor<number> | number,
   /**Settings */
   settings?: FBOSettings
 ): THREE.WebGLRenderTarget {
-  const size = useThree((state) => state.size)
-  const viewport = useThree((state) => state.viewport)
-  const _width = typeof width === 'number' ? width : size.width * viewport.dpr
-  const _height = typeof height === 'number' ? height : size.height * viewport.dpr
-  const _settings = (typeof width === 'number' ? settings : (width as FBOSettings)) || {}
-  const { samples = 0, depth, ...targetSettings } = _settings
+  const store = useThree()
 
-  const target = React.useMemo(() => {
-    const target = new THREE.WebGLRenderTarget(_width, _height, {
-      minFilter: THREE.LinearFilter,
-      magFilter: THREE.LinearFilter,
-      type: THREE.HalfFloatType,
-      ...targetSettings,
-    })
+  const _width = () =>
+    typeof width === 'number' ? width : typeof width === 'function' ? width() : store.size.width * store.viewport.dpr
+  const _height = () =>
+    typeof height === 'number'
+      ? height
+      : typeof height === 'function'
+      ? height()
+      : store.size?.height && store.viewport?.dpr
+      ? store.size.height * store.viewport.dpr
+      : 0
 
-    if (depth) {
-      target.depthTexture = new THREE.DepthTexture(_width, _height, THREE.FloatType)
-    }
+  const _settings = () => (typeof settings !== 'undefined' ? settings : (width as FBOSettings)) || {}
 
-    target.samples = samples
-    return target
-  }, [])
+  const { samples = 0, depth, ...targetSettings } = _settings()
 
-  React.useLayoutEffect(() => {
-    target.setSize(_width, _height)
+  const target = new THREE.WebGLRenderTarget(_width(), _height(), {
+    minFilter: THREE.LinearFilter,
+    magFilter: THREE.LinearFilter,
+    type: THREE.HalfFloatType,
+    ...targetSettings,
+  })
+
+  if (depth) {
+    target.depthTexture = new THREE.DepthTexture(_width(), _height(), THREE.FloatType)
+  }
+
+  target.samples = samples
+
+  createRenderEffect(() => {
+    target.setSize(_width(), _height())
     if (samples) target.samples = samples
-  }, [samples, target, _width, _height])
-
-  React.useEffect(() => {
-    return () => target.dispose()
-  }, [])
-
+  })
+  onCleanup(() => {
+    target.dispose
+  })
   return target
 }

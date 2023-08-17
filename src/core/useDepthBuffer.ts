@@ -1,20 +1,19 @@
-import { DepthTexture, DepthFormat, UnsignedShortType } from 'three'
-import * as React from 'react'
-import { useThree, useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@solid-three/fiber'
+import { createMemo } from 'solid-js'
+import { DepthFormat, DepthTexture, UnsignedShortType } from 'three'
 import { useFBO } from './useFBO'
 
 function useDepthBuffer({ size = 256, frames = Infinity }: { size?: number; frames?: number } = {}) {
-  const dpr = useThree((state) => state.viewport.dpr)
-  const { width, height } = useThree((state) => state.size)
-  const w = size || width * dpr
-  const h = size || height * dpr
+  const store = useThree()
+  const w = () => size || store.size.width * store.viewport.dpr
+  const h = () => size || store.size.height * store.viewport.dpr
 
-  const depthConfig = React.useMemo(() => {
-    const depthTexture = new DepthTexture(w, h)
+  const depthConfig = createMemo(() => {
+    const depthTexture = new DepthTexture(w(), h())
     depthTexture.format = DepthFormat
     depthTexture.type = UnsignedShortType
     return { depthTexture }
-  }, [w, h])
+  })
 
   let count = 0
   const depthFBO = useFBO(w, h, depthConfig)

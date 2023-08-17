@@ -1,48 +1,43 @@
-import { EventManager, ReactThreeFiber, useFrame, useThree } from '@react-three/fiber'
-import * as React from 'react'
+import { Primitive, SolidThreeFiber, useFrame, useThree } from '@solid-three/fiber'
+import { createEffect, createMemo, onCleanup, splitProps, untrack } from 'solid-js'
 import * as THREE from 'three'
 import { FlyControls as FlyControlsImpl } from 'three-stdlib'
+import { RefComponent } from '../helpers/typeHelpers'
 
-export type FlyControlsProps = ReactThreeFiber.Object3DNode<FlyControlsImpl, typeof FlyControlsImpl> & {
+export type FlyControlsProps = SolidThreeFiber.Object3DNode<FlyControlsImpl> & {
   onChange?: (e?: THREE.Event) => void
   domElement?: HTMLElement
   makeDefault?: boolean
 }
 
-export const FlyControls = React.forwardRef<FlyControlsImpl, FlyControlsProps>(({ domElement, ...props }, fref) => {
-  const { onChange, makeDefault, ...rest } = props
-  const invalidate = useThree((state) => state.invalidate)
-  const camera = useThree((state) => state.camera)
-  const gl = useThree((state) => state.gl)
-  const events = useThree((state) => state.events) as EventManager<HTMLElement>
-  const get = useThree((state) => state.get)
-  const set = useThree((state) => state.set)
-  const explDomElement = (domElement || events.connected || gl.domElement) as HTMLElement
-  const controls = React.useMemo(() => new FlyControlsImpl(camera), [camera])
+export const FlyControls: RefComponent<FlyControlsImpl, FlyControlsProps> = (props) => {
+  const [rest] = splitProps(props, ['domElement', 'onChange', 'makeDefault'])
+  const store = useThree()
+  const explDomElement = () => (props.domElement || store.events.connected || store.gl.domElement) as HTMLElement
+  const controls = createMemo(() => new FlyControlsImpl(store.camera, explDomElement()))
 
-  React.useEffect(() => {
-    controls.connect(explDomElement)
-    return () => void controls.dispose()
-  }, [explDomElement, controls, invalidate])
+  createEffect(() => {
+    controls().connect(explDomElement())
+    onCleanup(() => void controls().dispose())
+  })
 
-  React.useEffect(() => {
+  createEffect(() => {
     const callback = (e: THREE.Event) => {
-      invalidate()
-      if (onChange) onChange(e)
+      store.invalidate()
+      if (props.onChange) props.onChange(e)
     }
 
-    controls.addEventListener?.('change', callback)
-    return () => controls.removeEventListener?.('change', callback)
-  }, [onChange, invalidate])
+    controls().addEventListener?.('change', callback)
+    onCleanup(() => controls().removeEventListener?.('change', callback))
+  })
 
-  React.useEffect(() => {
-    if (makeDefault) {
-      const old = get().controls
-      set({ controls })
-      return () => set({ controls: old })
+  createEffect(() => {
+    if (props.makeDefault) {
+      const old = untrack(() => store.controls)
+      store.set({ controls: controls() })
+      onCleanup(() => store.set({ controls: old }))
     }
-  }, [makeDefault, controls])
-
-  useFrame((_, delta) => controls.update(delta))
-  return <primitive ref={fref} object={controls} args={[camera, explDomElement]} {...rest} />
-})
+  })
+  useFrame((_, delta) => controls().update(delta))
+  return <Primitive ref={props.ref} object={controls()} {...rest} />
+}

@@ -2,8 +2,8 @@
 // https://github.com/N8python/diamonds
 
 import * as THREE from 'three'
+import { MeshBVHUniformStruct, shaderIntersectFunction, shaderStructs } from 'three-mesh-bvh'
 import { shaderMaterial } from '../core/shaderMaterial'
-import { MeshBVHUniformStruct, shaderStructs, shaderIntersectFunction } from 'three-mesh-bvh'
 
 export const MeshRefractionMaterial = shaderMaterial(
   {

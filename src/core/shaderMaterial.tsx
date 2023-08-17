@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 
-export function shaderMaterial(
-  uniforms: {
+export function shaderMaterial<
+  T extends {
     [name: string]:
       | THREE.CubeTexture
       | THREE.Texture
@@ -18,11 +18,8 @@ export function shaderMaterial(
       | boolean
       | Array<any>
       | null
-  },
-  vertexShader: string,
-  fragmentShader: string,
-  onInit?: (material?: THREE.ShaderMaterial) => void
-) {
+  }
+>(uniforms: T, vertexShader: string, fragmentShader: string, onInit?: (material?: THREE.ShaderMaterial) => void) {
   const material = class extends THREE.ShaderMaterial {
     public key: string = ''
     constructor(parameters = {}) {

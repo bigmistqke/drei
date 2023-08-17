@@ -1,10 +1,12 @@
-import * as React from 'react'
+import { Accessor, createEffect, onCleanup } from 'solid-js'
 
-export function useCursor(hovered: boolean, onPointerOver = 'pointer', onPointerOut = 'auto') {
-  React.useEffect(() => {
-    if (hovered) {
-      document.body.style.cursor = onPointerOver
-      return () => void (document.body.style.cursor = onPointerOut)
+export function useCursor(hovered: Accessor<boolean>, onPointerOver = () => 'pointer', onPointerOut = () => 'auto') {
+  createEffect(() => {
+    if (hovered()) {
+      document.body.style.cursor = onPointerOver()
+      onCleanup(() => {
+        document.body.style.cursor = onPointerOut()
+      })
     }
-  }, [hovered])
+  })
 }

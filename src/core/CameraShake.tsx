@@ -1,7 +1,10 @@
-import * as React from 'react'
-import { useFrame, useThree } from '@react-three/fiber'
+import { useFrame, useThree } from '@solid-three/fiber'
+import { createEffect, onCleanup } from 'solid-js'
 import { Euler } from 'three'
 import { SimplexNoise } from 'three-stdlib'
+import { defaultProps } from '../helpers/defaultProps'
+import { RefComponent } from '../helpers/typeHelpers'
+import { createImperativeHandle } from '../helpers/useImperativeHandle'
 
 export interface ShakeController {
   getIntensity: () => number
@@ -27,74 +30,64 @@ export interface CameraShakeProps {
   rollFrequency?: number
 }
 
-export const CameraShake = React.forwardRef<ShakeController | undefined, CameraShakeProps>(
-  (
-    {
-      intensity = 1,
-      decay,
-      decayRate = 0.65,
-      maxYaw = 0.1,
-      maxPitch = 0.1,
-      maxRoll = 0.1,
-      yawFrequency = 0.1,
-      pitchFrequency = 0.1,
-      rollFrequency = 0.1,
-    },
-    ref
-  ) => {
-    const camera = useThree((state) => state.camera)
-    const defaultControls = useThree((state) => state.controls) as unknown as ControlsProto
-    const intensityRef = React.useRef<number>(intensity)
-    const initialRotation = React.useRef<Euler>(camera.rotation.clone())
-    const [yawNoise] = React.useState(() => new SimplexNoise())
-    const [pitchNoise] = React.useState(() => new SimplexNoise())
-    const [rollNoise] = React.useState(() => new SimplexNoise())
+export const CameraShake: RefComponent<ShakeController | undefined, CameraShakeProps> = (_props) => {
+  const props = defaultProps(_props, {
+    intensity: 1,
+    decayRate: 0.65,
+    maxYaw: 0.1,
+    maxPitch: 0.1,
+    maxRoll: 0.1,
+    yawFrequency: 0.1,
+    pitchFrequency: 0.1,
+    rollFrequency: 0.1,
+  })
 
-    const constrainIntensity = () => {
-      if (intensityRef.current < 0 || intensityRef.current > 1) {
-        intensityRef.current = intensityRef.current < 0 ? 0 : 1
-      }
+  const store = useThree()
+  let initialRotation: Euler = store.camera.rotation.clone()
+  const yawNoise = new SimplexNoise()
+  const pitchNoise = new SimplexNoise()
+  const rollNoise = new SimplexNoise()
+
+  const constrainIntensity = () => {
+    if (props.intensity < 0 || props.intensity > 1) {
+      props.intensity = props.intensity < 0 ? 0 : 1
     }
-
-    React.useImperativeHandle(
-      ref,
-      () => ({
-        getIntensity: (): number => intensityRef.current,
-        setIntensity: (val: number): void => {
-          intensityRef.current = val
-          constrainIntensity()
-        },
-      }),
-      []
-    )
-
-    React.useEffect(() => {
-      if (defaultControls) {
-        const callback = () => void (initialRotation.current = camera.rotation.clone())
-        defaultControls.addEventListener('change', callback)
-        callback()
-        return () => void defaultControls.removeEventListener('change', callback)
-      }
-    }, [camera, defaultControls])
-
-    useFrame((state, delta) => {
-      const shake = Math.pow(intensityRef.current, 2)
-      const yaw = maxYaw * shake * yawNoise.noise(state.clock.elapsedTime * yawFrequency, 1)
-      const pitch = maxPitch * shake * pitchNoise.noise(state.clock.elapsedTime * pitchFrequency, 1)
-      const roll = maxRoll * shake * rollNoise.noise(state.clock.elapsedTime * rollFrequency, 1)
-
-      camera.rotation.set(
-        initialRotation.current.x + pitch,
-        initialRotation.current.y + yaw,
-        initialRotation.current.z + roll
-      )
-
-      if (decay && intensityRef.current > 0) {
-        intensityRef.current -= decayRate * delta
-        constrainIntensity()
-      }
-    })
-
-    return null
   }
-)
+
+  const methods = {
+    getIntensity: (): number => props.intensity,
+    setIntensity: (val: number): void => {
+      props.intensity = val
+      constrainIntensity()
+    },
+  }
+
+  createImperativeHandle(props, () => methods)
+
+  createEffect(() => {
+    if (store.controls) {
+      const callback = () => void (initialRotation = store.camera.rotation.clone())
+      store.controls.addEventListener('change', callback)
+      callback()
+      onCleanup(() => {
+        store.controls?.removeEventListener('change', callback)
+      })
+    }
+  })
+
+  useFrame((state, delta) => {
+    const shake = Math.pow(props.intensity, 2)
+    const yaw = props.maxYaw * shake * yawNoise.noise(state.clock.elapsedTime * props.yawFrequency, 1)
+    const pitch = props.maxPitch * shake * pitchNoise.noise(state.clock.elapsedTime * props.pitchFrequency, 1)
+    const roll = props.maxRoll * shake * rollNoise.noise(state.clock.elapsedTime * props.rollFrequency, 1)
+
+    store.camera.rotation.set(initialRotation.x + pitch, initialRotation.y + yaw, initialRotation.z + roll)
+
+    if (props.decay && props.intensity > 0) {
+      props.intensity -= props.decayRate * delta
+      constrainIntensity()
+    }
+  })
+
+  return null
+}

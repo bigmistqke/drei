@@ -1,10 +1,24 @@
-import * as THREE from 'three'
-import * as React from 'react'
-import * as ReactDOM from 'react-dom/client'
-import { context as fiberContext, RootState, useFrame, useThree } from '@react-three/fiber'
-import mergeRefs from 'react-merge-refs'
-import { DomEvent } from '@react-three/fiber/dist/declarations/src/core/events'
+import { RootState, T, context as fiberContext, useFrame, useThree, type DomEvent } from '@solid-three/fiber'
 import { easing } from 'maath'
+// import * as ReactDOM from 'react-dom/client'
+import {
+  createContext,
+  createEffect,
+  createMemo,
+  createRenderEffect,
+  on,
+  onCleanup,
+  splitProps,
+  untrack,
+  useContext,
+  type JSX,
+} from 'solid-js'
+import { Dynamic, render } from 'solid-js/web'
+import * as THREE from 'three'
+import { createRef } from '../helpers/createRef'
+import { defaultProps } from '../helpers/defaultProps'
+import { mergeRefs } from '../helpers/mergeRefs'
+import { RefComponent } from '../helpers/typeHelpers'
 
 export type ScrollControlsProps = {
   /** Precision, default 0.00001 */
@@ -25,8 +39,8 @@ export type ScrollControlsProps = {
    *  take much longer than damping to reach the target if it is far away. Default: Infinity */
   maxSpeed?: number
   enabled?: boolean
-  style?: React.CSSProperties
-  children: React.ReactNode
+  style?: JSX.CSSProperties
+  children: JSX.Element
 }
 
 export type ScrollControlsState = {
@@ -44,43 +58,42 @@ export type ScrollControlsState = {
   visible(from: number, distance: number, margin?: number): boolean
 }
 
-const context = React.createContext<ScrollControlsState>(null!)
+const context = createContext<ScrollControlsState>(null!)
 
 export function useScroll() {
-  return React.useContext(context)
+  return useContext(context)
 }
 
-export function ScrollControls({
-  eps = 0.00001,
-  enabled = true,
-  infinite,
-  horizontal,
-  pages = 1,
-  distance = 1,
-  damping = 0.25,
-  maxSpeed = Infinity,
-  style = {},
-  children,
-}: ScrollControlsProps) {
-  const { get, setEvents, gl, size, invalidate, events } = useThree()
-  const [el] = React.useState(() => document.createElement('div'))
-  const [fill] = React.useState(() => document.createElement('div'))
-  const [fixed] = React.useState(() => document.createElement('div'))
-  const target = gl.domElement.parentNode! as HTMLElement
-  const scroll = React.useRef(0)
+export function ScrollControls(_props: ScrollControlsProps) {
+  const props = defaultProps(_props, {
+    eps: 0.00001,
+    enabled: true,
+    pages: 1,
+    distance: 1,
+    damping: 0.25,
+    maxSpeed: Infinity,
+    style: {},
+  })
 
-  const state = React.useMemo(() => {
+  const store = useThree()
+  const el = document.createElement('div')
+  const fill = document.createElement('div')
+  const fixed = document.createElement('div')
+  const target = () => store.gl.domElement.parentNode! as HTMLElement
+  let scroll = 0
+
+  const state = createMemo(() => {
     const state = {
       el,
-      eps,
+      eps: props.eps,
       fill,
       fixed,
-      horizontal,
-      damping,
+      horizontal: props.horizontal,
+      damping: props.damping,
       offset: 0,
       delta: 0,
       scroll,
-      pages,
+      pages: props.pages,
       // 0-1 for a range between from -> from + distance
       range(from: number, distance: number, margin: number = 0) {
         const start = from - margin
@@ -99,19 +112,19 @@ export function ScrollControls({
       },
     }
     return state
-  }, [eps, damping, horizontal, pages])
+  })
 
-  React.useEffect(() => {
+  createEffect(() => {
     el.style.position = 'absolute'
     el.style.width = '100%'
     el.style.height = '100%'
-    el.style[horizontal ? 'overflowX' : 'overflowY'] = 'auto'
-    el.style[horizontal ? 'overflowY' : 'overflowX'] = 'hidden'
+    el.style[props.horizontal ? 'overflowX' : 'overflowY'] = 'auto'
+    el.style[props.horizontal ? 'overflowY' : 'overflowX'] = 'hidden'
     el.style.top = '0px'
     el.style.left = '0px'
 
-    for (const key in style) {
-      el.style[key] = style[key]
+    for (const key in props.style) {
+      el.style[key] = props.style[key]
     }
 
     fixed.style.position = 'sticky'
@@ -122,22 +135,23 @@ export function ScrollControls({
     fixed.style.overflow = 'hidden'
     el.appendChild(fixed)
 
-    fill.style.height = horizontal ? '100%' : `${pages * distance * 100}%`
-    fill.style.width = horizontal ? `${pages * distance * 100}%` : '100%'
+    fill.style.height = props.horizontal ? '100%' : `${props.pages * props.distance * 100}%`
+    fill.style.width = props.horizontal ? `${props.pages * props.distance * 100}%` : '100%'
     fill.style.pointerEvents = 'none'
     el.appendChild(fill)
-    target.appendChild(el)
+    target().appendChild(el)
 
     // Init scroll one pixel in to allow upward/leftward scroll
-    el[horizontal ? 'scrollLeft' : 'scrollTop'] = 1
+    el[props.horizontal ? 'scrollLeft' : 'scrollTop'] = 1
 
-    const oldTarget = (events.connected || gl.domElement) as HTMLElement
-    requestAnimationFrame(() => events.connect?.(el))
-    const oldCompute = get().events.compute
-    setEvents({
+    const oldTarget = untrack(() => (store.events.connected || store.gl.domElement) as HTMLElement)
+    requestAnimationFrame(() => store.events.connect?.(el))
+    const oldCompute = untrack(() => store.events.compute)
+
+    store.setEvents({
       compute(event: DomEvent, state: RootState) {
         // we are using boundingClientRect because we could not rely on target.offsetTop as canvas could be positioned anywhere in dom
-        const { left, top } = target.getBoundingClientRect()
+        const { left, top } = target().getBoundingClientRect()
         const offsetX = event.clientX - left
         const offsetY = event.clientY - top
         state.pointer.set((offsetX / state.size.width) * 2 - 1, -(offsetY / state.size.height) * 2 + 1)
@@ -145,17 +159,17 @@ export function ScrollControls({
       },
     })
 
-    return () => {
-      target.removeChild(el)
-      setEvents({ compute: oldCompute })
-      events.connect?.(oldTarget)
-    }
-  }, [pages, distance, horizontal, el, fill, fixed, target])
+    onCleanup(() => {
+      target().removeChild(el)
+      store.setEvents({ compute: oldCompute })
+      store.events.connect?.(oldTarget)
+    })
+  })
 
-  React.useEffect(() => {
-    if (events.connected === el) {
-      const containerLength = size[horizontal ? 'width' : 'height']
-      const scrollLength = el[horizontal ? 'scrollWidth' : 'scrollHeight']
+  createEffect(() => {
+    if (store.events.connected === el) {
+      const containerLength = store.size[props.horizontal ? 'width' : 'height']
+      const scrollLength = el[props.horizontal ? 'scrollWidth' : 'scrollHeight']
       const scrollThreshold = scrollLength - containerLength
 
       let current = 0
@@ -164,22 +178,22 @@ export function ScrollControls({
 
       const onScroll = () => {
         // Prevent first scroll because it is indirectly caused by the one pixel offset
-        if (!enabled || firstRun) return
-        invalidate()
-        current = el[horizontal ? 'scrollLeft' : 'scrollTop']
-        scroll.current = current / scrollThreshold
+        if (!props.enabled || firstRun) return
+        store.invalidate()
+        current = el[props.horizontal ? 'scrollLeft' : 'scrollTop']
+        scroll = current / scrollThreshold
 
-        if (infinite) {
+        if (props.infinite) {
           if (!disableScroll) {
             if (current >= scrollThreshold) {
-              const damp = 1 - state.offset
-              el[horizontal ? 'scrollLeft' : 'scrollTop'] = 1
-              scroll.current = state.offset = -damp
+              const damp = 1 - state().offset
+              el[props.horizontal ? 'scrollLeft' : 'scrollTop'] = 1
+              scroll = state().offset = -damp
               disableScroll = true
             } else if (current <= 0) {
-              const damp = 1 + state.offset
-              el[horizontal ? 'scrollLeft' : 'scrollTop'] = scrollLength
-              scroll.current = state.offset = damp
+              const damp = 1 + state().offset
+              el[props.horizontal ? 'scrollLeft' : 'scrollTop'] = scrollLength
+              scroll = state().offset = damp
               disableScroll = true
             }
           }
@@ -190,71 +204,95 @@ export function ScrollControls({
       requestAnimationFrame(() => (firstRun = false))
 
       const onWheel = (e) => (el.scrollLeft += e.deltaY / 2)
-      if (horizontal) el.addEventListener('wheel', onWheel, { passive: true })
+      if (props.horizontal) el.addEventListener('wheel', onWheel, { passive: true })
 
-      return () => {
+      onCleanup(() => {
         el.removeEventListener('scroll', onScroll)
-        if (horizontal) el.removeEventListener('wheel', onWheel)
-      }
+        if (props.horizontal) el.removeEventListener('wheel', onWheel)
+      })
     }
-  }, [el, events, size, infinite, state, invalidate, horizontal, enabled])
+  })
 
   let last = 0
   useFrame((_, delta) => {
-    last = state.offset
-    easing.damp(state, 'offset', scroll.current, damping, delta, maxSpeed, undefined, eps)
-    easing.damp(state, 'delta', Math.abs(last - state.offset), damping, delta, maxSpeed, undefined, eps)
-    if (state.delta > eps) invalidate()
+    last = state().offset
+    easing.damp(state(), 'offset', scroll, props.damping, delta, props.maxSpeed, undefined, props.eps)
+    easing.damp(
+      state(),
+      'delta',
+      Math.abs(last - state().offset),
+      props.damping,
+      delta,
+      props.maxSpeed,
+      undefined,
+      props.eps
+    )
+    if (state().delta > props.eps) store.invalidate()
   })
-  return <context.Provider value={state}>{children}</context.Provider>
+  return <context.Provider value={state()}>{props.children}</context.Provider>
 }
 
-const ScrollCanvas = React.forwardRef(({ children }, ref) => {
-  const group = React.useRef<THREE.Group>(null!)
-  const state = useScroll()
-  const { width, height } = useThree((state) => state.viewport)
+const ScrollCanvas: RefComponent<THREE.Group, { children: JSX.Element }> = (props) => {
+  const group = createRef<THREE.Group>(null!)
+  const state = useScroll()!
+  const store = useThree()
   useFrame(() => {
-    group.current.position.x = state.horizontal ? -width * (state.pages - 1) * state.offset : 0
-    group.current.position.y = state.horizontal ? 0 : height * (state.pages - 1) * state.offset
+    group.ref.position.x = state.horizontal ? -store.viewport.width * (state.pages - 1) * state.offset : 0
+    group.ref.position.y = state.horizontal ? 0 : store.viewport.height * (state.pages - 1) * state.offset
   })
-  return <group ref={mergeRefs([ref, group])}>{children}</group>
-})
+  return <T.Group ref={mergeRefs(props, group)}>{props.children}</T.Group>
+}
 
-const ScrollHtml = React.forwardRef(
-  ({ children, style, ...props }: { children?: React.ReactNode; style?: React.CSSProperties }, ref) => {
-    const state = useScroll()
-    const group = React.useRef<HTMLDivElement>(null!)
-    const { width, height } = useThree((state) => state.size)
-    const fiberState = React.useContext(fiberContext)
-    const root = React.useMemo(() => ReactDOM.createRoot(state.fixed), [state.fixed])
-    useFrame(() => {
-      if (state.delta > state.eps) {
-        group.current.style.transform = `translate3d(${
-          state.horizontal ? -width * (state.pages - 1) * state.offset : 0
-        }px,${state.horizontal ? 0 : height * (state.pages - 1) * -state.offset}px,0)`
+const ScrollHtml: RefComponent<any, { children?: JSX.Element; style?: JSX.CSSProperties }> = (_props) => {
+  const [props, rest] = splitProps(_props, ['children', 'style', 'ref'])
+  const state = useScroll()!
+  const group = createRef<HTMLDivElement>(null!)
+
+  const store = useThree()
+
+  const fiberState = useContext(fiberContext)
+
+  useFrame(() => {
+    if (state.delta > state.eps) {
+      group.ref.style.transform = `translate3d(${
+        state.horizontal ? -store.size.width * (state.pages - 1) * state.offset : 0
+      }px,${state.horizontal ? 0 : store.size.height * (state.pages - 1) * -state.offset}px,0)`
+    }
+  })
+
+  // s3f:   added the render in a render-effect since in r3f's codebase
+  //        they were doing root.render, with root being `useMemo(() => createRoot(state.fixed))
+  //        should we be cleaning up the render-function?
+  createRenderEffect(
+    on(
+      () => state.fixed,
+      () => {
+        render(
+          () => (
+            <div
+              ref={mergeRefs(props, group)}
+              style={{ ...props.style, position: 'absolute', top: 0, left: 0, 'will-change': 'transform' }}
+              {...rest}
+            >
+              <context.Provider value={state}>
+                <fiberContext.Provider value={fiberState}>{props.children}</fiberContext.Provider>
+              </context.Provider>
+            </div>
+          ),
+          state.fixed
+        )
       }
-    })
-    root.render(
-      <div
-        ref={mergeRefs([ref, group])}
-        style={{ ...style, position: 'absolute', top: 0, left: 0, willChange: 'transform' }}
-        {...props}
-      >
-        <context.Provider value={state}>
-          <fiberContext.Provider value={fiberState}>{children}</fiberContext.Provider>
-        </context.Provider>
-      </div>
     )
-    return null
-  }
-)
+  )
+  return null
+}
 
 type ScrollProps = {
   html?: boolean
-  children?: React.ReactNode
+  children?: JSX.Element
 }
 
-export const Scroll = React.forwardRef(({ html, ...props }: ScrollProps, ref) => {
-  const El = html ? ScrollHtml : ScrollCanvas
-  return <El ref={ref} {...props} />
-})
+export const Scroll: RefComponent<any, ScrollProps> = (_props) => {
+  const [props, rest] = splitProps(_props, ['html'])
+  return <Dynamic component={props.html ? ScrollHtml : ScrollCanvas} {...rest} />
+}

@@ -1,4 +1,4 @@
-import { getGPUTier, GetGPUTier, TierResult } from 'detect-gpu'
-import { suspend } from 'suspend-react'
+import { getGPUTier, GetGPUTier } from 'detect-gpu'
+import { createResource } from 'solid-js'
 
-export const useDetectGPU = (props?: GetGPUTier) => suspend(() => getGPUTier(props), ['useDetectGPU'])
+export const useDetectGPU = (props?: GetGPUTier) => createResource(['useDetectGPU'], () => getGPUTier(props))[0]

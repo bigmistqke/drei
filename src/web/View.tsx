@@ -1,13 +1,14 @@
-import * as React from 'react'
+import { T, createPortal, useFrame, useThree } from '@solid-three/fiber'
+import { createEffect, createSignal, onCleanup, onMount, untrack, type JSX } from 'solid-js'
 import * as THREE from 'three'
-import { createPortal, useFrame, useThree } from '@react-three/fiber'
+import { defaultProps } from '../helpers/defaultProps'
 
 const isOrthographicCamera = (def: any): def is THREE.OrthographicCamera =>
   def && (def as THREE.OrthographicCamera).isOrthographicCamera
 const col = new THREE.Color()
 
 /**
- * In `@react-three/fiber` after `v8.0.0` but prior to `v8.1.0`, `state.size` contained only dimension
+ * In `@solid-three/fiber` after `v8.0.0` but prior to `v8.1.0`, `state.size` contained only dimension
  * information. After `v8.1.0`, position information (`top`, `left`) was added
  *
  * @todo remove this when drei supports v9 and up
@@ -29,22 +30,22 @@ function isNonLegacyCanvasSize(size: Record<string, number>): size is CanvasSize
 export type ContainerProps = {
   scene: THREE.Scene
   index: number
-  children?: React.ReactNode
+  children?: JSX.Element
   frames: number
-  rect: React.MutableRefObject<DOMRect>
-  track: React.MutableRefObject<HTMLElement>
+  rect: DOMRect
+  track: HTMLElement
   canvasSize: LegacyCanvasSize | CanvasSize
 }
 
 export type ViewProps = {
   /** The tracking element, the view will be cut according to its whereabouts */
-  track: React.MutableRefObject<HTMLElement>
+  track: HTMLElement
   /** Views take over the render loop, optional render index (1 by default) */
   index?: number
   /** If you know your view is always at the same place set this to 1 to avoid needless getBoundingClientRect overhead */
   frames?: number
   /** The scene to render, if you leave this undefined it will render the default scene */
-  children?: React.ReactNode
+  children?: JSX.Element
 }
 
 function computeContainerPosition(
@@ -71,40 +72,37 @@ function computeContainerPosition(
   return { position: { width, height, top, left: trackLeft, bottom, right }, isOffscreen }
 }
 
-function Container({ canvasSize, scene, index, children, frames, rect, track }: ContainerProps) {
-  const get = useThree((state) => state.get)
-  const camera = useThree((state) => state.camera)
-  const virtualScene = useThree((state) => state.scene)
-  const setEvents = useThree((state) => state.setEvents)
+function Container(props: ContainerProps) {
+  const store = useThree()
 
   let frameCount = 0
   useFrame((state) => {
-    if (frames === Infinity || frameCount <= frames) {
-      rect.current = track.current?.getBoundingClientRect()
+    if (props.frames === Infinity || frameCount <= props.frames) {
+      props.rect = props.track.getBoundingClientRect()
       frameCount++
     }
 
-    if (rect.current) {
+    if (props.rect) {
       const {
         position: { left, bottom, width, height },
         isOffscreen,
-      } = computeContainerPosition(canvasSize, rect.current)
+      } = computeContainerPosition(props.canvasSize, props.rect)
 
       const aspect = width / height
 
-      if (isOrthographicCamera(camera)) {
+      if (isOrthographicCamera(store.camera)) {
         if (
-          camera.left !== width / -2 ||
-          camera.right !== width / 2 ||
-          camera.top !== height / 2 ||
-          camera.bottom !== height / -2
+          store.camera.left !== width / -2 ||
+          store.camera.right !== width / 2 ||
+          store.camera.top !== height / 2 ||
+          store.camera.bottom !== height / -2
         ) {
-          Object.assign(camera, { left: width / -2, right: width / 2, top: height / 2, bottom: height / -2 })
-          camera.updateProjectionMatrix()
+          Object.assign(store.camera, { left: width / -2, right: width / 2, top: height / 2, bottom: height / -2 })
+          store.camera.updateProjectionMatrix()
         }
-      } else if (camera.aspect !== aspect) {
-        camera.aspect = aspect
-        camera.updateProjectionMatrix()
+      } else if (store.camera.aspect !== aspect) {
+        store.camera.aspect = aspect
+        store.camera.updateProjectionMatrix()
       }
 
       state.gl.setViewport(left, bottom, width, height)
@@ -117,70 +115,78 @@ function Container({ canvasSize, scene, index, children, frames, rect, track }: 
         state.gl.clear(true, true)
       } else {
         // When children are present render the portalled scene, otherwise the default scene
-        state.gl.render(children ? virtualScene : scene, camera)
+        state.gl.render(props.children ? store.scene : props.scene, store.camera)
       }
       // Restore the default state
       state.gl.setScissorTest(true)
     }
-  }, index)
+  }, props.index)
 
-  React.useEffect(() => {
+  onMount(() => {
     // Connect the event layer to the tracking element
-    const old = get().events.connected
-    setEvents({ connected: track.current })
-    return () => setEvents({ connected: old })
-  }, [])
+    const old = untrack(() => store.events.connected)
+    store.setEvents({ connected: props.track })
+    onCleanup(() => store.setEvents({ connected: old }))
+  })
 
-  React.useEffect(() => {
-    if (isNonLegacyCanvasSize(canvasSize)) {
+  onMount(() => {
+    if (isNonLegacyCanvasSize(props.canvasSize)) {
       return
     }
     console.warn(
-      'Detected @react-three/fiber canvas size does not include position information. <View /> may not work as expected. ' +
-        'Upgrade to @react-three/fiber ^8.1.0 for support.\n See https://github.com/pmndrs/drei/issues/944'
+      'Detected @solid-three/fiber canvas size does not include position information. <View /> may not work as expected. ' +
+        'Upgrade to @solid-three/fiber ^8.1.0 for support.\n See https://github.com/pmndrs/drei/issues/944'
     )
-  }, [])
+  })
 
-  return <>{children}</>
+  return <>{props.children}</>
 }
 
-export const View = ({ track, index = 1, frames = Infinity, children }: ViewProps) => {
-  const rect = React.useRef<DOMRect>(null!)
-  const { size, scene } = useThree()
-  const [virtualScene] = React.useState(() => new THREE.Scene())
+export const View = (_props: ViewProps) => {
+  const props = defaultProps(_props, { index: 1, frames: Infinity })
 
-  const compute = React.useCallback(
-    (event, state) => {
-      if (rect.current && track.current && event.target === track.current) {
-        const { width, height, left, top } = rect.current
-        const x = event.clientX - left
-        const y = event.clientY - top
-        state.pointer.set((x / width) * 2 - 1, -(y / height) * 2 + 1)
-        state.raycaster.setFromCamera(state.pointer, state.camera)
-      }
-    },
-    [rect, track]
-  )
+  let rect: DOMRect = null!
+  const store = useThree()
+  const virtualScene = new THREE.Scene()
 
-  const [ready, toggle] = React.useReducer(() => true, false)
-  React.useEffect(() => {
+  const compute = (event, state) => {
+    if (rect && props.track && event.target === props.track) {
+      const { width, height, left, top } = rect
+      const x = event.clientX - left
+      const y = event.clientY - top
+      state.pointer.set((x / width) * 2 - 1, -(y / height) * 2 + 1)
+      state.raycaster.setFromCamera(state.pointer, state.camera)
+    }
+  }
+
+  const [ready, setReady] = createSignal(false)
+  const toggle = () => setReady(true)
+
+  createEffect(() => {
     // We need the tracking elements bounds beforehand in order to inject it into the portal
-    rect.current = track.current?.getBoundingClientRect()
+    rect = props.track.getBoundingClientRect()
     // And now we can proceed
     toggle()
-  }, [track])
+  }, [props.track])
 
   return (
     <>
-      {ready &&
+      {ready() &&
         createPortal(
-          <Container canvasSize={size} frames={frames} scene={scene} track={track} rect={rect} index={index}>
-            {children}
+          <Container
+            canvasSize={store.size}
+            frames={props.frames}
+            scene={store.scene}
+            track={props.track}
+            rect={rect}
+            index={props.index}
+          >
+            {props.children}
             {/* Without an element that receives pointer events state.pointer will always be 0/0 */}
-            <group onPointerOver={() => null} />
+            <T.Group onPointerOver={() => null} />
           </Container>,
           virtualScene,
-          { events: { compute, priority: index }, size: { width: rect.current?.width, height: rect.current?.height } }
+          { events: { compute, priority: props.index }, size: { width: rect.width, height: rect.height } }
         )}
     </>
   )

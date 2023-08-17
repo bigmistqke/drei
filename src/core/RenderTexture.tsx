@@ -1,9 +1,10 @@
+import { Primitive, T, ThreeProps, createPortal, useFrame, useThree } from '@solid-three/fiber'
+import { JSX, createEffect, mergeProps, on, splitProps } from 'solid-js'
 import * as THREE from 'three'
-import * as React from 'react'
-import { createPortal, useFrame, useThree } from '@react-three/fiber'
+import { RefComponent } from '../helpers/typeHelpers'
 import { useFBO } from './useFBO'
 
-type Props = JSX.IntrinsicElements['texture'] & {
+type Props = ThreeProps<'Texture'> & {
   /** Optional width of the texture, defaults to viewport bounds */
   width?: number
   /** Optional height of the texture, defaults to viewport bounds */
@@ -25,101 +26,113 @@ type Props = JSX.IntrinsicElements['texture'] & {
   /** Optional event compute, defaults to undefined */
   compute?: (event: any, state: any, previous: any) => false | undefined
   /** Children will be rendered into a portal */
-  children: React.ReactNode
+  children: JSX.Element
 }
 
-export const RenderTexture = React.forwardRef(
-  (
-    {
-      children,
-      compute,
-      width,
-      height,
-      samples = 8,
-      renderPriority = 0,
-      eventPriority = 0,
-      frames = Infinity,
-      stencilBuffer = false,
-      depthBuffer = true,
-      generateMipmaps = false,
-      ...props
-    }: Props,
-    forwardRef
-  ) => {
-    const { size, viewport } = useThree()
-    const fbo = useFBO((width || size.width) * viewport.dpr, (height || size.height) * viewport.dpr, {
-      samples,
-      stencilBuffer,
-      depthBuffer,
-      generateMipmaps,
-    })
-    const [vScene] = React.useState(() => new THREE.Scene())
+export const RenderTexture: RefComponent<any, Props> = (_props) => {
+  const [props, rest] = splitProps(
+    mergeProps(
+      {
+        samples: 8,
+        renderPriority: 0,
+        eventPriority: 0,
+        frames: Infinity,
+        stencilBuffer: false,
+        depthBuffer: false,
+        generateMipmaps: false,
+      },
+      _props
+    ),
+    [
+      'ref',
+      'children',
+      'compute',
+      'width',
+      'height',
+      'samples',
+      'renderPriority',
+      'eventPriority',
+      'frames',
+      'stencilBuffer',
+      'depthBuffer',
+      'generateMipmaps',
+    ]
+  )
 
-    const uvCompute = React.useCallback((event, state, previous) => {
-      // Since this is only a texture it does not have an easy way to obtain the parent, which we
-      // need to transform event coordinates to local coordinates. We use r3f internals to find the
-      // next Object3D.
-      let parent = (fbo.texture as any)?.__r3f.parent
-      while (parent && !(parent instanceof THREE.Object3D)) {
-        parent = parent.__r3f.parent
-      }
-      if (!parent) return false
-      // First we call the previous state-onion-layers compute, this is what makes it possible to nest portals
-      if (!previous.raycaster.camera) previous.events.compute(event, previous, previous.previousRoot?.getState())
-      // We run a quick check against the parent, if it isn't hit there's no need to raycast at all
-      const [intersection] = previous.raycaster.intersectObject(parent)
-      if (!intersection) return false
-      // We take that hits uv coords, set up this layers raycaster, et voilà, we have raycasting on arbitrary surfaces
-      const uv = intersection.uv
-      if (!uv) return false
-      state.raycaster.setFromCamera(state.pointer.set(uv.x * 2 - 1, uv.y * 2 - 1), state.camera)
-    }, [])
+  const { size, viewport } = useThree()
+  const fbo = useFBO((props.width || size.width) * viewport.dpr, (props.height || size.height) * viewport.dpr, {
+    samples: props.samples,
+    stencilBuffer: props.stencilBuffer,
+    depthBuffer: props.depthBuffer,
+    generateMipmaps: props.generateMipmaps,
+  })
+  const vScene = new THREE.Scene()
 
-    React.useImperativeHandle(forwardRef, () => fbo.texture, [fbo])
-
-    return (
-      <>
-        {createPortal(
-          <Container renderPriority={renderPriority} frames={frames} fbo={fbo}>
-            {children}
-            {/* Without an element that receives pointer events state.pointer will always be 0/0 */}
-            <group onPointerOver={() => null} />
-          </Container>,
-          vScene,
-          { events: { compute: compute || uvCompute, priority: eventPriority } }
-        )}
-        <primitive object={fbo.texture} {...props} />
-      </>
-    )
+  const uvCompute = (event, state, previous) => {
+    // Since this is only a texture it does not have an easy way to obtain the parent, which we
+    // need to transform event coordinates to local coordinates. We use r3f internals to find the
+    // next Object3D.
+    let parent = (fbo.texture as any)?.__r3f.parent
+    while (parent && !(parent instanceof THREE.Object3D)) {
+      parent = parent.__r3f.parent
+    }
+    if (!parent) return false
+    // First we call the previous state-onion-layers compute, this is what makes it possible to nest portals
+    if (!previous.raycaster.camera) previous.events.compute(event, previous, previous.previousRoot?.getState())
+    // We run a quick check against the parent, if it isn't hit there's no need to raycast at all
+    const [intersection] = previous.raycaster.intersectObject(parent)
+    if (!intersection) return false
+    // We take that hits uv coords, set up this layers raycaster, et voilà, we have raycasting on arbitrary surfaces
+    const uv = intersection.uv
+    if (!uv) return false
+    state.raycaster.setFromCamera(state.pointer.set(uv.x * 2 - 1, uv.y * 2 - 1), state.camera)
   }
-)
+
+  createEffect(
+    on(
+      () => [props.ref, fbo],
+      () => {
+        props.ref = fbo.texture
+      }
+    )
+  )
+  return (
+    <>
+      {createPortal(
+        <Container renderPriority={props.renderPriority} frames={props.frames} fbo={fbo}>
+          <T.Group onPointerOver={() => null} />
+          {props.children}
+          {/* Withsout an element that receives pointer events state.pointer will always be 0/0 */}
+        </Container>,
+        vScene,
+        { events: { compute: props.compute || uvCompute, priority: props.eventPriority } }
+      )}
+      <Primitive object={fbo.texture} {...rest} />
+    </>
+  )
+}
 
 // The container component has to be separate, it can not be inlined because "useFrame(state" when run inside createPortal will return
 // the portals own state which includes user-land overrides (custom cameras etc), but if it is executed in <RenderTexture>'s render function
 // it would return the default state.
-function Container({
-  frames,
-  renderPriority,
-  children,
-  fbo,
-}: {
+function Container(props: {
   frames: number
   renderPriority: number
-  children: React.ReactNode
+  children: JSX.Element
   fbo: THREE.WebGLRenderTarget
 }) {
   let count = 0
   let oldAutoClear
   useFrame((state) => {
-    if (frames === Infinity || count < frames) {
+    if (props.frames === Infinity || count < props.frames) {
       oldAutoClear = state.gl.autoClear
       state.gl.autoClear = true
-      state.gl.setRenderTarget(fbo)
+      state.gl.setRenderTarget(props.fbo)
       state.gl.render(state.scene, state.camera)
       state.gl.setRenderTarget(null)
       state.gl.autoClear = oldAutoClear
       count++
     }
-  }, renderPriority)
-  return <>{children}</>
+  }, props.renderPriority)
+  return <>{props.children}</>
 }

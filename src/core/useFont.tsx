@@ -1,5 +1,6 @@
+import { createThreeResource } from '@solid-three/fiber'
 import { FontLoader } from 'three-stdlib'
-import { suspend, preload, clear } from 'suspend-react'
+// import { suspend, preload, clear } from 'suspend-react'
 
 export type Glyph = {
   _cachedOutline: string[]
@@ -29,8 +30,8 @@ async function loader(font: string | FontData) {
 }
 
 export function useFont(font: string | FontData) {
-  return suspend(loader, [font])
+  return createThreeResource(font, loader)[0]
 }
 
-useFont.preload = (font: string | FontData) => preload(loader, [font])
-useFont.clear = (font: string | FontData) => clear([font])
+/* useFont.preload = (font: string | FontData) => preload(loader, [font])
+useFont.clear = (font: string | FontData) => clear([font]) */

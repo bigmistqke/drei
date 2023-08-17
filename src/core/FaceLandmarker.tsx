@@ -1,15 +1,14 @@
 /* eslint react-hooks/exhaustive-deps: 1 */
-import * as React from 'react'
-import { createContext, ReactNode, useContext, useEffect } from 'react'
-import { FilesetResolver, FaceLandmarker as FaceLandmarkerImpl, FaceLandmarkerOptions } from '@mediapipe/tasks-vision'
-import { clear, suspend } from 'suspend-react'
+import { FaceLandmarker as FaceLandmarkerImpl, FaceLandmarkerOptions, FilesetResolver } from '@mediapipe/tasks-vision'
 
-const FaceLandmarkerContext = createContext({} as FaceLandmarkerImpl | undefined)
+import { Accessor, createContext, createEffect, createResource, onCleanup, useContext, type JSX } from 'solid-js'
+
+const FaceLandmarkerContext = createContext((() => {}) as Accessor<FaceLandmarkerImpl | undefined>)
 
 type FaceLandmarkerProps = {
   basePath?: string
   options?: FaceLandmarkerOptions
-  children?: ReactNode
+  children?: JSX.Element | Array<JSX.Element>
 }
 
 export const FaceLandmarkerDefaults = {
@@ -33,18 +32,19 @@ export function FaceLandmarker({
 }: FaceLandmarkerProps) {
   const opts = JSON.stringify(options)
 
-  const faceLandmarker = suspend(async () => {
+  const [faceLandmarker] = createResource([basePath, opts], async () => {
     return await FilesetResolver.forVisionTasks(basePath).then((vision) =>
       FaceLandmarkerImpl.createFromOptions(vision, options)
     )
-  }, [basePath, opts])
+  })
 
-  useEffect(() => {
-    return () => {
-      faceLandmarker?.close()
-      clear([basePath, opts])
-    }
-  }, [faceLandmarker, basePath, opts])
+  createEffect(() => {
+    onCleanup(() => {
+      faceLandmarker()?.close()
+      // s3f:  suspend-react caches and can clear the cache, should we clear the cache too?
+      // clear([basePath, opts])
+    })
+  })
 
   return <FaceLandmarkerContext.Provider value={faceLandmarker}>{children}</FaceLandmarkerContext.Provider>
 }

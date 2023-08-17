@@ -1,46 +1,59 @@
 /* eslint react-hooks/exhaustive-deps: 1 */
-import * as React from 'react'
-import * as THREE from 'three'
-import { type Color } from '@react-three/fiber'
+import { T, ThreeProps, type Color } from '@solid-three/fiber'
+import { Suspense, createSignal } from 'solid-js'
 
-import { Text3D } from './Text3D'
+import { processProps } from '../helpers/processProps'
+import { RefComponent } from '../helpers/typeHelpers'
+import { createImperativeHandle } from '../helpers/useImperativeHandle'
 import { Center } from './Center'
+import { Text3D } from './Text3D'
 
 export type ExampleProps = {
   font: string
   color?: Color
   debug?: boolean
   bevelSize?: number
-} & JSX.IntrinsicElements['group']
+} & ThreeProps<'Group'>
 
 export type ExampleApi = {
   incr: (x?: number) => void
   decr: (x?: number) => void
 }
 
-export const Example = React.forwardRef<ExampleApi, ExampleProps>(
-  ({ font, color = '#cbcbcb', bevelSize = 0.04, debug = false, children, ...props }, fref) => {
-    const [counter, setCounter] = React.useState(0)
+export const Example: RefComponent<ExampleApi, ExampleProps, true> = (_props) => {
+  const [props, rest] = processProps(
+    _props,
+    {
+      color: '#cbcbcb',
+      bevelSize: 0.04,
+      debug: false,
+    },
+    ['font', 'color', 'bevelSize', 'debug', 'children', 'ref']
+  )
 
-    const incr = React.useCallback((x = 1) => setCounter(counter + x), [counter])
-    const decr = React.useCallback((x = 1) => setCounter(counter - x), [counter])
+  const [counter, setCounter] = createSignal(0)
 
-    // ref-API
-    const api = React.useMemo<ExampleApi>(() => ({ incr, decr }), [incr, decr])
-    React.useImperativeHandle(fref, () => api, [api])
+  const incr = (x = 1) => setCounter(counter() + x)
+  const decr = (x = 1) => setCounter(counter() - x)
 
-    return (
-      <group {...props}>
-        <React.Suspense fallback={null}>
-          <Center top cacheKey={JSON.stringify({ counter, font })}>
-            <Text3D bevelEnabled bevelSize={bevelSize} font={font}>
-              {debug ? <meshNormalMaterial wireframe /> : <meshStandardMaterial color={color} />}
-              {counter}
-            </Text3D>
-          </Center>
-        </React.Suspense>
-        {children}
-      </group>
-    )
+  const api = {
+    incr,
+    decr,
   }
-)
+
+  createImperativeHandle(props, () => api)
+
+  return (
+    <T.Group {...rest}>
+      <Suspense fallback={null}>
+        <Center top cacheKey={JSON.stringify({ counter, font: props.font })}>
+          <Text3D bevelEnabled bevelSize={props.bevelSize} font={props.font}>
+            {props.debug ? <T.MeshNormalMaterial wireframe /> : <T.MeshStandardMaterial color={props.color} />}
+            {counter()}
+          </Text3D>
+        </Center>
+      </Suspense>
+      {props.children}
+    </T.Group>
+  )
+}
