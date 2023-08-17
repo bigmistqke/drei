@@ -77,6 +77,14 @@ export function Bounds(_props: BoundsProps) {
     function getSize() {
       const size = box.getSize(new THREE.Vector3())
       const center = box.getCenter(new THREE.Vector3())
+
+      // s3f    store.camera.aspect got initialized with store.camera.aspect 0
+      //        causing `fitWidthDistance` to be Infinity
+      //        investigate further why store.camera.aspect is 0 in the beginning
+      if ('aspect' in store.camera && store.camera.aspect === 0) {
+        return { box, size, center, distance: 0 }
+      }
+
       const maxSize = Math.max(size.x, size.y, size.z)
       const fitHeightDistance = isOrthographic(store.camera)
         ? maxSize * 4
