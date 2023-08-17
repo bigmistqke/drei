@@ -1,7 +1,6 @@
 import { T, useLoader, useThree } from '@solid-three/fiber'
 import { createEffect, onCleanup, onMount } from 'solid-js'
 import { AudioListener, AudioLoader, PositionalAudio as PositionalAudioImpl } from 'three'
-import { createRef } from '../helpers/createRef'
 import { processProps } from '../helpers/processProps'
 import { RefComponent } from '../helpers/typeHelpers'
 import { when } from '../helpers/when'
@@ -21,17 +20,18 @@ export const PositionalAudio: RefComponent<any, Props> = (_props) => {
     },
     ['ref', 'url', 'distance', 'loop', 'autoplay']
   )
-  const sound = createRef<PositionalAudioImpl>(null!)
+
+  let sound: PositionalAudioImpl
   const store = useThree()
   const listener = new AudioListener()
   const buffer = useLoader(AudioLoader, props.url)
 
   createEffect(() => {
     when(buffer)((buffer) => {
-      sound.ref.setBuffer(buffer)
-      sound.ref.setRefDistance(props.distance)
-      sound.ref.setLoop(props.loop)
-      if (props.autoplay && !sound.ref.isPlaying) sound.ref.play()
+      sound.setBuffer(buffer)
+      sound.setRefDistance(props.distance)
+      sound.setLoop(props.loop)
+      if (props.autoplay && !sound.isPlaying) sound.play()
     })
   })
 
@@ -39,10 +39,8 @@ export const PositionalAudio: RefComponent<any, Props> = (_props) => {
 
   onCleanup(() => {
     store.camera.remove(listener)
-    if (sound.ref) {
-      if (sound.ref.isPlaying) sound.ref.stop()
-      if (sound.ref.source && (sound.ref.source as any)._connected) sound.ref.disconnect()
-    }
+    if (sound.isPlaying) sound.stop()
+    if (sound.source && (sound.source as any)._connected) sound.disconnect()
   })
-  return <T.PositionalAudio ref={sound.ref} args={[listener]} {...rest} />
+  return <T.PositionalAudio ref={sound!} args={[listener]} {...rest} />
 }
