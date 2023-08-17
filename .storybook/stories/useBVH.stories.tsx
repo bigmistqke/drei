@@ -14,6 +14,8 @@ export default {
   decorators: [(storyFn) => <Setup controls={false}>{storyFn()}</Setup>, withKnobs],
 }
 
+/* s3f performance is not great, but in r3f/drei this story is not working at all */
+
 function TorusBVH({ bvh, ...props }) {
   let mesh
   let dummy
