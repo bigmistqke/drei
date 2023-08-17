@@ -29,7 +29,7 @@ function StageStory() {
     <T.Suspense fallback={null}>
       <T.Color attach="background" args={['white']} />
       <Stage intensity={intensity} environment={envPreset as PresetsType} preset={presetKnob}>
-        <Sphere args={[1, 64, 64]}>
+        <Sphere args={[1, 64, 64]} position-z={0}>
           <T.MeshStandardMaterial roughness={0} color="royalblue" />
         </Sphere>
       </Stage>

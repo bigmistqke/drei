@@ -2,10 +2,15 @@ import { T, ThreeProps } from '@solid-three/fiber'
 import { Show, createEffect, createSignal, on } from 'solid-js'
 import { PresetsType } from '../helpers/environment-assets'
 import { processProps } from '../helpers/processProps'
-import { AccumulativeShadowsProps, RandomizedLightProps } from './AccumulativeShadows'
+import {
+  AccumulativeShadows,
+  AccumulativeShadowsProps,
+  RandomizedLight,
+  RandomizedLightProps,
+} from './AccumulativeShadows'
 import { Bounds, useBounds } from './Bounds'
 import { Center, CenterProps } from './Center'
-import { ContactShadowsProps } from './ContactShadows'
+import { ContactShadows, ContactShadowsProps } from './ContactShadows'
 import { Environment, EnvironmentProps } from './Environment'
 
 const presets = {
@@ -87,17 +92,17 @@ export function Stage(_props: ThreeProps<'Group'> & StageProps) {
     ['children', 'center', 'adjustCamera', 'intensity', 'shadows', 'environment', 'preset']
   )
 
-  const config = typeof props.preset === 'string' ? presets[props.preset] : props.preset
+  const config = () => (typeof props.preset === 'string' ? presets[props.preset] : props.preset)
   const [dimensions, setDimensions] = createSignal({ radius: 0, width: 0, height: 0, depth: 0 })
 
-  const shadowBias = (props.shadows as StageShadows)?.bias ?? -0.0001
-  const normalBias = (props.shadows as StageShadows)?.normalBias ?? 0
-  const shadowSize = (props.shadows as StageShadows)?.size ?? 1024
-  const shadowOffset = (props.shadows as StageShadows)?.offset ?? 0
-  const contactShadow = props.shadows === 'contact' || (props.shadows as StageShadows)?.type === 'contact'
-  const accumulativeShadow =
+  const shadowBias = () => (props.shadows as StageShadows)?.bias ?? -0.0001
+  const normalBias = () => (props.shadows as StageShadows)?.normalBias ?? 0
+  const shadowSize = () => (props.shadows as StageShadows)?.size ?? 1024
+  const shadowOffset = () => (props.shadows as StageShadows)?.offset ?? 0
+  const contactShadow = () => props.shadows === 'contact' || (props.shadows as StageShadows)?.type === 'contact'
+  const accumulativeShadow = () =>
     props.shadows === 'accumulative' || (props.shadows as StageShadows)?.type === 'accumulative'
-  const shadowSpread = { ...(typeof props.shadows === 'object' ? props.shadows : {}) }
+  const shadowSpread = () => ({ ...(typeof props.shadows === 'object' ? props.shadows : {}) })
   const environmentProps = () =>
     !props.environment
       ? null
@@ -115,21 +120,21 @@ export function Stage(_props: ThreeProps<'Group'> & StageProps) {
       <T.SpotLight
         penumbra={1}
         position={[
-          config.main[0] * dimensions().radius,
-          config.main[1] * dimensions().radius,
-          config.main[2] * dimensions().radius,
+          config().main[0] * dimensions().radius,
+          config().main[1] * dimensions().radius,
+          config().main[2] * dimensions().radius,
         ]}
         intensity={props.intensity * 2}
         castShadow={!!props.shadows}
-        shadow-bias={shadowBias}
-        shadow-normalBias={normalBias}
-        shadow-mapSize={shadowSize}
+        shadow-bias={shadowBias()}
+        shadow-normalBias={normalBias()}
+        shadow-mapSize={shadowSize()}
       />
       <T.PointLight
         position={[
-          config.fill[0] * dimensions().radius,
-          config.fill[1] * dimensions().radius,
-          config.fill[2] * dimensions().radius,
+          config().fill[0] * dimensions().radius,
+          config().fill[1] * dimensions().radius,
+          config().fill[2] * dimensions().radius,
         ]}
         intensity={props.intensity}
       />
@@ -141,44 +146,45 @@ export function Stage(_props: ThreeProps<'Group'> & StageProps) {
         {...rest}
       >
         <Refit radius={dimensions().radius} adjustCamera={props.adjustCamera} />
-        <Center {...props.center} position={[0, shadowOffset / 2, 0]} onCentered={onCentered}>
+        <Center {...props.center} position={[0, shadowOffset() / 2, 0]} onCentered={onCentered}>
           {props.children}
         </Center>
       </Bounds>
-      <T.Group position={[0, -dimensions().height / 2 - shadowOffset / 2, 0]}>
-        {/* {contactShadow && (
+      <T.Group position={[0, -dimensions().height / 2 - shadowOffset() / 2, 0]}>
+        <Show when={contactShadow()}>
           <ContactShadows
             scale={dimensions().radius * 4}
             far={dimensions().radius}
             blur={2}
             {...(shadowSpread as ContactShadowsProps)}
           />
-        )} */}
-        {/* {accumulativeShadow && (
+        </Show>
+
+        <Show when={accumulativeShadow()}>
           <AccumulativeShadows
             temporal
             frames={100}
             alphaTest={0.9}
             toneMapped={true}
             scale={dimensions().radius * 4}
-            {...(shadowSpread as AccumulativeShadowsProps)}
+            {...(shadowSpread() as AccumulativeShadowsProps)}
           >
             <RandomizedLight
-              amount={(shadowSpread as RandomizedLightProps).amount ?? 8}
-              radius={(shadowSpread as RandomizedLightProps).radius ?? dimensions().radius}
-              ambient={(shadowSpread as RandomizedLightProps).ambient ?? 0.5}
-              intensity={(shadowSpread as RandomizedLightProps).intensity ?? 1}
+              amount={(shadowSpread() as RandomizedLightProps).amount ?? 8}
+              radius={(shadowSpread() as RandomizedLightProps).radius ?? dimensions().radius}
+              ambient={(shadowSpread() as RandomizedLightProps).ambient ?? 0.5}
+              intensity={(shadowSpread() as RandomizedLightProps).intensity ?? 1}
               position={[
-                config.main[0] * dimensions().radius,
-                config.main[1] * dimensions().radius,
-                config.main[2] * dimensions().radius,
+                config().main[0] * dimensions().radius,
+                config().main[1] * dimensions().radius,
+                config().main[2] * dimensions().radius,
               ]}
               size={dimensions().radius * 4}
-              bias={-shadowBias}
-              mapSize={shadowSize}
+              bias={-shadowBias()}
+              mapSize={shadowSize()}
             />
           </AccumulativeShadows>
-        )} */}
+        </Show>
       </T.Group>
       <Show when={props.environment}>
         <Environment {...environmentProps()} />
