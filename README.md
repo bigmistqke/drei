@@ -89,7 +89,7 @@ import { PerspectiveCamera, PositionalAudio, ... } from '@solid-three/drei'
           <li>- [x] <a href="#meshwobblematerial">MeshWobbleMaterial</a></li>
           <li>- [x] <a href="#meshdistortmaterial">MeshDistortMaterial</a></li>
           <li>- [x] <a href="#meshrefractionmaterial">MeshRefractionMaterial</a></li>
-          <li>- [ ] <a href="#meshtransmissionmaterial">MeshTransmissionMaterial</a></li>
+          <li>- [x] <a href="#meshtransmissionmaterial">MeshTransmissionMaterial</a></li>
           <li>- [ ] <a href="#meshdiscardmaterial">MeshDiscardMaterial</a></li>
           <li>- [x] <a href="#pointmaterial">PointMaterial</a></li>
           <li>- [x] <a href="#softshadows">SoftShadows</a></li>
@@ -210,10 +210,10 @@ import { PerspectiveCamera, PositionalAudio, ... } from '@solid-three/drei'
           <li>- [x] <a href="#spotlight">SpotLight</a></li>
           <li>- [x] <a href="#spotlightshadows">SpotLightShadows</a></li>
           <li>- [x] <a href="#shadow">Shadow</a></li>
-          <li>- [ ] <a href="#caustics">Caustics</a></li>
+          <li>- [x] <a href="#caustics">Caustics</a></li>
           <li>- [ ] <a href="#contactshadows">ContactShadows</a></li>
-          <li>- [ ] <a href="#randomizedlight">RandomizedLight</a></li>
-          <li>- [ ] <a href="#accumulativeshadows">AccumulativeShadows</a></li>
+          <li>- [x] <a href="#randomizedlight">RandomizedLight</a></li>
+          <li>- [x] <a href="#accumulativeshadows">AccumulativeShadows</a></li>
           <li>- [x] <a href="#sky">Sky</a></li>
           <li>- [x] <a href="#stars">Stars</a></li>
           <li>- [x] <a href="#sparkles">Sparkles</a></li>
