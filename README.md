@@ -1,14 +1,19 @@
-[![logo](logo.jpg)](https://codesandbox.io/s/bfplr)
+<!-- prettier-ignore -->
+<p>
+  <img width="100%" src="https://assets.solidjs.com/banner?type=solid-drei&background=tiles&project=%20" alt="solid-drei">
+</p>
 
-[![Version](https://img.shields.io/npm/v/@react-three/drei?style=flat&colorA=000000&colorB=000000)](https://www.npmjs.com/package/@react-three/drei)
-[![Downloads](https://img.shields.io/npm/dt/@react-three/drei.svg?style=flat&colorA=000000&colorB=000000)](https://www.npmjs.com/package/@react-three/drei)
+[![Version](https://img.shields.io/npm/v/@solid-three/drei?style=flat&colorA=000000&colorB=000000)](https://www.npmjs.com/package/@solid-three/drei)
+[![Downloads](https://img.shields.io/npm/dt/@solid-three/drei.svg?style=flat&colorA=000000&colorB=000000)](https://www.npmjs.com/package/@solid-three/drei)
 [![Discord Shield](https://img.shields.io/discord/740090768164651008?style=flat&colorA=000000&colorB=000000&label=discord&logo=discord&logoColor=ffffff)](https://discord.com/channels/740090768164651008/741751532592038022)
 [![Open in GitHub Codespaces](https://img.shields.io/static/v1?&message=Open%20in%20%20Codespaces&style=flat&colorA=000000&colorB=000000&label=GitHub&logo=github&logoColor=ffffff)](https://github.com/codespaces/new?template_repository=pmndrs%2Fdrei)
 
-A growing collection of useful helpers and fully functional, ready-made abstractions for [@react-three/fiber](https://github.com/pmndrs/react-three-fiber). If you make a component that is generic enough to be useful to others, think about [CONTRIBUTING](CONTRIBUTING.md)!
+> `solid-three`: This is a WIP port of [drei](https://github.com/pmndrs/drei). Not published yet.
+
+A growing collection of useful helpers and fully functional, ready-made abstractions for [@solid-three/core](https://github.com/solidjs-community/solid-three). If you make a component that is generic enough to be useful to others, think about [CONTRIBUTING](CONTRIBUTING.md)!
 
 ```bash
-npm install @react-three/drei
+npm install @solid-three/drei
 ```
 
 :point_right: this package is using the stand-alone [`three-stdlib`](https://github.com/pmndrs/three-stdlib) instead of [`three/examples/jsm`](https://github.com/mrdoob/three.js/tree/master/examples/jsm). :point_left:
@@ -16,18 +21,12 @@ npm install @react-three/drei
 ### Basic usage:
 
 ```jsx
-import { PerspectiveCamera, PositionalAudio, ... } from '@react-three/drei'
+import { PerspectiveCamera, PositionalAudio, ... } from '@solid-three/drei'
 ```
-
-### React-native:
-
-```jsx
-import { PerspectiveCamera, PositionalAudio, ... } from '@react-three/drei/native'
-```
-
-The `native` route of the library **does not** export `Html` or `Loader`. The default export of the library is `web` which **does** export `Html` and `Loader`.
 
 ### Index
+
+> `solid-three`: checked equals tested (with storybook)
 
 <table>
   <tr>
@@ -35,66 +34,66 @@ The `native` route of the library **does not** export `Html` or `Loader`. The de
       <ul>
         <li><a href="#cameras">Cameras</a></li>
         <ul>
-          <li><a href="#perspectivecamera">PerspectiveCamera</a></li>
-          <li><a href="#orthographiccamera">OrthographicCamera</a></li>
-          <li><a href="#cubecamera">CubeCamera</a></li>
+          <li>- [x] <a href="#perspectivecamera">PerspectiveCamera</a></li>
+          <li>- [x] <a href="#orthographiccamera">OrthographicCamera</a></li>
+          <li>- [x] <a href="#cubecamera">CubeCamera</a></li>
         </ul>
         <li><a href="#controls">Controls</a></li>
         <ul>
-          <li><a href="#cameracontrols">CameraControls</a></li>
-          <li><a href="#controls">FlyControls</a></li>
-          <li><a href="#controls">MapControls</a></li>
-          <li><a href="#controls">DeviceOrientationControls</a></li>
-          <li><a href="#controls">TrackballControls</a></li>
-          <li><a href="#controls">ArcballControls</a></li>
-          <li><a href="#controls">PointerLockControls</a></li>
-          <li><a href="#controls">FirstPersonControls</a></li>          
-          <li><a href="#scrollcontrols">ScrollControls</a></li>
-          <li><a href="#presentationcontrols">PresentationControls</a></li>
-          <li><a href="#keyboardcontrols">KeyboardControls</a></li>
-          <li><a href="#FaceControls">FaceControls</a></li>
+          <li>- [x] <a href="#cameracontrols">CameraControls</a></li>
+          <li>- [x] <a href="#controls">FlyControls</a></li>
+          <li>- [x] <a href="#controls">MapControls</a></li>
+          <li>- [x] <a href="#controls">DeviceOrientationControls</a></li>
+          <li>- [x] <a href="#controls">TrackballControls</a></li>
+          <li>- [x] <a href="#controls">ArcballControls</a></li>
+          <li>- [x] <a href="#controls">PointerLockControls</a></li>
+          <li>- [x] <a href="#controls">FirstPersonControls</a></li>          
+          <li>- [x] <a href="#scrollcontrols">ScrollControls</a></li>
+          <li>- [x] <a href="#presentationcontrols">PresentationControls</a></li>
+          <li>- [x] <a href="#keyboardcontrols">KeyboardControls</a></li>
+          <li>- [ ] <a href="#FaceControls">FaceControls</a></li>
         </ul>
         <li><a href="#gizmos">Gizmos</a></li>
         <ul>
-          <li><a href="#gizmohelper">GizmoHelper</a></li>
-          <li><a href="#pivotcontrols">PivotControls</a></li>
-          <li><a href="#transformcontrols">TransformControls</a></li>
-          <li><a href="#grid">Grid</a></li>
-          <li><a href="#usehelper">useHelper</a></li>
+          <li>- [x] <a href="#gizmohelper">GizmoHelper</a></li>
+          <li>- [x] <a href="#pivotcontrols">PivotControls</a></li>
+          <li>- [x] <a href="#transformcontrols">TransformControls</a></li>
+          <li>- [x] <a href="#grid">Grid</a></li>
+          <li>- [x] <a href="#usehelper">useHelper</a></li>
         </ul>
         <li><a href="#abstractions">Abstractions</a></li>
         <ul>
-          <li><a href="#image">Image</a></li>
-          <li><a href="#text">Text</a></li>
-          <li><a href="#text3d">Text3D</a></li>          
-          <li><a href="#positionalaudio">PositionalAudio</a></li>
-          <li><a href="#billboard">Billboard</a></li>
-          <li><a href="#screenspace">ScreenSpace</a></li>
-          <li><a href="#effects">Effects</a></li>
-          <li><a href="#gradienttexture">GradientTexture</a></li>
-          <li><a href="#edges">Edges</a></li>
-          <li><a href="#trail">Trail</a></li>
-          <li><a href="#sampler">Sampler</a></li>
-          <li><a href="#computedattribute">Computed Attribute</a></li>
-          <li><a href="#clone">Clone</a></li>
-          <li><a href="#useanimations">useAnimations</a></li>
-          <li><a href="#marchingcubes">MarchingCubes</a></li>
-          <li><a href="#decal">Decal</a></li>
-          <li><a href="#svg">Svg</a></li>
-          <li><a href="#gltf">Gltf</a></li>
-          <li><a href="#asciirenderer">AsciiRenderer</a></li>
+          <li>- [x] <a href="#image">Image</a></li>
+          <li>- [x] <a href="#text">Text</a></li>
+          <li>- [x] <a href="#text3d">Text3D</a></li>          
+          <li>- [x] <a href="#positionalaudio">PositionalAudio</a></li>
+          <li>- [x] <a href="#billboard">Billboard</a></li>
+          <li>- [x] <a href="#screenspace">ScreenSpace</a></li>
+          <li>- [ ] <a href="#effects">Effects</a></li>
+          <li>- [ ] <a href="#gradienttexture">GradientTexture</a></li>
+          <li>- [x] <a href="#edges">Edges</a></li>
+          <li>- [x] <a href="#trail">Trail</a></li>
+          <li>- [x] <a href="#sampler">Sampler</a></li>
+          <li>- [ ] <a href="#computedattribute">Computed Attribute</a></li>
+          <li>- [x] <a href="#clone">Clone</a></li>
+          <li>- [x] <a href="#useanimations">useAnimations</a></li>
+          <li>- [x] <a href="#marchingcubes">MarchingCubes</a></li>
+          <li>- [ ] <a href="#decal">Decal</a></li>
+          <li>- [x] <a href="#svg">Svg</a></li>
+          <li>- [x] <a href="#gltf">Gltf</a></li>
+          <li>- [x] <a href="#asciirenderer">AsciiRenderer</a></li>
         </ul>
         <li><a href="#shaders">Shaders</a></li>
         <ul>
-          <li><a href="#meshreflectormaterial">MeshReflectorMaterial</a></li>
-          <li><a href="#meshwobblematerial">MeshWobbleMaterial</a></li>
-          <li><a href="#meshdistortmaterial">MeshDistortMaterial</a></li>
-          <li><a href="#meshrefractionmaterial">MeshRefractionMaterial</a></li>
-          <li><a href="#meshtransmissionmaterial">MeshTransmissionMaterial</a></li>
-          <li><a href="#meshdiscardmaterial">MeshDiscardMaterial</a></li>
-          <li><a href="#pointmaterial">PointMaterial</a></li>
-          <li><a href="#softshadows">SoftShadows</a></li>
-          <li><a href="#shadermaterial">shaderMaterial</a></li>
+          <li>- [x] <a href="#meshreflectormaterial">MeshReflectorMaterial</a></li>
+          <li>- [x] <a href="#meshwobblematerial">MeshWobbleMaterial</a></li>
+          <li>- [x] <a href="#meshdistortmaterial">MeshDistortMaterial</a></li>
+          <li>- [x] <a href="#meshrefractionmaterial">MeshRefractionMaterial</a></li>
+          <li>- [ ] <a href="#meshtransmissionmaterial">MeshTransmissionMaterial</a></li>
+          <li>- [ ] <a href="#meshdiscardmaterial">MeshDiscardMaterial</a></li>
+          <li>- [x] <a href="#pointmaterial">PointMaterial</a></li>
+          <li>- [x] <a href="#softshadows">SoftShadows</a></li>
+          <li>- [x] <a href="#shadermaterial">shaderMaterial</a></li>
         </ul>
       </ul>
     </td>
@@ -102,67 +101,67 @@ The `native` route of the library **does not** export `Html` or `Loader`. The de
       <ul>
         <li><a href="#misc">Misc</a></li>
         <ul>
-          <li><a href="#example">Example</a></li>
-          <li><a href="#html">Html</a></li>
-          <li><a href="#cycleraycast">CycleRaycast</a></li>
-          <li><a href="#select">Select</a></li>
-          <li><a href="#sprite-animator">Sprite Animator</a></li>
-          <li><a href="#stats">Stats</a></li>
-          <li><a href="#stats-gl">StatsGl</a></li>
-          <li><a href="#wireframe">Wireframe</a></li>
-          <li><a href="#usedepthbuffer">useDepthBuffer</a></li>
-          <li><a href="#usecontextbridge">useContextBridge</a></li>
-          <li><a href="#usefbo">useFBO</a></li>
-          <li><a href="#usecamera">useCamera</a></li>
-          <li><a href="#usecubecamera">useCubeCamera</a></li>
-          <li><a href="#usedetectgpu">useDetectGPU</a></li>          
-          <li><a href="#useaspect">useAspect</a></li>
-          <li><a href="#usecursor">useCursor</a></li>
-          <li><a href="#useintersect">useIntersect</a></li>
-          <li><a href="#useboxprojectedenv">useBoxProjectedEnv</a></li>
-          <li><a href="#useTrail">useTrail</a></li>
-          <li><a href="#useSurfaceSampler">useSurfaceSampler</a></li>
-          <li><a href="#facelandmarker">FaceLandmarker</a></li>
+          <li>- [x] <a href="#example">Example</a></li>
+          <li>- [x] <a href="#html">Html</a></li>
+          <li>- [ ] <a href="#cycleraycast">CycleRaycast</a></li>
+          <li>- [x] <a href="#select">Select</a></li>
+          <li>- [ ] <a href="#sprite-animator">Sprite Animator</a></li>
+          <li>- [x] <a href="#stats">Stats</a></li>
+          <li>- [x] <a href="#stats-gl">StatsGl</a></li>
+          <li>- [x] <a href="#wireframe">Wireframe</a></li>
+          <li>- [ ] <a href="#usedepthbuffer">useDepthBuffer</a></li>
+          <li>- [ ] <a href="#usecontextbridge">useContextBridge</a></li>
+          <li>- [x] <a href="#usefbo">useFBO</a></li>
+          <li>- [x] <a href="#usecamera">useCamera</a></li>
+          <li>- [x] <a href="#usecubecamera">useCubeCamera</a></li>
+          <li>- [x] <a href="#usedetectgpu">useDetectGPU</a></li>          
+          <li>- [x] <a href="#useaspect">useAspect</a></li>
+          <li>- [x] <a href="#usecursor">useCursor</a></li>
+          <li>- [x] <a href="#useintersect">useIntersect</a></li>
+          <li>- [ ] <a href="#useboxprojectedenv">useBoxProjectedEnv</a></li>
+          <li>- [x] <a href="#useTrail">useTrail</a></li>
+          <li>- [x] <a href="#useSurfaceSampler">useSurfaceSampler</a></li>
+          <li>- [ ] <a href="#facelandmarker">FaceLandmarker</a></li>
         </ul>
         <li><a href="#loading">Loaders</a></li>
         <ul>
-          <li><a href="#loader">Loader</a></li>
-          <li><a href="#useprogress">useProgress</a></li>
-          <li><a href="#usegltf">useGLTF</a></li>
-          <li><a href="#usefbx">useFBX</a></li>
-          <li><a href="#usetexture">useTexture</a></li>
-          <li><a href="#usektx2">useKTX2</a></li>
-          <li><a href="#usecubetexture">useCubeTexture</a></li>
-          <li><a href="#usevideotexture">useVideoTexture</a></li>
-          <li><a href="#usetrailtexture">useTrailTexture</a></li>
-          <li><a href="#usefont">useFont</a></li>
+          <li>- [x] <a href="#loader">Loader</a></li>
+          <li>- [x] <a href="#useprogress">useProgress</a></li>
+          <li>- [x] <a href="#usegltf">useGLTF</a></li>
+          <li>- [x] <a href="#usefbx">useFBX</a></li>
+          <li>- [x] <a href="#usetexture">useTexture</a></li>
+          <li>- [x] <a href="#usektx2">useKTX2</a></li>
+          <li>- [x] <a href="#usecubetexture">useCubeTexture</a></li>
+          <li>- [x] <a href="#usevideotexture">useVideoTexture</a></li>
+          <li>- [x] <a href="#usetrailtexture">useTrailTexture</a></li>
+          <li>- [x] <a href="#usefont">useFont</a></li>
         </ul>
         <li><a href="#performance">Performance</a></li>
         <ul>
-          <li><a href="#instances">Instances</a></li>
-          <li><a href="#merged">Merged</a></li>
-          <li><a href="#points">Points</a></li>
-          <li><a href="#segments">Segments</a></li>
-          <li><a href="#detailed">Detailed</a></li>
-          <li><a href="#preload">Preload</a></li>
-          <li><a href="#bakeshadows">BakeShadows</a></li>
-          <li><a href="#meshbounds">meshBounds</a></li>
-          <li><a href="#adaptivedpr">AdaptiveDpr</a></li>
-          <li><a href="#adaptiveevents">AdaptiveEvents</a></li>
-          <li><a href="#bvh">Bvh</a></li>
-          <li><a href="#performancemonitor">PerformanceMonitor</a></li>          
+          <li>- [ ] <a href="#instances">Instances</a></li>
+          <li>- [ ] <a href="#merged">Merged</a></li>
+          <li>- [x] <a href="#points">Points</a></li>
+          <li>- [x] <a href="#segments">Segments</a></li>
+          <li>- [x] <a href="#detailed">Detailed</a></li>
+          <li>- [ ] <a href="#preload">Preload</a></li>
+          <li>- [ ] <a href="#bakeshadows">BakeShadows</a></li>
+          <li>- [ ] <a href="#meshbounds">meshBounds</a></li>
+          <li>- [x] <a href="#adaptivedpr">AdaptiveDpr</a></li>
+          <li>- [ ] <a href="#adaptiveevents">AdaptiveEvents</a></li>
+          <li>- [ ] <a href="#bvh">Bvh</a></li>
+          <li>- [ ] <a href="#performancemonitor">PerformanceMonitor</a></li>          
         </ul>
         <li><a href="#portals">Portals</a></li>        
         <ul>
-          <li><a href="#hud">Hud</a></li>
-          <li><a href="#view">View</a></li>
-          <li><a href="#rendertexture">RenderTexture</a></li>
-          <li><a href="#mask">Mask</a></li>
-          <li><a href="#meshportalmaterial">MeshPortalMaterial</a></li>
+          <li>- [x] <a href="#hud">Hud</a></li>
+          <li>- [ ] <a href="#view">View</a></li>
+          <li>- [x] <a href="#rendertexture">RenderTexture</a></li>
+          <li>- [ ] <a href="#mask">Mask</a></li>
+          <li>- [ ] <a href="#meshportalmaterial">MeshPortalMaterial</a></li>
         </ul>
         <li><a href="#modifiers">Modifiers</a></li>
         <ul>
-          <li><a href="#curvemodifier">CurveModifier</a></li>
+          <li>- [x] <a href="#curvemodifier">CurveModifier</a></li>
         </ul>
       </ul>
     </td>
@@ -170,58 +169,58 @@ The `native` route of the library **does not** export `Html` or `Loader`. The de
       <ul>
         <li><a href="#shapes">Shapes</a></li>
         <ul>
-          <li><a href="#shapes">Plane</a></li>
-          <li><a href="#shapes">Box</a></li>
-          <li><a href="#shapes">Sphere</a></li>
-          <li><a href="#shapes">Circle</a></li>
-          <li><a href="#shapes">Cone</a></li>
-          <li><a href="#shapes">Cylinder</a></li>
-          <li><a href="#shapes">Tube</a></li>
-          <li><a href="#shapes">Torus</a></li>
-          <li><a href="#shapes">TorusKnot</a></li>
-          <li><a href="#shapes">Ring</a></li>
-          <li><a href="#shapes">Tetrahedron</a></li>
-          <li><a href="#shapes">Polyhedron</a></li>
-          <li><a href="#shapes">Icosahedron</a></li>
-          <li><a href="#shapes">Octahedron</a></li>
-          <li><a href="#shapes">Dodecahedron</a></li>
-          <li><a href="#shapes">Extrude</a></li>
-          <li><a href="#shapes">Lathe</a></li>
-          <li><a href="#shapes">Shape</a></li>
-          <li><a href="#roundedbox">RoundedBox</a></li>
-          <li><a href="#screenquad">Screenquad</a></li>
-          <li><a href="#line">Line</a></li>
-          <li><a href="#quadraticbezierline">QuadraticBezierLine</a></li>
-          <li><a href="#cubicbezierline">CubicBezierLine</a></li>
-          <li><a href="#catmullromline">CatmullRomLine</a></li>
-          <li><a href="#facemesh">Facemesh</a></li>
+          <li>- [x] <a href="#shapes">Plane</a></li>
+          <li>- [x] <a href="#shapes">Box</a></li>
+          <li>- [x] <a href="#shapes">Sphere</a></li>
+          <li>- [x] <a href="#shapes">Circle</a></li>
+          <li>- [x] <a href="#shapes">Cone</a></li>
+          <li>- [x] <a href="#shapes">Cylinder</a></li>
+          <li>- [x] <a href="#shapes">Tube</a></li>
+          <li>- [x] <a href="#shapes">Torus</a></li>
+          <li>- [x] <a href="#shapes">TorusKnot</a></li>
+          <li>- [x] <a href="#shapes">Ring</a></li>
+          <li>- [x] <a href="#shapes">Tetrahedron</a></li>
+          <li>- [x] <a href="#shapes">Polyhedron</a></li>
+          <li>- [x] <a href="#shapes">Icosahedron</a></li>
+          <li>- [x] <a href="#shapes">Octahedron</a></li>
+          <li>- [x] <a href="#shapes">Dodecahedron</a></li>
+          <li>- [x] <a href="#shapes">Extrude</a></li>
+          <li>- [x] <a href="#shapes">Lathe</a></li>
+          <li>- [x] <a href="#shapes">Shape</a></li>
+          <li>- [x] <a href="#roundedbox">RoundedBox</a></li>
+          <li>- [x] <a href="#screenquad">Screenquad</a></li>
+          <li>- [x] <a href="#line">Line</a></li>
+          <li>- [x] <a href="#quadraticbezierline">QuadraticBezierLine</a></li>
+          <li>- [x] <a href="#cubicbezierline">CubicBezierLine</a></li>
+          <li>- [x] <a href="#catmullromline">CatmullRomLine</a></li>
+          <li>- [x] <a href="#facemesh">Facemesh</a></li>
         </ul>
         <li><a href="#staging">Staging</a></li>
         <ul>
-          <li><a href="#center">Center</a></li>
-          <li><a href="#resize">Resize</a></li>
-          <li><a href="#BBAnchor">BBAnchor</a></li>        
-          <li><a href="#bounds">Bounds</a></li>
-          <li><a href="#camerashake">CameraShake</a></li>
-          <li><a href="#float">Float</a></li>
-          <li><a href="#stage">Stage</a></li>
-          <li><a href="#backdrop">Backdrop</a></li>
-          <li><a href="#environment">Environment</a></li>
-          <li><a href="#lightformer">Lightformer</a></li>
-          <li><a href="#spotlight">SpotLight</a></li>
-          <li><a href="#spotlightshadows">SpotLightShadows</a></li>
-          <li><a href="#shadow">Shadow</a></li>
-          <li><a href="#caustics">Caustics</a></li>
-          <li><a href="#contactshadows">ContactShadows</a></li>
-          <li><a href="#randomizedlight">RandomizedLight</a></li>
-          <li><a href="#accumulativeshadows">AccumulativeShadows</a></li>
-          <li><a href="#sky">Sky</a></li>
-          <li><a href="#stars">Stars</a></li>
-          <li><a href="#sparkles">Sparkles</a></li>
-          <li><a href="#cloud">Cloud</a></li>
-          <li><a href="#useenvironment">useEnvironment</a></li>
-          <li><a href="#usematcaptexture">useMatcapTexture</a></li>
-          <li><a href="#usenormaltexture">useNormalTexture</a></li>
+          <li>- [x] <a href="#center">Center</a></li>
+          <li>- [x] <a href="#resize">Resize</a></li>
+          <li>- [x] <a href="#BBAnchor">BBAnchor</a></li>        
+          <li>- [x] <a href="#bounds">Bounds</a></li>
+          <li>- [x] <a href="#camerashake">CameraShake</a></li>
+          <li>- [x] <a href="#float">Float</a></li>
+          <li>- [x] <a href="#stage">Stage</a></li>
+          <li>- [ ] <a href="#backdrop">Backdrop</a></li>
+          <li>- [x] <a href="#environment">Environment</a></li>
+          <li>- [ ] <a href="#lightformer">Lightformer</a></li>
+          <li>- [x] <a href="#spotlight">SpotLight</a></li>
+          <li>- [x] <a href="#spotlightshadows">SpotLightShadows</a></li>
+          <li>- [x] <a href="#shadow">Shadow</a></li>
+          <li>- [ ] <a href="#caustics">Caustics</a></li>
+          <li>- [ ] <a href="#contactshadows">ContactShadows</a></li>
+          <li>- [ ] <a href="#randomizedlight">RandomizedLight</a></li>
+          <li>- [ ] <a href="#accumulativeshadows">AccumulativeShadows</a></li>
+          <li>- [x] <a href="#sky">Sky</a></li>
+          <li>- [x] <a href="#stars">Stars</a></li>
+          <li>- [x] <a href="#sparkles">Sparkles</a></li>
+          <li>- [x] <a href="#cloud">Cloud</a></li>
+          <li>- [x] <a href="#useenvironment">useEnvironment</a></li>
+          <li>- [x] <a href="#usematcaptexture">useMatcapTexture</a></li>
+          <li>- [x] <a href="#usenormaltexture">useNormalTexture</a></li>
         </ul>
       </ul>
     </td>
@@ -241,7 +240,7 @@ type Props = Omit<JSX.IntrinsicElements['perspectiveCamera'], 'children'> & {
   /** Making it manual will stop responsiveness and you have to calculate aspect ratio yourself. */
   manual?: boolean
   /** The contents will either follow the camera, or be hidden when filming if you pass a function */
-  children?: React.ReactNode | ((texture: THREE.Texture) => React.ReactNode)
+  children?: JSX.Element | ((texture: THREE.Texture) => JSX.Element)
   /** Number of frames to render, 0 */
   frames?: number
   /** Resolution of the FBO, 256 */
@@ -255,14 +254,14 @@ A responsive [THREE.PerspectiveCamera](https://threejs.org/docs/#api/en/cameras/
 
 ```jsx
 <PerspectiveCamera makeDefault {...props} />
-<mesh />
+<T.Mesh />
 ```
 
 You can also give it children, which will now occupy the same position as the camera and follow along as it moves.
 
 ```jsx
 <PerspectiveCamera makeDefault {...props}>
-  <mesh />
+  <T.Mesh />
 </PerspectiveCamera>
 ```
 
@@ -277,9 +276,9 @@ You can use the PerspectiveCamera to film contents into a RenderTarget, similar 
 ```jsx
 <PerspectiveCamera position={[0, 0, 10]}>
   {(texture) => (
-    <mesh geometry={plane}>
-      <meshBasicMaterial map={texture} />
-    </mesh>
+    <T.Mesh geometry={plane}>
+      <T.MeshBasicMaterial map={texture} />
+    </T.Mesh>
   )}
 </PerspectiveCamera>
 ```
@@ -292,7 +291,7 @@ A responsive [THREE.OrthographicCamera](https://threejs.org/docs/#api/en/cameras
 
 ```jsx
 <OrthographicCamera makeDefault {...props}>
-  <mesh />
+  <T.Mesh />
 </OrthographicCamera>
 ```
 
@@ -301,9 +300,9 @@ You can use the OrthographicCamera to film contents into a RenderTarget, it has 
 ```jsx
 <OrthographicCamera position={[0, 0, 10]}>
   {(texture) => (
-    <mesh geometry={plane}>
-      <meshBasicMaterial map={texture} />
-    </mesh>
+    <T.Mesh geometry={plane}>
+      <T.MeshBasicMaterial map={texture} />
+    </T.Mesh>
   )}
 </OrthographicCamera>
 ```
@@ -329,7 +328,7 @@ type Props = JSX.IntrinsicElements['group'] & {
   /** Custom fog that is temporarily set as the scenes fog */
   fog?: Fog | FogExp2
   /** The contents of CubeCamera will be hidden when filming the cube */
-  children: (tex: Texture) => React.ReactNode
+  children: (tex: Texture) => JSX.Element
 }
 ```
 
@@ -340,10 +339,10 @@ If you have moving objects, unset the prop and use a smaller `resolution` instea
 ```jsx
 <CubeCamera>
   {(texture) => (
-    <mesh>
-      <sphereGeometry />
-      <meshStandardMaterial envMap={texture} />
-    </mesh>
+    <T.Mesh>
+      <T.SphereGeometry />
+      <T.MeshStandardMaterial envMap={texture} />
+    </T.Mesh>
   )}
 </CubeCamera>
 ```
@@ -352,7 +351,7 @@ If you have moving objects, unset the prop and use a smaller `resolution` instea
 
 If available controls have damping enabled by default, they manage their own updates, remove themselves on unmount, are compatible with the `frameloop="demand"` canvas-flag. They inherit all props from their underlying [THREE controls](https://github.com/mrdoob/three.js/tree/master/examples/jsm/controls). They are the first effects to run before all other useFrames, to ensure that other components may mutate the camera on top of them.
 
-[Some controls](https://github.com/search?q=repo%3Apmndrs%2Fdrei+language%3ATSX+path%3A%2F%5Esrc%5C%2Fcore%5C%2F.*Controls%5C.tsx%2F+makeDefault&type=code) allow you to set `makeDefault`, similar to, for instance, `PerspectiveCamera`. This will set [@react-three/fiber](https://docs.pmnd.rs/react-three-fiber/api/hooks#usethree)'s `controls` field in the root store. This can make it easier in situations where you want controls to be known and other parts of the app could respond to it. Some drei controls already take it into account, like `CameraShake`, `Gizmo` and `TransformControls`.
+[Some controls](https://github.com/search?q=repo%3Apmndrs%2Fdrei+language%3ATSX+path%3A%2F%5Esrc%5C%2Fcore%5C%2F.*Controls%5C.tsx%2F+makeDefault&type=code) allow you to set `makeDefault`, similar to, for instance, `PerspectiveCamera`. This will set [@solid-three/fiber](https://docs.pmnd.rs/solid-three-fiber/api/hooks#usethree)'s `controls` field in the root store. This can make it easier in situations where you want controls to be known and other parts of the app could respond to it. Some drei controls already take it into account, like `CameraShake`, `Gizmo` and `TransformControls`.
 
 ```tsx
 <CameraControls makeDefault />
@@ -429,7 +428,7 @@ type ScrollControlsProps = {
   maxSpeed?: number
   enabled?: boolean
   style?: React.CSSProperties
-  children: React.ReactNode
+  children: JSX.Element
 }
 ```
 
@@ -437,8 +436,9 @@ Scroll controls create a HTML scroll container in front of the canvas. Everythin
 
 You can listen and react to scroll with the `useScroll` hook which gives you useful data like the current scroll `offset`, `delta` and functions for range finding: `range`, `curve` and `visible`. The latter functions are especially useful if you want to react to the scroll offset, for instance if you wanted to fade things in and out if they are in or out of view.
 
+<!-- prettier-ignore -->
 ```jsx
-;<ScrollControls pages={3} damping={0.1}>
+<ScrollControls pages={3} damping={0.1}>
   {/* Canvas contents in here will *not* scroll, but receive useScroll! */}
   <SomeModel />
   <Scroll>
@@ -456,7 +456,7 @@ You can listen and react to scroll with the `useScroll` hook which gives you use
 </ScrollControls>
 
 function Foo(props) {
-  const ref = useRef()
+  let ref
   const data = useScroll()
   useFrame(() => {
     // data.offset = current scroll position, between 0 and 1, dampened
@@ -479,7 +479,7 @@ function Foo(props) {
     // The visible function can also receive a margin
     const g = data.visible(2 / 3, 1 / 3, 0.1)
   })
-  return <mesh ref={ref} {...props} />
+  return <T.Mesh ref={ref} {...props} />
 }
 ```
 
@@ -508,7 +508,7 @@ Semi-OrbitControls with spring-physics, polar zoom and snap-back, for presentati
   config={{ mass: 1, tension: 170, friction: 26 }} // Spring config
   domElement={events.connected} // The DOM element events for this controller will attach to
 >
-  <mesh />
+  <T.Mesh />
 </PresentationControls>
 ```
 
@@ -538,7 +538,7 @@ type KeyboardControlsProps = {
   /** A map of named keys */
   map: KeyboardControlsEntry[]
   /** All children will be able to useKeyboardControls */
-  children: React.ReactNode
+  children: JSX.Element
   /** Optional onchange event */
   onChange: (name: string, pressed: boolean, state: KeyboardControlsState) => void
   /** Optional event source */
@@ -557,44 +557,44 @@ enum Controls {
   jump = 'jump',
 }
 function App() {
-  const map = useMemo<KeyboardControlsEntry<Controls>[]>(()=>[
+  const map = createMemo<KeyboardControlsEntry<Controls>[]>(()=>[
     { name: Controls.forward, keys: ['ArrowUp', 'KeyW'] },
     { name: Controls.back, keys: ['ArrowDown', 'KeyS'] },
     { name: Controls.left, keys: ['ArrowLeft', 'KeyA'] },
     { name: Controls.right, keys: ['ArrowRight', 'KeyD'] },
     { name: Controls.jump, keys: ['Space'] },
-  ], [])
+  ])
   return (
-    <KeyboardControls map={map}>
+    <KeyboardControls map={map()}>
       <App />
     </KeyboardControls>
 ```
 
-You can either respond to input reactively, it uses zustand (with the `subscribeWithSelector` middleware) so all the rules apply:
+You can either respond to input reactively, it uses a solid-store internally, with an optional selector.
 
 ```tsx
 function Foo() {
   const forwardPressed = useKeyboardControls<Controls>(state => state.forward)
+
+  createEffect(() => console.log('forward', forwardPressed()))
 ```
 
-Or transiently, either by `subscribe`, which is a function which returns a function to unsubscribe, so you can pair it with useEffect for cleanup, or `get`, which fetches fresh state non-reactively.
+Or transiently, either by `subscribe`, which is a function which returns a function to unsubscribe, so you can pair it with createEffect for cleanup, or `get`, which fetches fresh state non-reactively.
 
 ```tsx
 function Foo() {
-  const [sub, get] = useKeyboardControls<Controls>()
+  const keyboard = useKeyboardControls<Controls>()
 
-  useEffect(() => {
-    return sub(
-      (state) => state.forward,
-      (pressed) => {
-        console.log('forward', pressed)
-      }
-    )
-  }, [])
+  createEffect(on(
+    () => keyboard.forward,
+    (pressed) => {
+      console.log('forward', pressed)
+    }
+  )
 
   useFrame(() => {
     // Fetch fresh data from store
-    const pressed = get().back
+    const pressed = keyboard.back
   })
 }
 ```
@@ -694,16 +694,13 @@ By default, `detect` is called on each `"videoFrame"`. You can disable this by `
 For example:
 
 ```jsx
-const controls = useThree((state) => state.controls)
+const store = useThree()
 
-const onVideoFrame = useCallback((event) => {
-  controls.detect(event.texture.source.data, event.time)
-}, [controls])
+const onVideoFrame = (event) => {
+  store.controls.detect(event.texture.source.data, event.time)
+}
 
-<FaceControls makeDefault
-  manualDetect
-  onVideoFrame={onVideoFrame}
-/>
+;<FaceControls makeDefault manualDetect onVideoFrame={onVideoFrame} />
 ```
 
 ##### FaceControls[manualUpdate]
@@ -711,10 +708,10 @@ const onVideoFrame = useCallback((event) => {
 By default, `update` method is called each rAF `useFrame`. You can disable this by `manualUpdate` and call it yourself:
 
 ```jsx
-const controls = useThree((state) => state.controls)
+const store = useThree()
 
 useFrame((_, delta) => {
-  controls.update(delta) // 60 or 120 FPS with default damping
+  store.controls.update(delta) // 60 or 120 FPS with default damping
 })
 
 <FaceControls makeDefault manualUpdate />
@@ -723,7 +720,7 @@ useFrame((_, delta) => {
 Or, if you want your own custom damping, use `computeTarget` method and update the camera pos/rot yourself with:
 
 ```jsx
-const [current] = useState(() => new THREE.Object3D())
+const current = new THREE.Object3D()
 
 useFrame((_, delta) => {
   const target = controls?.computeTarget()
@@ -823,13 +820,13 @@ type PivotControlsProps = {
   opacity?: number
   visible?: boolean
   userData?: { [key: string]: any }
-  children?: React.ReactNode
+  children?: JSX.Element
 }
 ```
 
 ```jsx
 <PivotControls>
-  <mesh />
+  <T.Mesh />
 </PivotControls>
 ```
 
@@ -859,7 +856,7 @@ You can wrap objects which then receive a transform gizmo.
 
 ```jsx
 <TransformControls mode="translate">
-  <mesh />
+  <T.Mesh />
 </TransformControls>
 ```
 
@@ -867,7 +864,7 @@ You could also reference the object which might make it easier to exchange the t
 
 ```jsx
 <TransformControls object={mesh} mode="translate" />
-<mesh ref={mesh} />
+<T.Mesh ref={mesh} />
 ```
 
 If you are using other controls (Orbit, Trackball, etc), you will notice how they interfere, dragging one will affect the other. Default-controls will temporarily be disabled automatically when the user is pulling on the transform gizmo.
@@ -928,11 +925,13 @@ export type GridProps = GridMaterialType & {
 A hook for a quick way to add helpers to existing nodes in the scene. It handles removal of the helper on unmount and auto-updates it by default.
 
 ```jsx
-const mesh = useRef()
-useHelper(mesh, BoxHelper, 'cyan')
-useHelper(condition && mesh, BoxHelper, 'red') // you can pass false instead of the object ref to hide the helper
+let mesh
+onMount(() => {
+  useHelper(mesh, BoxHelper, 'cyan')
+  useHelper(condition && mesh, BoxHelper, 'red') // you can pass false instead of the object ref to hide the helper
+})
 
-<mesh ref={mesh} ... />
+<T.Mesh ref={mesh} ... />
 ```
 
 # Shapes
@@ -955,7 +954,7 @@ Short-cuts for a [mesh](https://threejs.org/docs/#api/en/objects/Mesh) with a [b
 
 // Sphere with a MeshStandardMaterial
 <Sphere>
-  <meshStandardMaterial color="hotpink" />
+  <T.MeshStandardMaterial color="hotpink" />
 </Sphere>
 ```
 
@@ -971,7 +970,7 @@ A box buffer geometry with rounded corners, done with extrusion.
   creaseAngle={0.4} // Smooth normals everywhere except faces that meet at an angle greater than the crease angle
   {...meshProps} // All THREE.Mesh props are valid
 >
-  <meshPhongMaterial color="#f3f3f3" wireframe />
+  <T.MeshPhongMaterial color="#f3f3f3" wireframe />
 </RoundedBox>
 ```
 
@@ -1033,14 +1032,14 @@ Renders a THREE.Line2 using THREE.QuadraticBezierCurve3 for interpolation.
 You can also update the line runtime.
 
 ```jsx
-const ref = useRef()
+let ref
 useFrame((state) => {
   ref.current.setPoints(
     [0, 0, 0],
     [10, 0, 0],
     // [5, 0, 0] // Optional: mid-point
   )
-}, [])
+})
 return <QuadraticBezierLine ref={ref} />
 }
 ```
@@ -1133,13 +1132,13 @@ export type FacemeshProps = {
   /** a landmark index (to get the position from) or a vec3 to be the origin of the mesh. default: undefined (ie. the bbox center) */
   origin?: number | THREE.Vector3
   /** A facial transformation matrix, as returned by FaceLandmarkerResult.facialTransformationMatrixes (see: https://developers.google.com/mediapipe/solutions/vision/face_landmarker/web_js#handle_and_display_results) */
-  facialTransformationMatrix?: typeof FacemeshDatas.SAMPLE_FACELANDMARKER_RESULT.facialTransformationMatrixes[0]
+  facialTransformationMatrix?: (typeof FacemeshDatas.SAMPLE_FACELANDMARKER_RESULT.facialTransformationMatrixes)[0]
   /** Apply position offset extracted from `facialTransformationMatrix` */
   offset?: boolean
   /** Offset sensitivity factor, less is more sensible */
   offsetScalar?: number
   /** Fface blendshapes, as returned by FaceLandmarkerResult.faceBlendshapes (see: https://developers.google.com/mediapipe/solutions/vision/face_landmarker/web_js#handle_and_display_results) */
-  faceBlendshapes?: typeof FacemeshDatas.SAMPLE_FACELANDMARKER_RESULT.faceBlendshapes[0]
+  faceBlendshapes?: (typeof FacemeshDatas.SAMPLE_FACELANDMARKER_RESULT.faceBlendshapes)[0]
   /** whether to enable eyes (nb. `faceBlendshapes` is required for), default: true */
   eyes?: boolean
   /** Force `origin` to be the middle of the 2 eyes (nb. `eyes` is required for), default: false */
@@ -1152,9 +1151,8 @@ export type FacemeshProps = {
 Ref-api:
 
 ```tsx
-const api = useRef<FacemeshApi>()
-
-<Facemesh ref={api} points={points} />
+let api: FacemeshApi
+;<Facemesh ref={api} points={points} />
 ```
 
 ```tsx
@@ -1193,11 +1191,11 @@ A shader-based image component with auto-cover (similar to css/background: cover
 
 ```jsx
 function Foo() {
-  const ref = useRef()
+  let ref
   useFrame(() => {
-    ref.current.material.zoom = ... // 1 and higher
-    ref.current.material.grayscale = ... // between 0 and 1
-    ref.current.material.color.set(...) // mix-in color
+    ref.material.zoom = ... // 1 and higher
+    ref.material.grayscale = ... // between 0 and 1
+    ref.material.color.set(...) // mix-in color
   })
   return <Image ref={ref} url="/file.jpg" />
 }
@@ -1248,7 +1246,7 @@ Text3D will suspend while loading the font data. Text3D requires fonts in JSON f
 ```jsx
 <Text3D font={fontUrl} {...textOptions}>
   Hello world!
-  <meshNormalMaterial />
+  <T.MeshNormalMaterial />
 </Text3D>
 ```
 
@@ -1343,25 +1341,26 @@ Adds a `<group />` that aligns objects to screen space.
 A declarative THREE.Texture which attaches to "map" by default. You can use this to create gradient backgrounds.
 
 ```jsx
-<mesh>
-  <planeGeometry />
-  <meshBasicMaterial>
+<T.Mesh>
+  <T.PlaneGeometry />
+  <T.MeshBasicMaterial>
     <GradientTexture
       stops={[0, 1]} // As many stops as you want
       colors={['aquamarine', 'hotpink']} // Colors need to match the number of stops
       size={1024} // Size is optional, default = 1024
     />
-  </meshBasicMaterial>
-</mesh>
+  </T.MeshBasicMaterial>
+</T.Mesh>
 ```
 
 Radial gradient.
 
+<!-- prettier-ignore -->
 ```jsx
 import { GradientTexture, GradientType } from './GradientTexture'
-;<mesh>
-  <planeGeometry />
-  <meshBasicMaterial>
+<T.Mesh>
+  <T.PlaneGeometry />
+  <T.MeshBasicMaterial>
     <GradientTexture
       stops={[0, 0.5, 1]} // As many stops as you want
       colors={['aquamarine', 'hotpink', 'yellow']} // Colors need to match the number of stops
@@ -1371,8 +1370,8 @@ import { GradientTexture, GradientType } from './GradientTexture'
       innerCircleRadius={0} // Optional, the radius of the inner circle of the gradient, default = 0
       outerCircleRadius={'auto'} // Optional, the radius of the outer circle of the gradient, default = auto
     />
-  </meshBasicMaterial>
-</mesh>
+  </T.MeshBasicMaterial>
+</T.Mesh>
 ```
 
 #### Edges
@@ -1384,15 +1383,15 @@ import { GradientTexture, GradientType } from './GradientTexture'
 Abstracts [THREE.EdgesGeometry](https://threejs.org/docs/#api/en/geometries/EdgesGeometry). It pulls the geometry automatically from its parent, optionally you can ungroup it and give it a `geometry` prop. You can give it children, for instance a custom material.
 
 ```jsx
-<mesh>
-  <boxGeometry />
-  <meshBasicMaterial />
+<T.Mesh>
+  <T.BoxGeometry />
+  <T.MeshBasicMaterial />
   <Edges
     scale={1.1}
     threshold={15} // Display edges only when the angle between two faces exceeds this value (default=15 degrees)
     color="white"
   />
-</mesh>
+</T.Mesh>
 ```
 
 #### Trail
@@ -1416,13 +1415,13 @@ Props defined below with their default values.
   attenuation={(width) => width} // A function to define the width in each point along it.
 >
   {/* If `target` is not defined, Trail will use the first `Object3D` child as the target. */}
-  <mesh>
-    <sphereGeometry />
-    <meshBasicMaterial />
-  </mesh>
+  <T.Mesh>
+    <T.SphereGeometry />
+    <T.MeshBasicMaterial />
+  </T.Mesh>
 
   {/* You can optionally define a custom meshLineMaterial to use. */}
-  {/* <meshLineMaterial color={"red"} /> */}
+  {/* <T.MeshLineMaterial color={"red"} /> */}
 </Trail>
 ```
 
@@ -1454,27 +1453,27 @@ You can either pass a Mesh and InstancedMesh as children:
   transform={transformPoint} // a function that transforms each instance given a sample. See the examples for more.
   count={16} // Number of samples
 >
-  <mesh>
-    <sphereGeometry args={[2]} />
-  </mesh>
+  <T.Mesh>
+    <T.SphereGeometry args={[2]} />
+  </T.Mesh>
 
-  <instancedMesh args={[null, null, 1_000]}>
-    <sphereGeometry args={[0.1]} />
-  </instancedMesh>
+  <T.InstancedMesh args={[null, null, 1_000]}>
+    <T.SphereGeometry args={[0.1]} />
+  </T.InstancedMesh>
 </Sampler>
 ```
 
 or use refs when you can't compose declaratively:
 
 ```tsx
-const { nodes } = useGLTF('my/mesh/url')
-const mesh = useRef(nodes)
-const instances = useRef()
+const gltf = useGLTF('my/mesh/url')
+const mesh = () => gltf()?.nodes
+let instances;
 
 return <>
-  <instancedMesh args={[null, null, 1_000]}>
-    <sphereGeometry args={[0.1]}>
-  </instancedMesh>
+  <T.InstancedMesh args={[null, null, 1_000]}>
+    <T.SphereGeometry args={[0.1]}>
+  </T.InstancedMesh>
 
   <Sampler mesh={mesh} instances={instances}>
 </>
@@ -1487,7 +1486,7 @@ return <>
 Create and attach an attribute declaratively.
 
 ```tsx
-<sphereGeometry>
+<T.SphereGeometry>
   <ComputedAttribute
     // attribute will be added to the geometry with this name
     name="my-attribute-name"
@@ -1498,7 +1497,7 @@ Create and attach an attribute declaratively.
     // you can pass any BufferAttribute prop to this component, eg.
     usage={THREE.StaticReadUsage}
   />
-</sphereGeometry>
+</T.SphereGeometry>
 ```
 
 #### Clone
@@ -1514,13 +1513,13 @@ Declarative abstraction around THREE.Object3D.clone. This is useful when you wan
   /** Any pre-existing THREE.Object3D (groups, meshes, ...), or an array of objects */
   object: THREE.Object3D | THREE.Object3D[]
   /** Children will be placed within the object, or within the group that holds arrayed objects */
-  children?: React.ReactNode
+  children?: JSX.Element
   /** Can clone materials and/or geometries deeply (default: false) */
   deep?: boolean | 'materialsOnly' | 'geometriesOnly'
   /** The property keys it will shallow-clone (material, geometry, visible, ...) */
   keys?: string[]
   /** Can either spread over props or fill in JSX children, applies to every mesh within */
-  inject?: MeshProps | React.ReactNode | ((object: THREE.Object3D) => React.ReactNode)
+  inject?: MeshProps | JSX.Element | ((object: THREE.Object3D) => JSX.Element)
   /** Short access castShadow, applied to every mesh within */
   castShadow?: boolean
   /** Short access receiveShadow, applied to every mesh within */
@@ -1531,28 +1530,28 @@ Declarative abstraction around THREE.Object3D.clone. This is useful when you wan
 You create a shallow clone by passing a pre-existing object to the `object` prop.
 
 ```jsx
-const { nodes } = useGLTF(url)
+const gltf = useGLTF(url)
 return (
-  <Clone object={nodes.table} />
+  <Clone object={gltf()?.nodes.table} />
 ```
 
 Or, multiple objects:
 
 ```jsx
-<Clone object={[nodes.foo, nodes.bar]} />
+<Clone object={[gltf()?.nodes.foo, gltf()?.nodes.bar]} />
 ```
 
 You can dynamically insert objects, these will apply to anything that isn't a group or a plain object3d (meshes, lines, etc):
 
 ```jsx
-<Clone object={nodes.table} inject={<meshStandardMaterial color="green" />} />
+<Clone object={nodes.table} inject={<T.MeshStandardMaterial color="green" />} />
 ```
 
 Or make inserts conditional:
 
 ```jsx
 <Clone object={nodes.table} inject={
-  {(object) => (object.name === 'table' ? <meshStandardMaterial color="green" /> : null)}
+  {(object) => (object.name === 'table' ? <T.MeshStandardMaterial color="green" /> : null)}
 } />
 ```
 
@@ -1567,21 +1566,24 @@ Or make inserts conditional:
 A hook that abstracts [AnimationMixer](https://threejs.org/docs/#api/en/animation/AnimationMixer).
 
 ```jsx
-const { nodes, materials, animations } = useGLTF(url)
-const { ref, mixer, names, actions, clips } = useAnimations(animations)
-useEffect(() => {
-  actions?.jump.play()
+const gltf = useGLTF(url)
+const animations = useAnimations(() => gltf()?.animations)
+createEffect(() => {
+  animations.actions?.jump.play()
 })
 return (
-  <mesh ref={ref} />
+  <T.Mesh ref={animations.ref} />
 ```
 
 The hook can also take a pre-existing root (which can be a plain object3d or a reference to one):
 
 ```jsx
-const { scene, animations } = useGLTF(url)
-const { actions } = useAnimations(animations, scene)
-return <primitive object={scene} />
+const gltf = useGLTF(url)
+const animations = useAnimations(
+  () => gltf()?.animations,
+  () => gltf()?.scene
+)
+return <T.Primitive object={gltf()?.scene} />
 ```
 
 #### MarchingCubes
@@ -1611,9 +1613,9 @@ Abstraction around Three's `DecalGeometry`. It will use the its parent `mesh` as
 The decal box has to intersect the surface, otherwise it will not be visible. if you do not specifiy a rotation it will look at the parents center point. You can also pass a single number as the rotation which allows you to spin it.
 
 ```js
-<mesh>
-  <sphereGeometry />
-  <meshBasicMaterial />
+<T.Mesh>
+  <T.SphereGeometry />
+  <T.MeshBasicMaterial />
   <Decal
     debug // Makes "bounding box" of the decal visible
     position={[0, 0, 0]} // Position of the decal
@@ -1622,26 +1624,26 @@ The decal box has to intersect the surface, otherwise it will not be visible. if
     polygonOffset
     polygonOffsetFactor={-1} // The mesh should take precedence over the original
   >
-    <meshBasicMaterial map={texture} />
+    <T.MeshBasicMaterial map={texture} />
   </Decal>
-</mesh>
+</T.Mesh>
 ```
 
 If you do not specify a material it will create a transparent meshBasicMaterial with a polygonOffsetFactor of -10.
 
 ```jsx
-<mesh>
-  <sphereGeometry />
-  <meshBasicMaterial />
+<T.Mesh>
+  <T.SphereGeometry />
+  <T.MeshBasicMaterial />
   <Decal map={texture} />
-</mesh>
+</T.Mesh>
 ```
 
 If declarative composition is not possible, use the `mesh` prop to define the surface the decal must attach to.
 
 ```js
 <Decal mesh={ref}>
-  <meshBasicMaterial map={texture} polygonOffset polygonOffsetFactor={-1} />
+  <T.MeshBasicMaterial map={texture} polygonOffset polygonOffsetFactor={-1} />
 </Decal>
 ```
 
@@ -1711,8 +1713,8 @@ type AsciiRendererProps = {
 Easily add reflections and/or blur to any mesh. It takes surface roughness into account for a more realistic effect. This material extends from [THREE.MeshStandardMaterial](https://threejs.org/docs/#api/en/materials/MeshStandardMaterial) and accepts all its props.
 
 ```jsx
-<mesh>
-  <planeGeometry />
+<T.Mesh>
+  <T.PlaneGeometry />
   <MeshReflectorMaterial
     blur={[0, 0]} // Blur ground reflections (width, height), 0 skips blur
     mixBlur={0} // How much blur mixes with surface roughness (default = 1)
@@ -1735,7 +1737,7 @@ Easily add reflections and/or blur to any mesh. It takes surface roughness into 
     */
     reflectorOffset={0.2} // Offsets the virtual camera that projects the reflection. Useful when the reflective surface is some distance from the object's origin (default = 0)
   />
-</mesh>
+</T.Mesh>
 ```
 
 #### MeshWobbleMaterial
@@ -1745,10 +1747,10 @@ Easily add reflections and/or blur to any mesh. It takes surface roughness into 
 This material makes your geometry wobble and wave around. It was taken from the [threejs-examples](https://threejs.org/examples/#webgl_materials_modified) and adapted into a self-contained material.
 
 ```jsx
-<mesh>
-  <boxGeometry />
+<T.Mesh>
+  <T.BoxGeometry />
   <MeshWobbleMaterial factor={1} speed={10} />
-</mesh>
+</T.Mesh>
 ```
 
 #### MeshDistortMaterial
@@ -1762,10 +1764,10 @@ This material makes your geometry wobble and wave around. It was taken from the 
 This material makes your geometry distort following simplex noise.
 
 ```jsx
-<mesh>
-  <boxGeometry />
+<T.Mesh>
+  <T.BoxGeometry />
   <MeshDistortMaterial distort={1} speed={10} />
-</mesh>
+</T.Mesh>
 ```
 
 #### MeshRefractionMaterial
@@ -1789,7 +1791,7 @@ type MeshRefractionMaterialProps = JSX.IntrinsicElements['shaderMaterial'] & {
   /** RGB shift intensity, can be expensive, 0 */
   aberrationStrength?: number
   /** Color, white */
-  color?: ReactThreeFiber.Color
+  color?: SolidThreeFiber.Color
   /** If this is on it uses fewer ray casts for the RGB shift sacrificing physical accuracy, true */
   fastChroma?: boolean
 }
@@ -1800,9 +1802,9 @@ If you want it to reflect other objects in the scene you best pair it with a cub
 ```jsx
 <CubeCamera>
   {(texture) => (
-    <mesh geometry={diamondGeometry} {...props}>
+    <T.Mesh geometry={diamondGeometry} {...props}>
       <MeshRefractionMaterial envMap={texture} />
-    </mesh>
+    </T.Mesh>
   )}
 </CubeCamera>
 ```
@@ -1812,8 +1814,8 @@ Otherwise just pass it an environment map.
 ```jsx
 const texture = useLoader(RGBELoader, "/textures/royal_esplanade_1k.hdr")
 return (
-  <mesh geometry={diamondGeometry} {...props}>
-    <MeshRefractionMaterial envMap={texture} />
+  <T.Mesh geometry={diamondGeometry} {...props}>
+    <MeshRefractionMaterial envMap={texture()} />
 ```
 
 #### MeshTransmissionMaterial
@@ -1871,19 +1873,19 @@ type MeshTransmissionMaterialProps = JSX.IntrinsicElements['meshPhysicalMaterial
 
 ```jsx
 return (
-  <mesh geometry={geometry} {...props}>
+  <T.Mesh geometry={geometry} {...props}>
     <MeshTransmissionMaterial />
 ```
 
 If each material rendering the scene on its own is too expensive you can share a buffer texture. Either by enabling `transmissionSampler` which would use the threejs-internal buffer that MeshPhysicalMaterials use. This might be faster, the downside is that no transmissive material can "see" other transparent or transmissive objects.
 
 ```jsx
-<mesh geometry={torus}>
+<T.Mesh geometry={torus}>
   <MeshTransmissionMaterial transmissionSampler />
-</mesh>
-<mesh geometry={sphere}>
+</T.Mesh>
+<T.Mesh geometry={sphere}>
   <MeshTransmissionMaterial transmissionSampler />
-</mesh>
+</T.Mesh>
 ```
 
 Or, by passing a texture to `buffer` manually, for instance using useFBO.
@@ -1897,12 +1899,12 @@ useFrame((state) => {
 })
 return (
   <>
-    <mesh geometry={torus}>
+    <T.Mesh geometry={torus}>
       <MeshTransmissionMaterial buffer={buffer.texture} />
-    </mesh>
-    <mesh geometry={sphere}>
+    </T.Mesh>
+    <T.Mesh geometry={sphere}>
       <MeshTransmissionMaterial buffer={buffer.texture} />
-    </mesh>
+    </T.Mesh>
 ```
 
 Or a PerspectiveCamera.
@@ -1911,12 +1913,12 @@ Or a PerspectiveCamera.
 <PerspectiveCamera makeDefault fov={75} position={[10, 0, 15]} resolution={1024}>
   {(texture) => (
     <>
-      <mesh geometry={torus}>
+      <T.Mesh geometry={torus}>
         <MeshTransmissionMaterial buffer={texture} />
-      </mesh>
-      <mesh geometry={sphere}>
+      </T.Mesh>
+      <T.Mesh geometry={sphere}>
         <MeshTransmissionMaterial buffer={texture} />
-      </mesh>
+      </T.Mesh>
     </>
   )}
 ```
@@ -1925,11 +1927,11 @@ This would mimic the default MeshPhysicalMaterial behaviour, these materials won
 
 #### MeshDiscardMaterial
 
-A material that renders nothing. In comparison to `<mesh visible={false}` it can be used to hide objects from the scene while still displays shadows and children.
+A material that renders nothing. In comparison to `<T.Mesh visible={false}` it can be used to hide objects from the scene while still displays shadows and children.
 
 ```jsx
-<mesh castShadow>
-  <torusKnotGeonetry />
+<T.Mesh castShadow>
+  <T.TorusKnotGeometry />
   <MeshDiscardMaterial />
   {/* Shadows and edges will show, but the model itself won't */}
   <Edges />
@@ -1944,9 +1946,9 @@ A material that renders nothing. In comparison to `<mesh visible={false}` it can
 Antialiased round dots. It takes the same props as regular [THREE.PointsMaterial](https://threejs.org/docs/index.html?q=PointsMaterial#api/en/materials/PointsMaterial) on which it is based.
 
 ```jsx
-<points>
+<T.Points>
   <PointMaterial transparent vertexColors size={15} sizeAttenuation={false} depthWrite={false} />
-</points>
+</T.Points>
 ```
 
 #### SoftShadows
@@ -1984,7 +1986,7 @@ Injects percent closer soft shadows (pcss) into threes shader chunk. Mounting an
 Creates a THREE.ShaderMaterial for you with easier handling of uniforms, which are automatically declared as setter/getters on the object and allowed as constructor arguments.
 
 ```jsx
-import { extend } from '@react-three/fiber'
+import { extend } from '@solid-three/fiber'
 
 const ColorShiftMaterial = shaderMaterial(
   { time: 0, color: new THREE.Color(0.2, 0.0, 0.1) },
@@ -2010,9 +2012,9 @@ const ColorShiftMaterial = shaderMaterial(
 // declaratively
 extend({ ColorShiftMaterial })
 ...
-<mesh>
-  <colorShiftMaterial color="hotpink" time={1} />
-</mesh>
+<T.Mesh>
+  <T.ColorShiftMaterial color="hotpink" time={1} />
+</T.Mesh>
 
 // imperatively, all uniforms are available as setter/getters and constructor args
 const material = new ColorShiftMaterial({ color: new THREE.Color("hotpink") })
@@ -2027,7 +2029,7 @@ import { ColorShiftMaterial } from './ColorShiftMaterial'
 extend({ ColorShiftMaterial })
 
 // in your component
-<colorShiftMaterial key={ColorShiftMaterial.key} color="hotpink" time={1} />
+<T.ColorShiftMaterial key={ColorShiftMaterial.key} color="hotpink" time={1} />
 ```
 
 # Modifiers
@@ -2039,15 +2041,15 @@ extend({ ColorShiftMaterial })
 Given a curve will replace the children of this component with a mesh that move along said curve calling the property `moveAlongCurve` on the passed ref. Uses [three's Curve Modifier](https://threejs.org/examples/#webgl_modifier_curve)
 
 ```jsx
-const curveRef = useRef()
+let curveRef
 
-const curve = React.useMemo(() => new THREE.CatmullRomCurve3([...handlePos], true, 'centripetal'), [handlePos])
+const curve = createMemo(() => new THREE.CatmullRomCurve3([...handlePos], true, 'centripetal'))
 
 return (
-  <CurveModifier ref={curveRef} curve={curve}>
-    <mesh>
-      <boxGeometry args={[10, 10]} />
-    </mesh>
+  <CurveModifier ref={curveRef} curve={curve()}>
+    <T.Mesh>
+      <T.BoxGeometry args={[10, 10]} />
+    </T.Mesh>
   </CurveModifier>
 )
 ```
@@ -2077,8 +2079,8 @@ function SceneWrapper() {
 
 function Scene() {
   // we can now consume a context within the Canvas
-  const theme = React.useContext(ThemeContext)
-  const greeting = React.useContext(GreetingContext)
+  const theme = useContext(ThemeContext)
+  const greeting = useContext(GreetingContext)
   return (
     //...
   )
@@ -2109,9 +2111,8 @@ type ExampleProps = {
 Ref-api:
 
 ```tsx
-const api = useRef<ExampleApi>()
-
-<Example ref={api} font="/Inter_Bold.json" />
+let api: ExampleApi
+;<Example ref={api} font="/Inter_Bold.json" />
 ```
 
 ```tsx
@@ -2167,7 +2168,7 @@ Html can hide behind geometry using the `occlude` prop.
 When the Html object hides it sets the opacity prop on the innermost div. If you want to animate or control the transition yourself then you can use `onOcclude`.
 
 ```jsx
-const [hidden, set] = useState()
+const [hidden, set] = createSignal()
 
 <Html
   occlude
@@ -2175,7 +2176,7 @@ const [hidden, set] = useState()
   style={{
     transition: 'all 0.5s',
     opacity: hidden ? 0 : 1,
-    transform: `scale(${hidden ? 0.5 : 1})`
+    transform: `scale(${hidden() ? 0.5 : 1})`
   }}
 />
 ```
@@ -2195,7 +2196,7 @@ You can also give HTML material properties using the `material` prop.
 <Html
   occlude
   material={
-    <meshPhysicalMaterial
+    <T.MeshPhysicalMaterial
       side={DoubleSide} // Required
       opacity={0.1} // Degree of influence of lighting on the HTML
       ... // Any other material properties
@@ -2213,7 +2214,7 @@ Enable shadows using the `castShadow` and `recieveShadow` prop.
   occlude
   castShadow // Make HTML cast a shadow
   receiveShadow // Make HTML receive shadows
-  material={<meshPhysicalMaterial side={DoubleSide} opacity={0.1} />}
+  material={<T.MeshPhysicalMaterial side={DoubleSide} opacity={0.1} />}
 />
 ```
 
@@ -2332,7 +2333,7 @@ The SpriteAnimator component provided by drei is a powerful tool for animating s
 
 Notes:
 
-- The SpriteAnimator component internally uses the useFrame hook from react-three-fiber (r3f) for efficient frame updates and rendering.
+- The SpriteAnimator component internally uses the useFrame hook from solid-three-fiber (r3f) for efficient frame updates and rendering.
 - The sprites should contain equal size frames
 - Trimming of spritesheet frames is not yet supported
 
@@ -2361,14 +2362,13 @@ Adds [stats](https://github.com/mrdoob/stats.js/) to document.body. It takes ove
 You can choose to mount Stats to a different DOM Element - for example, for custom styling:
 
 ```jsx
-const node = useRef(document.createElement('div'))
+const node = document.createElement('div')
 
-useEffect(() => {
-  node.current.id = 'test'
-  document.body.appendChild(node.current)
-
-  return () => document.body.removeChild(node.current)
-}, [])
+onMount(() => {
+  node.id = 'test'
+  document.body.appendChild(node)
+  onCleanup(() => document.body.removeChild(node))
+})
 
 return <Stats parent={parent} />
 ```
@@ -2394,12 +2394,12 @@ Adds [stats-gl](https://github.com/RenaudRohlinger/stats-gl/) to document.body. 
 Renders an Antialiased, shader based wireframe on or around a geometry.
 
 ```jsx
-<mesh>
+<T.Mesh>
   <geometry />
   <material />
 
   <Wireframe /> // Will apply wireframe on top of existing material on this mesh
-</mesh>
+</T.Mesh>
 
 // OR
 <Wireframe
@@ -2485,7 +2485,7 @@ The rendertarget is automatically disposed when unmounted.
 A hook for the rare case when you are using non-default cameras for heads-up-displays or portals, and you need events/raytracing to function properly (raycasting uses the default camera otherwise).
 
 ```jsx
-<mesh raycast={useCamera(customCamera)} />
+<T.Mesh raycast={useCamera(customCamera)} />
 ```
 
 #### useCubeCamera
@@ -2519,14 +2519,14 @@ const { fbo, camera, update } = useCubeCamera()
 
 This hook uses [DetectGPU by @TimvanScherpenzeel](https://github.com/TimvanScherpenzeel/detect-gpu), wrapped into suspense, to determine what tier should be assigned to the user's GPU.
 
-👉 This hook CAN be used outside the @react-three/fiber `Canvas`.
+👉 This hook CAN be used outside the @solid-three/fiber `Canvas`.
 
 ```jsx
 function App() {
   const GPUTier = useDetectGPU()
   // show a fallback for mobile or lowest tier GPUs
   return (
-    {(GPUTier.tier === "0" || GPUTier.isMobile) ? <Fallback /> : <Canvas>...</Canvas>
+    {(GPUTier()?.tier === "0" || GPUTier()?.isMobile) ? <Fallback /> : <Canvas>...</Canvas>
 
 <Suspense fallback={null}>
   <App />
@@ -2545,9 +2545,9 @@ const scale = useAspect(
   1                         // Optional scaling factor
 )
 return (
-  <mesh scale={scale}>
-    <planeGeometry />
-    <meshBasicMaterial map={imageTexture} />
+  <T.Mesh scale={scale()}>
+    <T.PlaneGeometry />
+    <T.MeshBasicMaterial map={imageTexture} />
 ```
 
 #### useCursor
@@ -2557,10 +2557,10 @@ return (
 A small hook that sets the css body cursor according to the hover state of a mesh, so that you can give the use visual feedback when the mouse enters a shape. Arguments 1 and 2 determine the style, the defaults are: onPointerOver = 'pointer', onPointerOut = 'auto'.
 
 ```jsx
-const [hovered, set] = useState()
+const [hovered, set] = createSignal()
 useCursor(hovered, /*'pointer', 'auto'*/)
 return (
-  <mesh onPointerOver={() => set(true)} onPointerOut={() => set(false)}>
+  <T.Mesh onPointerOver={() => set(true)} onPointerOut={() => set(false)}>
 ```
 
 #### useIntersect
@@ -2572,8 +2572,8 @@ return (
 A very cheap frustum check that gives you a reference you can observe in order to know if the object has entered the view or is outside of it. This relies on [THREE.Object3D.onBeforeRender](https://threejs.org/docs/#api/en/core/Object3D.onBeforeRender) so it only works on objects that are effectively rendered, like meshes, lines, sprites. It won't work on groups, object3d's, bones, etc.
 
 ```jsx
-const ref = useIntersect((visible) => console.log('object is visible', visible))
-return <mesh ref={ref} />
+const [ref, setRef] = useIntersect((visible) => console.log('object is visible', visible))
+return <T.Mesh ref={setRef} />
 ```
 
 #### useBoxProjectedEnv
@@ -2587,15 +2587,15 @@ The cheapest possible way of getting reflections in threejs. This will box-proje
 ```jsx
 const projection = useBoxProjectedEnv(
   [0, 0, 0], // Position
-  [1, 1, 1] // Scale
+  [1, 1, 1]  // Scale
 )
 
 <CubeCamera frames={1}>
   {(texture) => (
-    <mesh>
-      <planeGeometry />
-      <meshStandardMaterial envMap={texture} {...projection} />
-    </mesh>
+    <T.Mesh>
+      <T.PlaneGeometry />
+      <T.MeshStandardMaterial envMap={texture} {...projection()} />
+    </T.Mesh>
   )}
 </CubeCamera>
 ```
@@ -2622,7 +2622,7 @@ const points = useTrail(
 
 // To use...
 useFrame(() => {
-  meshLineRef.current.position.setPoints(points.current)
+  meshLineRef.position.setPoints(points())
 })
 ```
 
@@ -2677,7 +2677,7 @@ $ curl https://storage.googleapis.com/mediapipe-models/face_landmarker/face_land
 ```
 
 ```tsx
-import { FaceLandmarkerDefaults } from '@react-three/drei'
+import { FaceLandmarkerDefaults } from '@solid-three/drei'
 
 const visionBasePath = new URL("/tasks-vision-wasm", import.meta.url).toString()
 const modelAssetPath = new URL("/face_landmarker.task", import.meta.url).toString()
@@ -2730,8 +2730,8 @@ A convenience hook that wraps `THREE.DefaultLoadingManager`'s progress status.
 
 ```jsx
 function Loader() {
-  const { active, progress, errors, item, loaded, total } = useProgress()
-  return <Html center>{progress} % loaded</Html>
+  const progress = useProgress()
+  return <Html center>{progress.progress} % loaded</Html>
 }
 
 return (
@@ -2741,7 +2741,7 @@ return (
 )
 ```
 
-If you don't want your progress component to re-render on all changes you can be specific as to what you need, for instance if the component is supposed to collect errors only. Look into [zustand](https://github.com/react-spring/zustand) for more info about selectors.
+If you want to use selectors u can pass a selector-function to `useProgress`. It will return an `Accessor<T>`.
 
 ```jsx
 const errors = useProgress((state) => state.errors)
@@ -2793,7 +2793,7 @@ useFBX(url)
 
 function SuzanneFBX() {
   let fbx = useFBX('suzanne/suzanne.fbx')
-  return <primitive object={fbx} />
+  return <T.Primitive object={fbx()} />
 }
 ```
 
@@ -2805,7 +2805,7 @@ A convenience hook that uses `useLoader` and `TextureLoader`
 
 ```jsx
 const texture = useTexture(url)
-const [texture1, texture2] = useTexture([texture1, texture2])
+const resources = useTexture([texture1, texture2])
 ```
 
 You can also use key: url objects:
@@ -2815,7 +2815,7 @@ const props = useTexture({
   metalnessMap: url1,
   map: url2,
 })
-return <meshStandardMaterial {...props} />
+return <T.MeshStandardMaterial {...props()} />
 ```
 
 #### useKTX2
@@ -2828,7 +2828,7 @@ A convenience hook that uses `useLoader` and `KTX2Loader`
 const texture = useKTX2(url)
 const [texture1, texture2] = useKTX2([texture1, texture2])
 
-return <meshStandardMaterial map={texture} />
+return <T.MeshStandardMaterial map={texture} />
 ```
 
 #### useCubeTexture
@@ -2875,31 +2875,31 @@ export function useVideoTexture(src: string, props: VideoTextureProps) {
 ```jsx
 const texture = useVideoTexture("/video.mp4")
 return (
-  <mesh>
-    <meshBasicMaterial map={texture} toneMapped={false} />
+  <T.Mesh>
+    <T.MeshBasicMaterial map={texture()} toneMapped={false} />
 ```
 
 It also accepts a [`MediaStream`](https://developer.mozilla.org/en-US/docs/Web/API/MediaStream) from eg. [`.getDisplayMedia()`](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getDisplayMedia) or [`.getUserMedia()`](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia):
 
 ```jsx
-const [stream, setStream] = useState()
+const [stream, setStream] = createSignal()
 
 return (
-  <mesh onClick={async () => setStream(await navigator.mediaDevices.getDisplayMedia({ video: true }))}>
-    <React.Suspense fallback={<meshBasicMaterial wireframe />}>
-      <VideoMaterial src={stream} />
-    </React.Suspense>
+  <T.Mesh onClick={async () => setStream(await navigator.mediaDevices.getDisplayMedia({ video: true }))}>
+    <T.Suspense fallback={<T.MeshBasicMaterial wireframe />}>
+      <VideoMaterial src={stream()} />
+    </T.uspense>
 ```
 
 ```jsx
 function VideoMaterial({ src }) {
   const texture = useVideoTexture(src)
 
-  return <meshBasicMaterial map={texture} toneMapped={false} />
+  return <T.MeshBasicMaterial map={texture()} toneMapped={false} />
 }
 ```
 
-NB: It's important to wrap `VideoMaterial` into `React.Suspense` since, `useVideoTexture(src)` here will be suspended until the user shares its screen.
+NB: It's important to wrap `VideoMaterial` into `Suspense` since, `useVideoTexture(src)` here will be suspended until the user shares its screen.
 
 #### useTrailTexture
 
@@ -2933,10 +2933,10 @@ type TrailConfig = {
 ```
 
 ```jsx
-const [texture, onMove] = useTrailTexture(config)
+const trail = useTrailTexture(config)
 return (
-  <mesh onPointerMove={onMove}>
-    <meshStandardMaterial displacementMap={texture} />
+  <T.Mesh onPointerMove={trail().onMove}>
+    <T.MeshStandardMaterial displacementMap={trail().texture} />
 ```
 
 #### useFont
@@ -2945,7 +2945,7 @@ Uses THREE.FontLoader to load a font and returns a `THREE.Font` object. It also 
 
 ```jsx
 const font = useFont('/fonts/helvetiker_regular.typeface.json')
-return <Text3D font={font} />
+return <Text3D font={font()} />
 ```
 
 In order to preload you do this:
@@ -2970,8 +2970,8 @@ A wrapper around [THREE.InstancedMesh](https://threejs.org/docs/#api/en/objects/
   limit={1000} // Optional: max amount of items (for calculating buffer size)
   range={1000} // Optional: draw-range
 >
-  <boxGeometry />
-  <meshStandardMaterial />
+  <T.BoxGeometry />
+  <T.MeshStandardMaterial />
   <Instance
     color="red"
     scale={2}
@@ -3031,9 +3031,9 @@ You may also use object notation, which is good for loaded models.
 
 ```jsx
 function Model({ url }) {
-  const { nodes } = useGLTF(url)
+  const gltf = useGLTF(url)
   return (
-    <Merged meshes={nodes}>
+    <Merged meshes={gltf()?.nodes}>
       {({ Screw, Filter, Pipe }) => (
         <>
           <Screw />
@@ -3055,7 +3055,7 @@ A wrapper around [THREE.Points](https://threejs.org/docs/#api/en/objects/Points)
   limit={1000} // Optional: max amount of items (for calculating buffer size)
   range={1000} // Optional: draw-range
 >
-  <pointsMaterial vertexColors />
+  <T.PointsMaterial vertexColors />
   <Point position={[1, 2, 3]} color="red" onClick={onClick} onPointerOver={onPointerOver} ... />
   // As many as you want, make them conditional, mount/unmount them, lazy load them, etc ...
 </Points>
@@ -3065,7 +3065,7 @@ If you just want to use buffers for position, color and size, you can use the al
 
 ```jsx
 <Points positions={positionsBuffer} colors={colorsBuffer} sizes={sizesBuffer}>
-  <pointsMaterial />
+  <T.PointsMaterial />
 </Points>
 ```
 
@@ -3087,13 +3087,13 @@ A wrapper around [THREE.LineSegments](https://threejs.org/docs/#api/en/objects/L
 ##### Ref based (for fast updates):
 
 ```jsx
-const ref = useRef()
+let ref;
 
 // E.g. to change segment position each frame.
 useFrame(() => {
-  ref.current.start.set(0,0,0)
-  ref.current.end.set(10,10,0)
-  ref.current.color.setRGB(0,0,0)
+  ref.start.set(0,0,0)
+  ref.end.set(10,10,0)
+  ref.color.setRGB(0,0,0)
 })
 // ...
 <Segments
@@ -3116,9 +3116,9 @@ A wrapper around [THREE.LOD](https://threejs.org/docs/#api/en/objects/LOD) (Leve
 
 ```jsx
 <Detailed distances={[0, 10, 20]} {...props}>
-  <mesh geometry={highDetail} />
-  <mesh geometry={mediumDetail} />
-  <mesh geometry={lowDetail} />
+  <T.Mesh geometry={highDetail} />
+  <T.Mesh geometry={mediumDetail} />
+  <T.Mesh geometry={lowDetail} />
 </Detailed>
 ```
 
@@ -3153,7 +3153,7 @@ Sets `gl.shadowMap.autoUpdate` to `false` while mounted and requests a single `g
 A very fast, but often good-enough bounds-only raycast for meshes. You can use this if performance has precedence over pointer precision.
 
 ```jsx
-<mesh raycast={meshBounds} />
+<T.Mesh raycast={meshBounds} />
 ```
 
 #### AdaptiveDpr
@@ -3240,7 +3240,7 @@ type PerformanceMonitorProps = {
   /** Called after when the number of flipflops is reached, it indicates instability, use the function to set a fixed baseline */
   onFallback?: (api: PerformanceMonitorApi) => void
   /** Children may use the usePerformanceMonitor hook */
-  children?: React.ReactNode
+  children?: JSX.Element
 }
 ```
 
@@ -3265,9 +3265,9 @@ A simple example for regulating the resolution. It starts out with 1.5, if the s
 
 ```jsx
 function App() {
-  const [dpr, setDpr] = useState(1.5)
+  const [dpr, setDpr] = createSignal(1.5)
   return (
-    <Canvas dpr={dpr}>
+    <Canvas dpr={dpr()}>
       <PerformanceMonitor onIncline={() => setDpr(2)} onDecline={() => setDpr(1)} >
 ```
 
@@ -3278,9 +3278,9 @@ The following starts at the highest dpr (2) and clamps the gradual dpr between 0
 ```jsx
 import round from 'lodash/round'
 
-const [dpr, set] = useState(2)
+const [dpr, set] = createSignal(2)
 return (
- <Canvas dpr={dpr}>
+ <Canvas dpr={dpr()}>
   <PerformanceMonitor factor={1} onChange={({ factor }) => setDpr(round(0.5 + 1.5 * factor, 1))} >
 ```
 
@@ -3316,30 +3316,31 @@ Renders a heads-up-display (HUD). Each HUD is a scene on top of the previous. Th
 ```tsx
 type HudProps = {
   /** Any React node */
-  children: React.ReactNode
+  children: JSX.Element
   /** Render priority, default: 1 */
   renderPriority?: number
 }
 ```
 
+<!-- prettier-ignore -->
 ```jsx
 {
   /* Renders on top of the default scene with a perspective camera */
 }
-;<Hud>
+<Hud>
   <PerspectiveCamera makeDefault position={[0, 0, 10]} />
-  <mesh>
-    <ringGeometry />
-  </mesh>
+  <T.Mesh>
+    <T.RingGeometry />
+  </T.Mesh>
 </Hud>
 {
   /* Renders on top of the previous HUD with an orthographic camera */
 }
-;<Hud renderPriority={2}>
+<Hud renderPriority={2}>
   <OrthographicCamera makeDefault position={[0, 0, 10]} />
-  <mesh>
-    <boxGeometry />
-  </mesh>
+  <T.Mesh>
+    <T.BoxGeometry />
+  </T.Mesh>
 </Hud>
 ```
 
@@ -3357,9 +3358,9 @@ It is advisable to re-connect the event system to a parent that contains both th
 This ensures that both are accessible/selectable and even allows you to mount controls or other deeper
 integrations into your view.
 
-> Note that `@react-three/fiber` newer than `^8.1.0` is required for `View` to work correctly if the
+> Note that `@solid-three/fiber` newer than `^8.1.0` is required for `View` to work correctly if the
 > canvas/react three fiber root is not fullscreen. A warning will be logged if drei is used with older
-> versions of `@react-three/fiber`.
+> versions of `@solid-three/fiber`.
 
 ```tsx
 <View
@@ -3370,20 +3371,20 @@ integrations into your view.
   /** If you know your view is always at the same place set this to 1 to avoid needless getBoundingClientRect overhead. The default is Infinity, which is best for css animations */
   frames?: number
   /** The scene to render, if you leave this undefined it will render the default scene */
-  children?: React.ReactNode
+  children?: JSX.Element
 />
 ```
 
 ```jsx
-const container = useRef()
-const tracking = useRef()
+let container
+let tracking
 return (
   <main ref={container}>
     <h1>Html content here</h1>
     <div ref={tracking} style={{ width: 200, height: 200 }} />
     <Canvas eventSource={container}>
       <View track={tracking}>
-        <mesh />
+        <T.Mesh />
         <OrbitControls />
       </View>
 ```
@@ -3419,16 +3420,16 @@ type Props = JSX.IntrinsicElements['texture'] & {
   /** Optional event compute, defaults to undefined */
   compute?: (event: any, state: any, previous: any) => false | undefined
   /** Children will be rendered into a portal */
-  children: React.ReactNode
+  children: JSX.Element
 }
 ```
 
 ```jsx
-<mesh>
-  <planeGeometry />
-  <meshStandardMaterial>
+<T.Mesh>
+  <T.PlaneGeometry />
+  <T.MeshStandardMaterial>
     <RenderTexture attach="map">
-      <mesh />
+      <T.Mesh />
 ```
 
 #### Mask
@@ -3455,8 +3456,8 @@ First you need to define a mask, give it the shape that you want.
 
 ```jsx
 <Mask id={1}>
-  <planeGeometry />
-  <meshBasicMaterial />
+  <T.PlaneGeometry />
+  <T.MeshBasicMaterial />
 </Mask>
 ```
 
@@ -3465,21 +3466,21 @@ Now refer to it with the `useMask` hook and the same id, your content will now b
 ```jsx
 const stencil = useMask(1)
 return (
-  <mesh>
-    <torusKnotGeometry />
-    <meshStandardMaterial {...stencil} />
+  <T.Mesh>
+    <T.TorusKnotGeometry />
+    <T.MeshStandardMaterial {...stencil} />
 ```
 
 You can build compound masks with multiple shapes by re-using an id. You can also use the mask as a normal mesh by providing `colorWrite` and `depthWrite` props.
 
 ```jsx
 <Mask position={[-1, 0, 0]} id={1}>
-  <planeGeometry />
-  <meshBasicMaterial />
+  <T.PlaneGeometry />
+  <T.MeshBasicMaterial />
 </Mask>
 <Mask colorWrite depthWrite position={[1, 0, 0]} id={1}>
-  <circleGeometry />
-  <meshBasicMaterial />
+  <T.CircleGeometry />
+  <T.MeshBasicMaterial />
 </Mask>
 ```
 
@@ -3521,14 +3522,14 @@ export type PortalProps = JSX.IntrinsicElements['shaderMaterial'] & {
 A material that creates a portal into another scene. It is drawn onto the geometry of the mesh that it is applied to. It uses RenderTexture internally, but counteracts the perspective shift of the texture surface, the portals contents are thereby masked by it but otherwise in the same position as if they were in the original scene.
 
 ```jsx
-<mesh {...props}>
-  <planeGeometry />
+<T.Mesh {...props}>
+  <T.PlaneGeometry />
   <MeshPortalMaterial>
-    <mesh>
-      <sphereGeometry />
-    </mesh>
+    <T.Mesh>
+      <T.SphereGeometry />
+    </T.Mesh>
   </MeshPortalMaterial>
-</mesh>
+</T.Mesh>
 ```
 
 You can optionally fade or blur the edges of the portal by providing a `blur` prop, do not forget to make the material transparent in that case. It uses SDF flood-fill to determine the shape, you can thereby blur any geometry.
@@ -3599,7 +3600,7 @@ type OnCenterCallbackProps = {
 
 ```jsx
 <Center top left>
-  <mesh />
+  <T.Mesh />
 </Center>
 ```
 
@@ -3607,9 +3608,9 @@ Optionally you can define `onCentered` which calls you back when contents have b
 
 ```jsx
 function ScaledModel() {
-  const viewport = useThree((state) => state.viewport)
+  const store = useThree()
   return (
-    <Center onCentered={({ container, height }) => container.scale.setScalar(viewport.height / height)}>
+    <Center onCentered={({ container, height }) => container.scale.setScalar(store.viewport.height / height)}>
       <Model />
     </Center>
 ```
@@ -3641,7 +3642,7 @@ export type ResizeProps = JSX.IntrinsicElements['group'] & {
 
 ```jsx
 <Resize>
-  <mesh />
+  <T.Mesh />
 </Resize>
 ```
 
@@ -3695,7 +3696,7 @@ Calculates a boundary box and centers the camera accordingly. If you are using c
 
 ```jsx
 <Bounds fit clip observe damping={6} margin={1.2}>
-  <mesh />
+  <T.Mesh />
 </Bounds>
 ```
 
@@ -3704,9 +3705,9 @@ The Bounds component also acts as a context provider, use the `useBounds` hook t
 ```jsx
 function Foo() {
   const bounds = useBounds()
-  useEffect(() => {
+  createEffect(() => {
     // Calculate scene bounds
-    bounds.refresh().clip().fit()
+    bounds().refresh().clip().fit()
 
     // Or, focus a specific object or box3
     // bounds.refresh(ref.current).clip().fit()
@@ -3714,6 +3715,8 @@ function Foo() {
 
     // Or, send the camera to a specific orientatin
     // bounds.to({position: [0, 10, 10], target: {[5, 5, 0]}})
+  })
+
 <Bounds>
   <Foo />
 ```
@@ -3770,7 +3773,7 @@ This component makes its contents float or hover.
   floatIntensity={1} // Up/down float intensity, works like a multiplier with floatingRange,defaults to 1
   floatingRange={[1, 10]} // Range of y-axis values the object will float within, defaults to [-0.1,0.1]
 >
-  <mesh />
+  <T.Mesh />
 </Float>
 ```
 
@@ -3824,7 +3827,7 @@ By default it gives you contact shadows and auto-centering.
 
 ```jsx
 <Stage adjustCamera intensity={0.5} shadows="contact" environment="city">
-  <mesh />
+  <T.Mesh />
 </Stage>
 ```
 
@@ -3833,7 +3836,7 @@ For a little more realistic results enable accumulative shadows, which requires 
 ```jsx
 <Canvas shadows>
   <Stage shadows="accumulative">
-    <mesh castShadows />
+    <T.Mesh castShadows />
   </Stage>
 </Canvas>
 ```
@@ -3851,7 +3854,7 @@ A curved plane, like a studio backdrop. This is for presentational purposes, to 
   floor={0.25} // Stretches the floor segment, 0.25 by default
   segments={20} // Mesh-resolution, 20 by default
 >
-  <meshStandardMaterial color="#353540" />
+  <T.MeshStandardMaterial color="#353540" />
 </Backdrop>
 ```
 
@@ -3898,7 +3901,7 @@ type CausticsProps = JSX.IntrinsicElements['group'] & {
   /** Intensity of the prjected caustics, default: 0.05 */
   intensity?: number
   /** Caustics color, default: white */
-  color?: ReactThreeFiber.Color
+  color?: SolidThreeFiber.Color
   /** Buffer resolution, default: 2048 */
   resolution?: number
   /** Camera position, it will point towards the contents bounds center, default: [5, 5, 5] */
@@ -3931,12 +3934,12 @@ Sometimes you want to combine caustics for even better visuals, or if you want t
 The light source can either be defined by prop or by reference. Use the latter if you want to control the light source, for instance in order to move or animate it. Runtime caustics with frames set to `Infinity`, a low resolution and no backside can be feasible.
 
 ```jsx
-const lightSource = useRef()
+let lightSource
 
 <Caustics frames={Infinity} resolution={256} lightSource={lightSource} >
   <WineGlass />
 </Caustics>
-<object3d ref={lightSource} position={[2.5, 5, -2.5]} />
+<T.Object3d ref={lightSource} position={[2.5, 5, -2.5]} />
 ```
 
 #### ContactShadows
@@ -4039,7 +4042,7 @@ type AccumulativeShadowsProps = JSX.IntrinsicElements['group'] & {
   /** Buffer resolution, 1024 */
   resolution?: number
   /** Children should be randomized lights shining from different angles to emulate raycasting */
-  children?: React.ReactNode
+  children?: JSX.Element
 }
 ```
 
@@ -4168,14 +4171,14 @@ If you provide a single string it will use THREE.RGBELoader.
 <Environment files="file.hdr" />
 ```
 
-You can also use [@pmndrs/assets](https://github.com/pmndrs/assets) to easily self host common assets. Always use dynamic imports to avoid making this part of your main bundle.
+<!-- You can also use [@pmndrs/assets](https://github.com/pmndrs/assets) to easily self host common assets. Always use dynamic imports to avoid making this part of your main bundle.
 
 ```jsx
 import { suspend } from 'suspend-react'
 const city = import('@pmndrs/assets/hdri/city.exr').then((module) => module.default)
 
 <Environment files={suspend(city)} />
-```
+``` -->
 
 If you already have a cube texture you can pass it directly:
 
@@ -4187,10 +4190,10 @@ If you provide children you can even render a custom environment. It will render
 
 ```jsx
 <Environment background near={1} far={1000} resolution={256}>
-  <mesh scale={100}>
-    <sphereGeometry args={[1, 64, 64]} />
-    <meshBasicMaterial map={texture} side={THREE.BackSide} />
-  </mesh>
+  <T.Mesh scale={100}>
+    <T.SphereGeometry args={[1, 64, 64]} />
+    <T.MeshBasicMaterial map={texture} side={THREE.BackSide} />
+  </T.Mesh>
 </Environment>
 ```
 
@@ -4199,7 +4202,7 @@ You can even mix a generic HDRI environment into a custom one with either the `p
 ```jsx
 return (
   <Environment background near={1} far={1000} resolution={256} preset="warehouse">
-    <mesh />
+    <T.Mesh />
 ```
 
 Declarative environment content can also animate with the `frames` prop, the envmap can be live. Give it a low resolution and this will happen at very little cost
@@ -4208,7 +4211,7 @@ Declarative environment content can also animate with the `frames` prop, the env
 return (
   <Environment frames={Infinity} resolution={256}>
     <Float>
-      <mesh />
+      <T.Mesh />
     </Float>
 ```
 
@@ -4381,7 +4384,7 @@ const [matcap, url] = useMatcapTexture(
 
 return (
  ...
- <meshMatcapMaterial matcap={matcap} />
+ <T.MeshMatcapMaterial matcap={matcap()} />
  ...
 )
 ```
@@ -4415,7 +4418,7 @@ const [normalMap, url] = useNormalTexture(
 
 return (
   ...
-  <meshStandardMaterial normalMap={normalMap} />
+  <T.MeshStandardMaterial normalMap={normalMap()} />
   ...
 )
 ```
