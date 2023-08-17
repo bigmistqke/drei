@@ -1,5 +1,7 @@
-import { createMemo, createRenderEffect, createResource } from 'solid-js'
+import { createThreeResource } from '@solid-three/fiber'
+import { createRenderEffect, createResource } from 'solid-js'
 import { RepeatWrapping, Texture, Vector2 } from 'three'
+import { defaultProps } from '../helpers/defaultProps'
 import { when } from '../helpers/when'
 import { useTexture } from './useTexture'
 
@@ -12,27 +14,32 @@ type Settings = {
   offset?: number[]
 }
 
-export function useNormalTexture(id = 0, settings: Settings = {}, onLoad?: (texture: Texture | Texture[]) => void) {
-  const { repeat = [1, 1], anisotropy = 1, offset = [0, 0] } = settings
+export function useNormalTexture(id = 0, _settings: Settings, onLoad?: (texture: Texture | Texture[]) => void) {
+  const settings = defaultProps(_settings, { repeat: [1, 1], anisotropy: 1, offset: [0, 0] })
 
   const [normalsList] = createResource(['normalsList'], () =>
     fetch(LIST_URL).then((res) => res.json() as unknown as Record<string, string>)
   )
 
-  const numTot = createMemo(() => when(normalsList)((normalsList) => Object.keys(normalsList).length))
-  const DEFAULT_NORMAL = () => normalsList()?.[0]
+  const numTot = () => when(normalsList)((list) => Object.keys(list).length)
+  const imageName = () => when(normalsList)((list) => list[id] || list[0])
+  const url = () => when(imageName)((name) => `${NORMAL_ROOT}/normals/${name}`)
 
-  const imageName = () => normalsList()?.[id] || DEFAULT_NORMAL
-  const url = () => `${NORMAL_ROOT}/normals/${imageName()}`
-
-  const texture = useTexture(url, onLoad)
+  const [texture] = createThreeResource(
+    url,
+    (url) =>
+      new Promise<Texture>((resolve) => {
+        const texture = useTexture(url, onLoad)
+        createRenderEffect(() => when(texture)(resolve))
+      })
+  )
 
   createRenderEffect(() =>
     when(texture)((texture) => {
       texture.wrapS = texture.wrapT = RepeatWrapping
-      texture.repeat = new Vector2(repeat[0], repeat[1])
-      texture.offset = new Vector2(offset[0], offset[1])
-      texture.anisotropy = anisotropy
+      texture.repeat = new Vector2(settings.repeat[0], settings.repeat[1])
+      texture.offset = new Vector2(settings.offset[0], settings.offset[1])
+      texture.anisotropy = settings.anisotropy
     })
   )
 

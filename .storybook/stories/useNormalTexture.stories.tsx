@@ -1,5 +1,5 @@
 import { number, withKnobs } from '@storybook/addon-knobs'
-import { Mesh, Vector2, Vector3 } from 'three'
+import { Vector2, Vector3 } from 'three'
 
 import { T } from '@solid-three/fiber'
 import { useGLTF, useNormalTexture } from '../../src'
@@ -21,7 +21,7 @@ function Suzanne() {
   })
 
   return (
-    <T.Mesh geometry={(gltf()?.nodes.Suzanne as Mesh).geometry}>
+    <T.Mesh geometry={gltf()?.nodes.Suzanne.geometry}>
       <T.MeshStandardMaterial
         color="darkmagenta"
         roughness={0.9}
