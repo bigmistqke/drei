@@ -1,7 +1,7 @@
-import path from 'path'
 import babel from '@rollup/plugin-babel'
-import resolve from '@rollup/plugin-node-resolve'
 import json from '@rollup/plugin-json'
+import resolve from '@rollup/plugin-node-resolve'
+import path from 'path'
 import glslify from 'rollup-plugin-glslify'
 import multiInput from 'rollup-plugin-multi-input'
 import { terser } from 'rollup-plugin-terser'
@@ -32,7 +32,7 @@ const getBabelOptions = ({ useESModules }) => ({
         targets: '> 1%, not dead, not ie 11, not op_mini all',
       },
     ],
-    '@babel/preset-react',
+    'solid',
     '@babel/preset-typescript',
   ],
   plugins: [
