@@ -34,6 +34,8 @@ type MeshRefractionMaterialProps = ThreeProps<'ShaderMaterial'> & {
 const isCubeTexture = (def: THREE.CubeTexture | THREE.Texture): def is THREE.CubeTexture =>
   def && (def as THREE.CubeTexture).isCubeTexture
 
+extend({ MeshRefractionMaterial: MeshRefractionMaterial_ })
+
 export function MeshRefractionMaterial(_props: MeshRefractionMaterialProps) {
   const [props, rest] = processProps(
     _props,
@@ -43,8 +45,6 @@ export function MeshRefractionMaterial(_props: MeshRefractionMaterialProps) {
     },
     ['aberrationStrength', 'fastChroma', 'envMap']
   )
-
-  extend({ MeshRefractionMaterial: MeshRefractionMaterial_ })
 
   let material
   const store = useThree()
@@ -67,11 +67,11 @@ export function MeshRefractionMaterial(_props: MeshRefractionMaterialProps) {
     if (props.aberrationStrength > 0) temp.CHROMATIC_ABERRATIONS = ''
     if (props.fastChroma) temp.FAST_CHROMA = ''
     return temp
-  }, [props.aberrationStrength, props.fastChroma])
+  })
 
   onMount(() => {
     // Get the geometry of this materials parent
-    const geometry = material?.__r3f?.parent?.geometry
+    const geometry = material?.__r3f?.parent?.object.geometry
     // Update the BVH
     if (geometry) {
       material.bvh = new MeshBVHUniformStruct()
@@ -86,10 +86,8 @@ export function MeshRefractionMaterial(_props: MeshRefractionMaterialProps) {
 
   return (
     <T.MeshRefractionMaterial
-      // @ts-ignore
-      key={JSON.stringify(defines)}
-      // @ts-ignore
-      defines={defines}
+      key={JSON.stringify(defines())}
+      defines={defines()}
       ref={material}
       resolution={[store.size.width, store.size.height]}
       aberrationStrength={props.aberrationStrength}

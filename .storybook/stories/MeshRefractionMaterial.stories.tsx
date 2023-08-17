@@ -1,4 +1,5 @@
 import { T, useLoader } from '@solid-three/fiber'
+import { Show } from 'solid-js'
 import * as THREE from 'three'
 import { RGBELoader } from 'three-stdlib'
 import {
@@ -12,6 +13,7 @@ import {
   RandomizedLight,
   useGLTF,
 } from '../../src'
+import { all } from '../../src/helpers/when'
 import { Setup } from '../Setup'
 
 export default {
@@ -35,34 +37,41 @@ function Diamond(props: any) {
     RGBELoader,
     'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/aerodynamics_workshop_1k.hdr'
   )
+
   return (
-    <CubeCamera resolution={256} frames={1} envMap={texture()}>
-      {(texture) => (
-        <Caustics
-          // @ts-ignore
-          backfaces
-          color="white"
-          position={[0, -0.5, 0]}
-          lightSource={[5, 5, -10]}
-          worldRadius={0.1}
-          ior={1.8}
-          backfaceIor={1.1}
-          intensity={0.1}
-        >
-          <T.Mesh castShadow ref={ref} geometry={resource()?.nodes.Diamond_1_0.geometry} {...props}>
-            <MeshRefractionMaterial
-              envMap={texture}
-              bounces={3}
-              aberrationStrength={0.01}
-              ior={2.75}
-              fresnel={1}
-              fastChroma
-              toneMapped={false}
-            />
-          </T.Mesh>
-        </Caustics>
+    <Show when={all(texture, resource)} keyed>
+      {([texture, resource]) => (
+        <CubeCamera resolution={256} frames={1} envMap={texture}>
+          {(texture) => (
+            <>
+              <Caustics
+                // @ts-ignore
+                backfaces
+                color="white"
+                position={[0, -0.5, 0]}
+                lightSource={[5, 5, -10]}
+                worldRadius={0.1}
+                ior={1.8}
+                backfaceIor={1.1}
+                intensity={0.1}
+              >
+                <T.Mesh castShadow ref={ref} geometry={resource.nodes.Diamond_1_0.geometry} {...props}>
+                  <MeshRefractionMaterial
+                    envMap={texture}
+                    bounces={3}
+                    aberrationStrength={0.01}
+                    ior={2.75}
+                    fresnel={1}
+                    fastChroma
+                    toneMapped={false}
+                  />
+                </T.Mesh>
+              </Caustics>
+            </>
+          )}
+        </CubeCamera>
       )}
-    </CubeCamera>
+    </Show>
   )
 }
 
@@ -73,7 +82,6 @@ export const RefractionSt = () => (
     <T.SpotLight position={[5, 5, -10]} angle={0.15} penumbra={1} />
     <T.PointLight position={[-10, -10, -10]} />
     <Diamond rotation={[0, 0, 0.715]} position={[0, -0.175 + 0.5, 0]} />
-    {/* @ts-ignore */}
     <Caustics
       color="#FF8F20"
       position={[0, -0.5, 0]}
@@ -84,7 +92,6 @@ export const RefractionSt = () => (
     >
       <T.Mesh castShadow receiveShadow position={[-2, 0.5, -1]} scale={0.5}>
         <T.SphereGeometry args={[1, 64, 64]} />
-        {/* @ts-ignore */}
         <MeshTransmissionMaterial resolution={1024} distortion={0.25} color="#FF8F20" thickness={1} anisotropy={1} />
       </T.Mesh>
     </Caustics>
