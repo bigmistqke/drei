@@ -105,7 +105,9 @@ const PointsInstances: RefComponent<THREE.Points, PointsInstancesProps> = (_prop
 
   createEffect(() => {
     // We might be a frame too late? 🤷‍♂️
-    parent()!.geometry.attributes.position.needsUpdate = true
+    when(parent)((parent) => {
+      parent.geometry.attributes.position.needsUpdate = true
+    })
   })
 
   useFrame(() => {
@@ -144,7 +146,7 @@ const PointsInstances: RefComponent<THREE.Points, PointsInstancesProps> = (_prop
 
   return (
     <T.Points
-      ref={props.ref}
+      ref={mergeRefs(props, setParent)}
       userData={{
         get instances() {
           return refs()

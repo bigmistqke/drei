@@ -1,4 +1,4 @@
-import { For, createEffect, createSignal, splitProps } from 'solid-js'
+import { For, createEffect, createSignal, onCleanup, splitProps } from 'solid-js'
 import { MathUtils, Quaternion, Vector3 } from 'three'
 
 import { Setup } from '../Setup'
@@ -117,9 +117,9 @@ function BasicPointsInstancesScene() {
     if (store.raycaster.params.Points) {
       const old = store.raycaster.params.Points.threshold
       store.raycaster.params.Points.threshold = 0.05
-      return () => {
+      onCleanup(() => {
         if (store.raycaster.params.Points) store.raycaster.params.Points.threshold = old
-      }
+      })
     }
   })
   return (
@@ -156,23 +156,22 @@ function BasicPointsInstancesSelectionScene() {
   ])
 
   const store = useThree()
+
   createEffect(() => {
     if (store.raycaster.params.Points) {
       const old = store.raycaster.params.Points.threshold
       store.raycaster.params.Points.threshold = 0.175
-      return () => {
+      onCleanup(() => {
         if (store.raycaster.params.Points) store.raycaster.params.Points.threshold = old
-      }
+      })
     }
-  }, [])
+  })
 
   return (
-    <>
-      <Points limit={points.length} range={points.length}>
-        <PointMaterial transparent vertexColors size={15} sizeAttenuation={false} depthWrite={false} />
-        <For each={points}>{(position, i) => <PointEvent key={i} color="orange" position={position} />}</For>
-      </Points>
-    </>
+    <Points limit={points.length} range={points.length}>
+      <PointMaterial transparent vertexColors size={15} sizeAttenuation={false} depthWrite={false} />
+      <For each={points}>{(position, i) => <PointEvent color="orange" position={position} />}</For>
+    </Points>
   )
 }
 
