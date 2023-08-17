@@ -48,9 +48,9 @@ type CausticsProps = ThreeProps<'Group'> & {
   /** Enables visual cues to help you stage your scene, default: false */
   debug?: boolean
   /** Will display caustics only and skip the models, default: false */
-  causticsOnly: boolean
+  causticsOnly?: boolean
   /** Will include back faces and enable the backsideIOR prop, default: false */
-  backside: boolean
+  backside?: boolean
   /** The IOR refraction index, default: 1.1 */
   ior?: number
   /** The IOR refraction index for back faces (only available when backside is enabled), default: 1.1 */
