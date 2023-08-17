@@ -1,5 +1,5 @@
 import { extend, SolidThreeFiber, T, ThreeProps, useFrame, useThree } from '@solid-three/fiber'
-import { Accessor, createContext, createMemo, createRenderEffect, onCleanup, onMount, useContext } from 'solid-js'
+import { Accessor, createContext, createEffect, createMemo, onCleanup, onMount, useContext } from 'solid-js'
 import * as THREE from 'three'
 import { processProps } from '../helpers/processProps'
 import { RefComponent } from '../helpers/typeHelpers'
@@ -103,6 +103,8 @@ const SoftShadowMaterial = shaderMaterial(
    }`
 )
 
+extend({ SoftShadowMaterial })
+
 export const AccumulativeShadows: RefComponent<AccumulativeContext, ThreeProps<'Group'> & AccumulativeShadowsProps> = (
   _props
 ) => {
@@ -137,15 +139,12 @@ export const AccumulativeShadows: RefComponent<AccumulativeContext, ThreeProps<'
     ]
   )
 
-  extend({ SoftShadowMaterial })
   const store = useThree()
   let gPlane: THREE.Mesh<THREE.PlaneGeometry, SoftShadowMaterialProps & THREE.ShaderMaterial> = null!
   let gLights: THREE.Group = null!
 
   const plm = new ProgressiveLightMap(store.gl, store.scene, props.resolution)
-  createRenderEffect(() => {
-    plm.configure(gPlane)
-  }, [])
+  createEffect(() => plm.configure(gPlane))
 
   const api = createMemo<AccumulativeContext>(() => ({
     lights: new Map(),
@@ -154,24 +153,24 @@ export const AccumulativeShadows: RefComponent<AccumulativeContext, ThreeProps<'
     blend: Math.max(2, props.frames === Infinity ? props.blend : props.frames),
     count: 0,
     getMesh: () => gPlane,
-    reset: () => {
+    reset() {
       if (!gPlane) return
       // Clear buffers, reset opacities, set frame count to 0
       plm.clear()
       const material = gPlane.material
       material.opacity = 0
       material.alphaTest = 0
-      api().count = 0
+      this.count = 0
     },
-    update: (frames = 1) => {
+    update(frames = 1) {
       // Adapt the opacity-blend ratio to the number of frames
       const material = gPlane.material
-      if (!api().temporal) {
+      if (!this.temporal) {
         material.opacity = props.opacity
         material.alphaTest = props.alphaTest
       } else {
-        material.opacity = Math.min(props.opacity, material.opacity + props.opacity / api().blend)
-        material.alphaTest = Math.min(props.alphaTest, material.alphaTest + props.alphaTest / api().blend)
+        material.opacity = Math.min(props.opacity, material.opacity + props.opacity / this.blend)
+        material.alphaTest = Math.min(props.alphaTest, material.alphaTest + props.alphaTest / this.blend)
       }
 
       // Switch accumulative lights on
@@ -181,8 +180,8 @@ export const AccumulativeShadows: RefComponent<AccumulativeContext, ThreeProps<'
 
       // Update the lightmap and the accumulative lights
       for (let i = 0; i < frames; i++) {
-        api().lights.forEach((light) => light.update())
-        plm.update(store.camera, api().blend)
+        this.lights.forEach((light) => light.update())
+        plm.update(store.camera, this.blend)
       }
       // Switch lights off
       gLights.visible = false
@@ -191,7 +190,7 @@ export const AccumulativeShadows: RefComponent<AccumulativeContext, ThreeProps<'
     },
   }))
 
-  onMount(() => {
+  createEffect(() => {
     // Reset internals, buffers, ...
     api().reset()
     // Update lightmap
