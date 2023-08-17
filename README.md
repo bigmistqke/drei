@@ -234,7 +234,7 @@ import { PerspectiveCamera, PositionalAudio, ... } from '@solid-three/drei'
 [![](https://img.shields.io/badge/-storybook-%23ff69b4)](https://drei.vercel.app/?path=/story/camera-perspectivecamera--perspective-camera-scene-st)
 
 ```tsx
-type Props = Omit<JSX.IntrinsicElements['perspectiveCamera'], 'children'> & {
+type Props = Omit<ThreeProps<'PerspectiveCamera'>, 'children'> & {
   /** Registers the camera as the system default, fiber will start rendering with it */
   makeDefault?: boolean
   /** Making it manual will stop responsiveness and you have to calculate aspect ratio yourself. */
@@ -314,7 +314,7 @@ You can use the OrthographicCamera to film contents into a RenderTarget, it has 
 A [THREE.CubeCamera](https://threejs.org/docs/#api/en/cameras/CubeCamera) that returns its texture as a render-prop. It makes children invisible while rendering to the internal buffer so that they are not included in the reflection.
 
 ```tsx
-type Props = JSX.IntrinsicElements['group'] & {
+type Props = ThreeProps<'Group'> & {
   /** Number of frames to render, Infinity */
   frames?: number
   /** Resolution of the FBO, 256 */
@@ -1779,7 +1779,7 @@ This material makes your geometry distort following simplex noise.
 A convincing Glass/Diamond refraction material.
 
 ```tsx
-type MeshRefractionMaterialProps = JSX.IntrinsicElements['shaderMaterial'] & {
+type MeshRefractionMaterialProps = ThreeProps<'ShaderMaterial'> & {
   /** Environment map */
   envMap: THREE.CubeTexture | THREE.Texture
   /** Number of ray-cast bounces, it can be expensive to have too many, 2 */
@@ -1831,7 +1831,7 @@ Although it should be faster than MPM keep in mind that it can still be expensiv
 For performance and visual reasons the host mesh gets removed from the render-stack temporarily. If you have other objects that you don't want to see reflected in the material just add them to the parent mesh as children.
 
 ```tsx
-type MeshTransmissionMaterialProps = JSX.IntrinsicElements['meshPhysicalMaterial'] & {
+type MeshTransmissionMaterialProps = ThreeProps<'MeshPhysicalMaterial'> & {
   /* Transmission, default: 1 */
   transmission?: number
   /* Thickness (refraction), default: 0 */
@@ -3193,7 +3193,7 @@ export interface BVHOptions {
 }
 
 export type BvhProps = BVHOptions &
-  JSX.IntrinsicElements['group'] & {
+  ThreeProps<'Group'> & {
     /**Enabled, default: true */
     enabled?: boolean
     /** Use .raycastFirst to retrieve hits which is generally faster, default: false */
@@ -3398,7 +3398,7 @@ return (
 This component allows you to render a live scene into a texture which you can then apply to a material. The contents of it run inside a portal and are separate from the rest of the canvas, therefore you can have events in there, environment maps, etc.
 
 ```tsx
-type Props = JSX.IntrinsicElements['texture'] & {
+type Props = ThreeProps<'Texture'> & {
   /** Optional width of the texture, defaults to viewport bounds */
   width?: number
   /** Optional height of the texture, defaults to viewport bounds */
@@ -3500,7 +3500,7 @@ const stencil = useMask(1, true)
 </p>
 
 ```tsx
-export type PortalProps = JSX.IntrinsicElements['shaderMaterial'] & {
+export type PortalProps = ThreeProps<'ShaderMaterial'> & {
   /** Mix the portals own scene with the world scene, 0 = world scene render,
    *  0.5 = both scenes render, 1 = portal scene renders, defaults to 0 */
   blend?: number
@@ -3558,7 +3558,7 @@ It is also possible to _enter_ the portal. If blend is 0 your scene will render 
 Calculates a boundary box and centers its children accordingly.
 
 ```tsx
-export type Props = JSX.IntrinsicElements['group'] & {
+export type Props = ThreeProps<'Group'> & {
   top?: boolean
   right?: boolean
   bottom?: boolean
@@ -3626,7 +3626,7 @@ function ScaledModel() {
 Calculates a boundary box and scales its children so the highest dimension is constrained by 1. NB: proportions are preserved.
 
 ```tsx
-export type ResizeProps = JSX.IntrinsicElements['group'] & {
+export type ResizeProps = ThreeProps<'Group'> & {
   /** constrained by width dimension (x axis), undefined */
   width?: boolean
   /** constrained by height dimension (y axis), undefined */
@@ -3883,7 +3883,7 @@ A cheap canvas-texture-based circular gradient.
 Caustics are swirls of light that appear when light passes through transmissive surfaces. This component uses a raymarching technique to project caustics onto a catcher plane. It is based on [github/N8python/caustics](https://github.com/N8python/caustics).
 
 ```tsx
-type CausticsProps = JSX.IntrinsicElements['group'] & {
+type CausticsProps = ThreeProps<'Group'> & {
   /** How many frames it will render, set it to Infinity for runtime, default: 1 */
   frames?: number
   /** Enables visual cues to help you stage your scene, default: false */
@@ -3967,7 +3967,7 @@ Since this is a rather expensive effect you can limit the amount of frames it re
 A randomized light that internally runs multiple lights and jiggles them. See below, you would normally pair it with `AccumulativeShadows`. This component is context aware, paired with AccumulativeShadows it will take the number of frames from its parent.
 
 ```tsx
-type RandomizedLightProps = JSX.IntrinsicElements['group'] & {
+type RandomizedLightProps = ThreeProps<'Group'> & {
   /** How many frames it will jiggle the lights, 1.
    *  Frames is context aware, if a provider like AccumulativeShadows exists, frames will be taken from there!  */
   frames?: number
@@ -4020,7 +4020,7 @@ A planar, Y-up oriented shadow-catcher that can accumulate into soft shadows and
 You must pair it with lightsources (and scene objects!) that cast shadows, which go into the children slot. Best use it with the `RandomizedLight` component, which jiggles a set of lights around, creating realistic raycast-like shadows and ambient occlusion.
 
 ```tsx
-type AccumulativeShadowsProps = JSX.IntrinsicElements['group'] & {
+type AccumulativeShadowsProps = ThreeProps<'Group'> & {
   /** How many frames it can render, more yields cleaner results but takes more time, 40 */
   frames?: number
   /** If frames === Infinity blend controls the refresh ratio, 100 */
