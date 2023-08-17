@@ -78,7 +78,7 @@ import { PerspectiveCamera, PositionalAudio, ... } from '@solid-three/drei'
           <li>- [x] <a href="#clone">Clone</a></li>
           <li>- [x] <a href="#useanimations">useAnimations</a></li>
           <li>- [x] <a href="#marchingcubes">MarchingCubes</a></li>
-          <li>- [ ] <a href="#decal">Decal</a></li>
+          <li>- [x] <a href="#decal">Decal</a></li>
           <li>- [x] <a href="#svg">Svg</a></li>
           <li>- [x] <a href="#gltf">Gltf</a></li>
           <li>- [x] <a href="#asciirenderer">AsciiRenderer</a></li>
@@ -211,7 +211,7 @@ import { PerspectiveCamera, PositionalAudio, ... } from '@solid-three/drei'
           <li>- [x] <a href="#spotlightshadows">SpotLightShadows</a></li>
           <li>- [x] <a href="#shadow">Shadow</a></li>
           <li>- [x] <a href="#caustics">Caustics</a></li>
-          <li>- [ ] <a href="#contactshadows">ContactShadows</a></li>
+          <li>- [x] <a href="#contactshadows">ContactShadows</a></li>
           <li>- [x] <a href="#randomizedlight">RandomizedLight</a></li>
           <li>- [x] <a href="#accumulativeshadows">AccumulativeShadows</a></li>
           <li>- [x] <a href="#sky">Sky</a></li>
