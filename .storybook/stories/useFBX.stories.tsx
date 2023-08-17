@@ -13,7 +13,6 @@ export default {
 function SuzanneFBX() {
   const fbx = useFBX('suzanne/suzanne.fbx')
   const envMap = useCubeTexture(['px.png', 'nx.png', 'py.png', 'ny.png', 'pz.png', 'nz.png'], { path: 'cube/' })
-  // s3f:   monkey is completely black with envMap defined.
   return <T.Mesh {...fbx()?.children[0]} material-envMap={envMap()} material-color="white" material-reflectivity={1} />
 }
 
