@@ -61,18 +61,18 @@ export const ContactShadows: RefComponent<any, Omit<ThreeProps<'Group'>, 'scale'
     ]
   )
 
-  let ref: THREE.Group = null!
+  let ref: THREE.Group
+  let shadowCamera: THREE.OrthographicCamera
   const store = useThree()
-  const shadowCamera: THREE.OrthographicCamera = null!
 
-  props.width = props.width * (Array.isArray(props.scale) ? props.scale[0] : props.scale || 1)
-  props.height = props.height * (Array.isArray(props.scale) ? props.scale[1] : props.scale || 1)
+  const width = () => props.width * (Array.isArray(props.scale) ? props.scale[0] : props.scale || 1)
+  const height = () => props.height * (Array.isArray(props.scale) ? props.scale[1] : props.scale || 1)
 
   const memo = createMemo(() => {
     const renderTarget = new THREE.WebGLRenderTarget(props.resolution, props.resolution)
     const renderTargetBlur = new THREE.WebGLRenderTarget(props.resolution, props.resolution)
     renderTargetBlur.texture.generateMipmaps = renderTarget.texture.generateMipmaps = false
-    const planeGeometry = new THREE.PlaneGeometry(props.width, props.height).rotateX(Math.PI / 2)
+    const planeGeometry = new THREE.PlaneGeometry(width(), height()).rotateX(Math.PI / 2)
     const blurPlane = new THREE.Mesh(planeGeometry)
     const depthMaterial = new THREE.MeshDepthMaterial()
     depthMaterial.depthTest = depthMaterial.depthWrite = false
@@ -106,7 +106,7 @@ export const ContactShadows: RefComponent<any, Omit<ThreeProps<'Group'>, 'scale'
       verticalBlurMaterial,
       renderTargetBlur,
     }
-  }, [props.resolution, props.width, props.height, props.scale, props.color])
+  })
 
   const blurShadows = (blur) => {
     memo().blurPlane.visible = true
@@ -133,6 +133,7 @@ export const ContactShadows: RefComponent<any, Omit<ThreeProps<'Group'>, 'scale'
   let initialOverrideMaterial: THREE.Material | null
   useFrame(() => {
     if (shadowCamera && (props.frames === Infinity || count < props.frames)) {
+      // console.log('this happens?')
       count++
 
       initialBackground = store.scene.background
@@ -158,7 +159,7 @@ export const ContactShadows: RefComponent<any, Omit<ThreeProps<'Group'>, 'scale'
   createImperativeHandle(props, () => ref)
 
   return (
-    <T.Group rotation-x={Math.PI / 2} {...rest} ref={ref}>
+    <T.Group rotation-x={Math.PI / 2} {...rest} ref={ref!}>
       <T.Mesh
         renderOrder={props.renderOrder}
         geometry={memo().planeGeometry}
@@ -173,8 +174,8 @@ export const ContactShadows: RefComponent<any, Omit<ThreeProps<'Group'>, 'scale'
         />
       </T.Mesh>
       <T.OrthographicCamera
-        ref={shadowCamera}
-        args={[-props.width / 2, props.width / 2, props.height / 2, -props.height / 2, props.near, props.far]}
+        ref={shadowCamera!}
+        args={[-width() / 2, width() / 2, height() / 2, -height() / 2, props.near, props.far]}
       />
     </T.Group>
   )
