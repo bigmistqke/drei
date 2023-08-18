@@ -26,7 +26,7 @@ import { PerspectiveCamera, PositionalAudio, ... } from '@solid-three/drei'
 
 ### Index
 
-> `solid-three`: checked equals tested (with storybook)
+> `solid-three` all are ported, except `<PresentationalControls/>` and `useContextBridge`. checked equals tested with storybook.
 
 <table>
   <tr>
