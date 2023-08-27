@@ -10,7 +10,7 @@
 
 > `solid-three`: This is a WIP port of [drei](https://github.com/pmndrs/drei). Not published yet.
 
-A growing collection of useful helpers and fully functional, ready-made abstractions for [@solid-three/core](https://github.com/solidjs-community/solid-three). If you make a component that is generic enough to be useful to others, think about [CONTRIBUTING](CONTRIBUTING.md)!
+A growing collection of useful helpers and fully functional, ready-made abstractions for [@solid-three/fiber](https://github.com/solidjs-community/solid-three). If you make a component that is generic enough to be useful to others, think about [CONTRIBUTING](CONTRIBUTING.md)!
 
 ```bash
 npm install @solid-three/drei
