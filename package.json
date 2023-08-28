@@ -1,6 +1,6 @@
 {
   "name": "@solid-three/drei",
-  "version": "0.0.0-semantic-release",
+  "version": "9.80.8",
   "private": true,
   "description": "useful add-ons for solid-three-fiber",
   "keywords": [
